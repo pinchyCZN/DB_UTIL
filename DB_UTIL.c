@@ -8,12 +8,13 @@
 #include "Commctrl.h"
 
 HINSTANCE ghinstance=0;
-HWND ghmainframe=0,ghmdiclient=0,ghswitchbar=0;
+HWND ghmainframe=0,ghmdiclient=0,ghtreeview=0;
 static HMENU ghmenu=0;
 static int mousex=0,mousey=0;
 static int lmb_down=FALSE;
 static int main_drag=FALSE;
 CRITICAL_SECTION mutex;
+
 
 int load_icon(HWND hwnd)
 {
@@ -42,12 +43,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 	case WM_MENUSELECT:
 		switch(LOWORD(wparam)){
 		case IDM_OPEN:
-			{
-			void *ptr=0;
-			acquire_db_window(&ptr);
-			if(ptr!=0)
-				create_db_window(ghmdiclient,ptr);
-			}
+			task_open_db("C:\\Journal Manager\\journal.db");
 			break;
 		}
 		break;
@@ -153,12 +149,15 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 	
 	InitializeCriticalSection(&mutex);
 
+	start_worker_thread();
+
 	setup_mdi_classes(ghinstance);
 	
 	ghmenu=LoadMenu(hInstance, MAKEINTRESOURCE(IDR_MENU1));
 	ghmainframe=create_mainwindow(&WndProc,ghmenu,hInstance);
 
 	ghmdiclient=create_mdiclient(ghmainframe,ghmenu,ghinstance);
+	ghtreeview=create_treeview(ghmainframe,ghinstance);
 
 	ShowWindow(ghmainframe,nCmdShow);
 	UpdateWindow(ghmainframe);

@@ -7,6 +7,7 @@
 #include <io.h>
 #include <richedit.h>
 #include <math.h>
+#include "Commctrl.h"
 #include "resource.h"
 
 extern HINSTANCE ghinstance;
@@ -14,11 +15,12 @@ extern HINSTANCE ghinstance;
 typedef struct{
 	int in_use;
 	char name[1024];
-	HWND hwnd,hbutton,hstatic,hlist,hedit;
+	HWND hwnd,hbutton,hstatic,hlistview,hedit;
 }DB_WINDOW;
 
 static DB_WINDOW db_windows[100];
 
+#include "treeview.h"
 
 LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
@@ -37,9 +39,14 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
     {
 	case WM_CREATE:
 		{
+		DB_WINDOW *win=0;
 		LPCREATESTRUCT pcs = (LPCREATESTRUCT)lparam;
 		LPMDICREATESTRUCT pmdics = (LPMDICREATESTRUCT)(pcs->lpCreateParams);
-		//create_mdi_window(hwnd,ghinstance,pmdics->lParam);
+		win=pmdics->lParam;
+		if(win!=0){
+			win->hwnd=hwnd;
+		}
+		create_mdi_window(hwnd,ghinstance,win);
 		}
         break;
 	case WM_MOUSEACTIVATE:
@@ -181,6 +188,50 @@ void hide_console()
 	}
 }
 
+int create_listview_columns(HWND hlistview,char *list)
+{
+	LV_COLUMN col;
+	int i;
+	for(i=0;i<10;i++)
+		ListView_InsertColumn(hlistview,i,&col);
+
+}
+int create_mdi_window(HWND hwnd,HINSTANCE hinstance,DB_WINDOW *win)
+{
+    INITCOMMONCONTROLSEX ctrls;
+	HWND hstatic,hedit,hlistview=0;
+	HMENU hmenu;
+	RECT rect;
+	static int init_cc=FALSE;
+	if(win==0)
+		return FALSE;
+
+	if(init_cc==FALSE){
+		ctrls.dwSize=sizeof(ctrls);
+		ctrls.dwICC = ICC_LISTVIEW_CLASSES|ICC_TREEVIEW_CLASSES;
+		InitCommonControlsEx(&ctrls);
+		init_cc=TRUE;
+	}
+
+    GetClientRect(hwnd,&rect); 
+
+    hlistview = CreateWindow(WC_LISTVIEW, 
+                                     "",
+                                     WS_TABSTOP|WS_CHILD|WS_VISIBLE|LVS_REPORT|LVS_SHOWSELALWAYS, //|LVS_OWNERDRAWFIXED, //|LVS_EDITLABELS,
+                                     0, 32,
+                                     rect.right - rect.left,
+                                     rect.bottom - rect.top-60,
+                                     hwnd,
+                                     IDC_RESULTS,
+                                     (HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE),
+                                     NULL);
+	if(hlistview==0)
+		return FALSE;
+	win->hlistview=hlistview;
+	//ListView_SetExtendedListViewStyle(hlistview,ListView_GetExtendedListViewStyle(hlistview)|LVS_EX_FULLROWSELECT);
+	return TRUE;
+}
+
 
 int setup_mdi_classes(HINSTANCE hinstance)
 {
@@ -237,7 +288,7 @@ int create_mainwindow(void *wndproc,HMENU hmenu,HINSTANCE hinstance)
 	wndclass.lpszClassName="mdiframe";
 	
 	if(RegisterClass(&wndclass)!=0){	
-		hframe = CreateWindow("mdiframe","slimIRC",
+		hframe = CreateWindow("mdiframe","DB_UTIL",
 			WS_CLIPSIBLINGS|WS_CLIPCHILDREN|WS_OVERLAPPEDWINDOW, //0x6CF0000
 			0,0,
 			400,300,
@@ -248,7 +299,29 @@ int create_mainwindow(void *wndproc,HMENU hmenu,HINSTANCE hinstance)
 	}
 	return hframe;
 }
-
+int create_treeview(HWND hwnd,HINSTANCE hinstance)
+{
+	//extern LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
+	WNDCLASS wndclass;
+	HWND hswitch;
+	memset(&wndclass,0,sizeof(wndclass));
+	wndclass.lpfnWndProc=treeview_proc;
+	wndclass.hCursor=LoadCursor(NULL, IDC_ARROW);
+	wndclass.hbrBackground=COLOR_BTNFACE+1;
+	wndclass.lpszClassName="treeview";
+	wndclass.style=CS_HREDRAW|CS_VREDRAW;
+	if(RegisterClass(&wndclass)!=0){
+		hswitch=CreateWindow("treeview","treeview",
+			WS_CHILD|WS_CLIPCHILDREN|WS_CLIPSIBLINGS|WS_VISIBLE|WS_BORDER,
+			0,0,
+			10,10,
+			hwnd,
+			IDC_TREEVIEW,
+			hinstance,
+			NULL);
+	}
+	return hswitch;
+}
 int create_db_window(HWND hmdiclient,DB_WINDOW *win)
 { 
 	int maximized=0,style,handle;
