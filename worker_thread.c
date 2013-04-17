@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <stdio.h>
 
+extern HWND ghmainframe,ghmdiclient,ghtreeview;
 HANDLE event;
 int task=0;
 char taskinfo[1024]={0};
@@ -31,6 +32,9 @@ int thread(HANDLE event)
 				{
 				void *ptr=0;
 				printf("db=%s\n",taskinfo);
+				acquire_db_window(&ptr);
+				if(ptr!=0)
+					create_db_window(ghmdiclient,ptr);
 				}
 				break;
 			default:

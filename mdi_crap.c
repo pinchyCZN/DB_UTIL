@@ -198,20 +198,11 @@ int create_listview_columns(HWND hlistview,char *list)
 }
 int create_mdi_window(HWND hwnd,HINSTANCE hinstance,DB_WINDOW *win)
 {
-    INITCOMMONCONTROLSEX ctrls;
 	HWND hstatic,hedit,hlistview=0;
 	HMENU hmenu;
 	RECT rect;
-	static int init_cc=FALSE;
 	if(win==0)
 		return FALSE;
-
-	if(init_cc==FALSE){
-		ctrls.dwSize=sizeof(ctrls);
-		ctrls.dwICC = ICC_LISTVIEW_CLASSES|ICC_TREEVIEW_CLASSES;
-		InitCommonControlsEx(&ctrls);
-		init_cc=TRUE;
-	}
 
     GetClientRect(hwnd,&rect); 
 
@@ -299,22 +290,22 @@ int create_mainwindow(void *wndproc,HMENU hmenu,HINSTANCE hinstance)
 	}
 	return hframe;
 }
-int create_treeview(HWND hwnd,HINSTANCE hinstance)
+int create_dbview(HWND hwnd,HINSTANCE hinstance)
 {
 	//extern LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 	WNDCLASS wndclass;
-	HWND hswitch;
+	HWND hswitch=0;
 	memset(&wndclass,0,sizeof(wndclass));
 	wndclass.lpfnWndProc=treeview_proc;
 	wndclass.hCursor=LoadCursor(NULL, IDC_ARROW);
 	wndclass.hbrBackground=COLOR_BTNFACE+1;
-	wndclass.lpszClassName="treeview";
+	wndclass.lpszClassName="dbview";
 	wndclass.style=CS_HREDRAW|CS_VREDRAW;
 	if(RegisterClass(&wndclass)!=0){
-		hswitch=CreateWindow("treeview","treeview",
+		hswitch=CreateWindow("dbview","dbview",
 			WS_CHILD|WS_CLIPCHILDREN|WS_CLIPSIBLINGS|WS_VISIBLE|WS_BORDER,
 			0,0,
-			10,10,
+			0,0,
 			hwnd,
 			IDC_TREEVIEW,
 			hinstance,

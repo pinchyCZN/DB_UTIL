@@ -8,11 +8,12 @@
 #include "Commctrl.h"
 
 HINSTANCE ghinstance=0;
-HWND ghmainframe=0,ghmdiclient=0,ghtreeview=0;
+HWND ghmainframe=0,ghmdiclient=0,ghdbview=0;
 static HMENU ghmenu=0;
 static int mousex=0,mousey=0;
 static int lmb_down=FALSE;
 static int main_drag=FALSE;
+int tree_width=20;
 CRITICAL_SECTION mutex;
 
 
@@ -30,8 +31,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
 	static DWORD tick=0;
 	RECT rect;
-	if(msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY)
-	//if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE)
+	//if(msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY)
+	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE)
 	{
 		if((GetTickCount()-tick)>500)
 			printf("--\n");
@@ -48,6 +49,16 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 		}
 		break;
 	case WM_CREATE:
+		{
+			RECT rect={0};
+			GetClientRect(hwnd,&rect);
+			get_ini_value("SETTINGS","TREE_WIDTH",&tree_width);
+			if(tree_width>rect.right-10 || tree_width<10){
+				tree_width=rect.right/4;
+				if(tree_width<12)
+					tree_width=12;
+			}
+		}
 		break;
 	case WM_USER:
 		break;
@@ -63,20 +74,26 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 	case WM_LBUTTONUP:
 		ReleaseCapture();
 		main_drag=FALSE;
+		write_ini_value("SETTINGS","TREE_WIDTH",tree_width);
 		break;
 	case WM_LBUTTONDOWN:
 		SetCapture(hwnd);
-		SetCursor(LoadCursor(NULL,IDC_SIZENS));
+		SetCursor(LoadCursor(NULL,IDC_SIZEWE));
 		main_drag=TRUE;
 		break;
 	case WM_MOUSEFIRST:
 		{
 			int y=HIWORD(lparam);
 			int x=LOWORD(lparam);
-			SetCursor(LoadCursor(NULL,IDC_SIZENS));
+			SetCursor(LoadCursor(NULL,IDC_SIZEWE));
 			if(main_drag){
 				RECT rect;
 				GetClientRect(ghmainframe,&rect);
+				if(x>10 && x<rect.right-10){
+					tree_width=x;
+					resize_treeview(hwnd,ghmdiclient,ghdbview,tree_width);
+					printf("rect.right=%i x=%i y=%i\n",rect.right,x,y);
+				}
 			}
 		}
 		break;
@@ -89,6 +106,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 	case WM_NCCALCSIZE:
 		break;
 	case WM_SIZE:
+		resize_treeview(hwnd,ghmdiclient,ghdbview,tree_width);
+		return 0;
 		break;
 	case WM_QUERYENDSESSION:
 		return 1; //ok to end session
@@ -126,7 +145,6 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 {
 	MSG msg;
     INITCOMMONCONTROLSEX ctrls;
-	WSADATA wsaData;
 	int debug=0;
 #ifdef _DEBUG
 	debug=1;
@@ -140,12 +158,12 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 		move_console();
 	}
 	init_mdi_stuff();
+
 	LoadLibrary("RICHED20.DLL");
 
 	ctrls.dwSize=sizeof(ctrls);
-    ctrls.dwICC = ICC_LISTVIEW_CLASSES;
+    ctrls.dwICC = ICC_LISTVIEW_CLASSES|ICC_TREEVIEW_CLASSES;
 	InitCommonControlsEx(&ctrls);
-	WSAStartup(MAKEWORD(1,1),&wsaData);
 	
 	InitializeCriticalSection(&mutex);
 
@@ -157,7 +175,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 	ghmainframe=create_mainwindow(&WndProc,ghmenu,hInstance);
 
 	ghmdiclient=create_mdiclient(ghmainframe,ghmenu,ghinstance);
-	ghtreeview=create_treeview(ghmainframe,ghinstance);
+	ghdbview=create_dbview(ghmainframe,ghinstance);
 
 	ShowWindow(ghmainframe,nCmdShow);
 	UpdateWindow(ghmainframe);
