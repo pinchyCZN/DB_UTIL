@@ -1,18 +1,61 @@
 HWND ghtreeview;
 
-int test_items()
+int insert_root(char *name)
 {
 	TV_INSERTSTRUCT tvins;
 	TV_ITEM tvi;
-     
 	tvi.mask=TVIF_TEXT;
-	tvi.pszText="Item";
- 
+	tvi.pszText=name;
+
 	tvins.hParent=TVI_ROOT;
-	tvins.hInsertAfter=TVI_FIRST;
+	tvins.hInsertAfter=TVI_SORT;
 	tvins.item=tvi;
+	return TreeView_InsertItem(ghtreeview,&tvins);
+}
+int insert_item(char *name,HTREEITEM hparent)
+{
+	TV_INSERTSTRUCT tvins;
+	TV_ITEM tvi;
+	tvi.mask=TVIF_TEXT;
+	tvi.pszText=name;
  
-	TreeView_InsertItem(ghtreeview,&tvins);
+	tvins.hParent=hparent;
+	tvins.hInsertAfter=TVI_SORT;
+	tvins.item=tvi;
+ 	return TreeView_InsertItem(ghtreeview,&tvins);
+}
+int tree_get_root(char *name,HANDLE *hroot)
+{
+	HTREEITEM h;
+	h=TreeView_GetRoot(ghtreeview);
+	while(h!=0){
+		TV_ITEM tvi;
+		memset(&tvi,0,sizeof(tvi));
+		tvi.hItem=h;
+		tvi.mask=TVIF_TEXT|TVIF_HANDLE;
+		TreeView_GetItem(ghtreeview,&tvi);
+		if(tvi.pszText!=0){
+			if(stricmp(tvi.pszText,name)==0){
+				*hroot=h;
+				return TRUE;
+			}
+		}
+		h=TreeView_GetNextSibling(ghtreeview,h);
+	}
+	return FALSE;
+}
+int tree_delete_all()
+{
+	return TreeView_DeleteAllItems(ghtreeview);
+}
+int test_items()
+{
+	HTREEITEM h;
+	insert_root("1");
+	insert_root("2");
+	insert_root("3");
+	tree_get_root("3",&h);
+	
     
 }
 LRESULT CALLBACK treeview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
@@ -28,7 +71,7 @@ LRESULT CALLBACK treeview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam
 			GetClientRect(hwnd,&rect);
 			ghtreeview=CreateWindow(WC_TREEVIEW, 
 										 "dbtreeview",
-										 WS_TABSTOP|WS_CHILD|WS_VISIBLE|TVS_HASBUTTONS,
+										 WS_TABSTOP|WS_CHILD|WS_VISIBLE|TVS_LINESATROOT|TVS_HASLINES|TVS_HASBUTTONS|TVS_SHOWSELALWAYS,
 										 0, 0,
 										 rect.right,
 										 rect.bottom,
