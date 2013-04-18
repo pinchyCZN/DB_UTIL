@@ -292,7 +292,6 @@ int create_mainwindow(void *wndproc,HMENU hmenu,HINSTANCE hinstance)
 }
 int create_dbview(HWND hwnd,HINSTANCE hinstance)
 {
-	//extern LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 	WNDCLASS wndclass;
 	HWND hswitch=0;
 	memset(&wndclass,0,sizeof(wndclass));
@@ -313,6 +312,7 @@ int create_dbview(HWND hwnd,HINSTANCE hinstance)
 	}
 	return hswitch;
 }
+
 int create_db_window(HWND hmdiclient,DB_WINDOW *win)
 { 
 	int maximized=0,style,handle;

@@ -79,8 +79,26 @@ int process_anchor_list(HWND hwnd,short *list)
 			y+=crect.bottom+list[i+1];
 			break;
 		case HUG_CTRL_X:
+			{
+			HWND item=GetDlgItem(hwnd,list[i+1]);
+			if(item!=0){
+				RECT rect={0};
+				GetClientRect(item,&rect);
+				x+=rect.right;
+				width=crect.right-x;
+			}
+			}
 			break;
 		case HUG_CTRL_Y:
+			{
+			HWND item=GetDlgItem(hwnd,list[i+1]);
+			if(item!=0){
+				RECT rect={0};
+				GetClientRect(item,&rect);
+				y+=rect.bottom;
+				height=crect.bottom-y;
+			}
+			}
 			break;
 		case HUG_HEIGHT:
 			j=crect.bottom-crect.top;
@@ -338,8 +356,26 @@ int dump_sizes(HWND hwnd,short *IDC)
 	}
 	printf("\n");return 0;
 }
-int main_dlg_anchors[]={
+short main_dlg_anchors[]={
 
+	CONTROL_ID,IDC_STATUS,
+		HUG_L,0,
+		HUG_B,-20,
+		SIZE_WIDTH_OFF,0,
+		HEIGHT,20,
+		CONTROL_FINISH,-1,
+	CONTROL_ID,IDC_TREEVIEW,
+		HUG_L,0,
+		HUG_T,0,
+		SIZE_HEIGHT_OFF,-20,
+		WIDTH,40,
+		CONTROL_FINISH,-1,
+	CONTROL_ID,IDC_MDI_CLIENT,
+		HUG_CTRL_X,IDC_TREEVIEW,
+		XPOS,8,
+		HUG_T,0,
+		SIZE_HEIGHT_OFF,-20,
+		CONTROL_FINISH,-1,
 	RESIZE_FINISH
 
 /*
@@ -434,4 +470,23 @@ int grippy_move(HWND hwnd,HWND grippy)
 			SWP_NOZORDER|SWP_SHOWWINDOW);
 	}
 	return 0;
+}
+
+
+int resize_main_window(HWND hwnd,int tree_width)
+{
+	int i,found=FALSE;
+	for(i=0;i<sizeof(main_dlg_anchors)/sizeof(short);i+=2){
+		if(main_dlg_anchors[i]==CONTROL_ID && main_dlg_anchors[i+1]==IDC_TREEVIEW)
+			found=TRUE;
+		if(found){
+			if(main_dlg_anchors[i]==WIDTH)
+				main_dlg_anchors[i+1]=tree_width;
+			else if(main_dlg_anchors[i]==CONTROL_FINISH)
+				found=FALSE;
+		}
+
+	}
+	reposition_controls(hwnd,main_dlg_anchors);
+	return TRUE;
 }

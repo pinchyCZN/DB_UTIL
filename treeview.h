@@ -101,29 +101,11 @@ LRESULT CALLBACK treeview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam
 	case WM_SIZE:
 		{
 			RECT rect;
-			//GetClientRect(hwnd,&rect);
-			//MoveWindow(GetDlgItem(hwnd,IDC_TABLES),0,0,rect.right,rect.bottom,TRUE);
+			GetClientRect(hwnd,&rect);
+			MoveWindow(GetDlgItem(hwnd,IDC_TABLES),0,0,rect.right,rect.bottom,TRUE);
 		}
 		break;
 	}
 	return DefWindowProc(hwnd,msg,wparam,lparam);
 }
 
-
-int resize_treeview(HWND hwnd,HWND mdi,HWND treeframe,int tree_width)
-{
-	RECT rect;
-	if(GetClientRect(hwnd,&rect)!=0){
-		int gap=5;
-		int xpos=tree_width;
-		if(xpos<0)
-			return TRUE;
-		MoveWindow(mdi,xpos,0,rect.right-xpos,rect.bottom,TRUE);
-		MoveWindow(treeframe,0,0,tree_width-gap,rect.bottom,TRUE);
-		if(ghtreeview!=0){
-			GetClientRect(treeframe,&rect);
-			MoveWindow(ghtreeview,0,0,rect.right,rect.bottom,TRUE);
-		}
-	}
-	return TRUE;
-}

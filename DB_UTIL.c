@@ -8,7 +8,7 @@
 #include "Commctrl.h"
 
 HINSTANCE ghinstance=0;
-HWND ghmainframe=0,ghmdiclient=0,ghdbview=0;
+HWND ghmainframe=0,ghmdiclient=0,ghdbview=0,ghstatusbar=0;
 static HMENU ghmenu=0;
 static int mousex=0,mousey=0;
 static int lmb_down=FALSE;
@@ -91,7 +91,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 				GetClientRect(ghmainframe,&rect);
 				if(x>10 && x<rect.right-10){
 					tree_width=x;
-					resize_treeview(hwnd,ghmdiclient,ghdbview,tree_width);
+					resize_main_window(hwnd,tree_width);
 					printf("rect.right=%i x=%i y=%i\n",rect.right,x,y);
 				}
 			}
@@ -106,7 +106,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 	case WM_NCCALCSIZE:
 		break;
 	case WM_SIZE:
-		resize_treeview(hwnd,ghmdiclient,ghdbview,tree_width);
+		resize_main_window(hwnd,tree_width);
 		return 0;
 		break;
 	case WM_QUERYENDSESSION:
@@ -176,6 +176,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 
 	ghmdiclient=create_mdiclient(ghmainframe,ghmenu,ghinstance);
 	ghdbview=create_dbview(ghmainframe,ghinstance);
+	ghstatusbar=CreateStatusWindow(WS_CHILD|WS_VISIBLE,"ready",ghmainframe,IDC_STATUS);
 
 	ShowWindow(ghmainframe,nCmdShow);
 	UpdateWindow(ghmainframe);
