@@ -22,10 +22,39 @@ static DB_WINDOW db_windows[100];
 
 #include "treeview.h"
 
+int test_listview(HWND hlistview)
+{
+	LV_COLUMN col;
+	int i;
+	char str[20]={0};
+	for(i=0;i<10;i++){
+		sprintf(str,"col%i",i);
+		col.mask = LVCF_WIDTH|LVCF_TEXT;
+		col.cx = 40;
+		col.pszText = str;
+		ListView_InsertColumn(hlistview,i,&col);
+	}
+	for(i=0;i<10;i++){
+		LVITEM listItem;
+		int index=0,item=0x80000000-1; //add to end of list
+		sprintf(str,"text%i",i);
+		listItem.mask = LVIF_TEXT;
+		listItem.pszText = str;
+		listItem.iItem = item;
+		listItem.iSubItem =0;
+		item=ListView_InsertItem(hlistview,&listItem);
+		if(item>=0){
+			sprintf(str,"sub%i",i);
+			ListView_SetItemText(hlistview,item,1,str);
+		}
+
+	}
+}
 LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
 	static int list_drag=FALSE,list_width=60;
 	static DWORD tick=0;
+	if(FALSE)
 	if(/*msg!=WM_NCMOUSEMOVE&&*/msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE/*&&msg!=WM_NOTIFY*/)
 		//if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE)
 	{
@@ -47,6 +76,7 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 			win->hwnd=hwnd;
 		}
 		create_mdi_window(hwnd,ghinstance,win);
+		test_listview(win->hlistview);
 		}
         break;
 	case WM_MOUSEACTIVATE:

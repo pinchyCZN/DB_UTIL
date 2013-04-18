@@ -31,6 +31,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
 	static DWORD tick=0;
 	RECT rect;
+	if(FALSE)
 	//if(msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY)
 	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE)
 	{
@@ -42,8 +43,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
     switch(msg)
     {
 	case WM_MENUSELECT:
+		print_msg(msg,lparam,wparam,hwnd);
 		switch(LOWORD(wparam)){
 		case IDM_OPEN:
+			
 			task_open_db("C:\\Journal Manager\\journal.db");
 			break;
 		}
