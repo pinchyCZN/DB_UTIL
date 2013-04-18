@@ -16,6 +16,8 @@ int insert_item(char *name,HTREEITEM hparent)
 {
 	TV_INSERTSTRUCT tvins;
 	TV_ITEM tvi;
+	if(hparent==0)
+		return 0;
 	tvi.mask=TVIF_TEXT;
 	tvi.pszText=name;
  
@@ -30,9 +32,12 @@ int tree_get_root(char *name,HANDLE *hroot)
 	h=TreeView_GetRoot(ghtreeview);
 	while(h!=0){
 		TV_ITEM tvi;
+		char str[MAX_PATH]={0};
 		memset(&tvi,0,sizeof(tvi));
 		tvi.hItem=h;
-		tvi.mask=TVIF_TEXT|TVIF_HANDLE;
+		tvi.mask=TVIF_TEXT;
+		tvi.pszText=str;
+		tvi.cchTextMax=sizeof(str);
 		TreeView_GetItem(ghtreeview,&tvi);
 		if(tvi.pszText!=0){
 			if(stricmp(tvi.pszText,name)==0){
@@ -42,6 +47,8 @@ int tree_get_root(char *name,HANDLE *hroot)
 		}
 		h=TreeView_GetNextSibling(ghtreeview,h);
 	}
+	if(hroot!=0)
+		*hroot=0;
 	return FALSE;
 }
 int tree_delete_all()
@@ -51,12 +58,20 @@ int tree_delete_all()
 int test_items()
 {
 	HTREEITEM h;
-	insert_root("1");
-	insert_root("2");
-	insert_root("3");
-	tree_get_root("3",&h);
-	
-    
+	int i,j;
+	for(j=0;j<10;j++){
+		char str[80];
+		sprintf(str,"root%i",j);
+		insert_root(str);
+		for(i=0;i<4;i++){
+			sprintf(str,"root%i",j);
+			tree_get_root(str,&h);
+			sprintf(str,"item%i",i);
+			insert_item(str,h);
+		}
+	}
+	tree_get_root("root1",&h);
+	TreeView_DeleteItem(ghtreeview,h);	
 }
 LRESULT CALLBACK treeview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
