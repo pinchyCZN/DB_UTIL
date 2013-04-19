@@ -4,7 +4,7 @@
 extern HWND ghmainframe,ghmdiclient,ghtreeview;
 HANDLE event;
 int task=0;
-char taskinfo[1024]={0};
+char taskinfo[1024*2]={0};
 enum{
 	TASK_OPEN_TABLE,
 	TASK_OPEN_DB
@@ -35,6 +35,7 @@ int thread(HANDLE event)
 				acquire_db_window(&ptr);
 				if(ptr!=0)
 					create_db_window(ghmdiclient,ptr);
+					mdi_open_db(&ptr,taskinfo);
 				}
 				break;
 			default:

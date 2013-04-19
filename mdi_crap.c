@@ -15,10 +15,12 @@ extern HINSTANCE ghinstance;
 typedef struct{
 	int in_use;
 	char name[1024];
+	void *hdbc;
+	void *hdbenv;
 	HWND hwnd,hbutton,hstatic,hlistview,hedit;
 }DB_WINDOW;
 
-static DB_WINDOW db_windows[100];
+static DB_WINDOW db_windows[5];
 
 #include "treeview.h"
 
@@ -47,14 +49,15 @@ int test_listview(HWND hlistview)
 			sprintf(str,"sub%i",i);
 			ListView_SetItemText(hlistview,item,1,str);
 		}
-
 	}
 }
+
+
 LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
-	static int list_drag=FALSE,list_width=60;
+	static int split_drag=FALSE,mdi_split=60;
 	static DWORD tick=0;
-	if(FALSE)
+	//if(FALSE)
 	if(/*msg!=WM_NCMOUSEMOVE&&*/msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE/*&&msg!=WM_NOTIFY*/)
 		//if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE)
 	{
@@ -76,6 +79,7 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 			win->hwnd=hwnd;
 		}
 		create_mdi_window(hwnd,ghinstance,win);
+		resize_mdi_window(hwnd,mdi_split);
 		test_listview(win->hlistview);
 		}
         break;
@@ -128,19 +132,38 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 	case WM_ENDSESSION:
 		break;
 	case WM_CLOSE:
+		{
+			DB_WINDOW *win=0;
+			if(find_win_by_hwnd(hwnd,&win)){
+				free_window(win);
+			}
+		}
 		break;
 	case WM_RBUTTONDOWN:
 	case WM_LBUTTONUP:
 		ReleaseCapture();
-		write_ini_value("SETTINGS","LIST_WIDTH",list_width);
-		list_drag=FALSE;
+		write_ini_value("SETTINGS","MDI_SPLIT",mdi_split);
+		split_drag=FALSE;
 		break;
 	case WM_LBUTTONDOWN:
 		SetCapture(hwnd);
-		SetCursor(LoadCursor(NULL,IDC_SIZEWE));
-		list_drag=TRUE;
+		SetCursor(LoadCursor(NULL,IDC_SIZENS));
+		split_drag=TRUE;
 		break;
 	case WM_MOUSEFIRST:
+		{
+			int y=HIWORD(lparam);
+			int x=LOWORD(lparam);
+			SetCursor(LoadCursor(NULL,IDC_SIZENS));
+			if(split_drag){
+				RECT rect;
+				GetClientRect(hwnd,&rect);
+				if(y>5 && y<rect.bottom-8){
+					mdi_split=y;
+					resize_mdi_window(hwnd,mdi_split);
+				}
+			}
+		}
 		break;
     case WM_COMMAND:
 		//HIWORD(wParam) notification code
@@ -154,6 +177,7 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 	case WM_USER://custom edit input wparam=key
 		break;
 	case WM_SIZE:
+		resize_mdi_window(hwnd,mdi_split);
 		break;
 
     }
@@ -228,28 +252,32 @@ int create_listview_columns(HWND hlistview,char *list)
 }
 int create_mdi_window(HWND hwnd,HINSTANCE hinstance,DB_WINDOW *win)
 {
-	HWND hstatic,hedit,hlistview=0;
-	HMENU hmenu;
-	RECT rect;
+	HWND hedit,hlistview=0;
 	if(win==0)
 		return FALSE;
 
-    GetClientRect(hwnd,&rect); 
-
+    hedit = CreateWindow("EDIT", 
+                                     "",
+                                     WS_TABSTOP|WS_CHILD|WS_VISIBLE|ES_AUTOHSCROLL|ES_AUTOVSCROLL|ES_MULTILINE|ES_WANTRETURN,
+                                     0,0,
+                                     0,0,
+                                     hwnd,
+                                     IDC_MDI_EDIT,
+                                     hinstance,
+                                     NULL);
     hlistview = CreateWindow(WC_LISTVIEW, 
                                      "",
                                      WS_TABSTOP|WS_CHILD|WS_VISIBLE|LVS_REPORT|LVS_SHOWSELALWAYS, //|LVS_OWNERDRAWFIXED, //|LVS_EDITLABELS,
-                                     0, 32,
-                                     rect.right - rect.left,
-                                     rect.bottom - rect.top-60,
+                                     0,0,
+                                     0,0,
                                      hwnd,
-                                     IDC_RESULTS,
-                                     (HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE),
+                                     IDC_MDI_LISTVIEW,
+                                     hinstance,
                                      NULL);
-	if(hlistview==0)
-		return FALSE;
 	win->hlistview=hlistview;
-	//ListView_SetExtendedListViewStyle(hlistview,ListView_GetExtendedListViewStyle(hlistview)|LVS_EX_FULLROWSELECT);
+	win->hedit=hedit;
+	if(hlistview!=0)
+		ListView_SetExtendedListViewStyle(hlistview,ListView_GetExtendedListViewStyle(hlistview)|LVS_EX_FULLROWSELECT);
 	return TRUE;
 }
 
@@ -363,17 +391,62 @@ int create_db_window(HWND hmdiclient,DB_WINDOW *win)
 	return handle;
 }
 
-int acquire_db_window(DB_WINDOW **win)
+int find_win_by_hwnd(HWND hwnd,DB_WINDOW **win)
 {
 	int i;
 	for(i=0;i<sizeof(db_windows)/sizeof(DB_WINDOW);i++){
-		if(!db_windows[i].in_use){
+		if(db_windows[i].hwnd==hwnd){
 			*win=&db_windows[i];
 			return TRUE;
 		}
 	}
 	return FALSE;
 }
+int free_window(DB_WINDOW *win)
+{
+	if(win!=0){
+		memset(win,0,sizeof(DB_WINDOW));
+	}
+	return TRUE;
+}
+int acquire_db_window(DB_WINDOW **win)
+{
+	int i;
+	for(i=0;i<sizeof(db_windows)/sizeof(DB_WINDOW);i++){
+		if(db_windows[i].hwnd==0){
+			*win=&db_windows[i];
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+int mdi_open_db(DB_WINDOW *win,char *name)
+{
+	if(open_db(win,name)){
+		get_tables(win);
+	}
+	return TRUE;
+}
+int mdi_close_db(DB_WINDOW *win)
+{
+	return TRUE;
+}
+
+
+
+int mdi_test_db(DB_WINDOW *win)
+{
+	//get_fields(win->DB,
+}
+
+
+
+
+
+
+
+
+
 int custom_dispatch(MSG *msg)
 {
 	return FALSE;
@@ -392,3 +465,5 @@ int init_mdi_stuff()
 	create_popup_menus();
 	return TRUE;
 }
+
+#include "DB_stuff.h"

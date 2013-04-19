@@ -1,12 +1,14 @@
 #define VC_EXTRALEAN
 
-#include <afx.h>
-
-#include "afxdb.h"
+#include <windows.h>
+#include <sql.h>
+#include <sqlext.h>
+#include <stdio.h>
 #include <conio.h>
-#include <assert.h>
 
-extern "C"{
+#include <stdlib.h>
+
+
 
 
 int sql_test(char *pwszConnStr)
@@ -45,7 +47,7 @@ int sql_test(char *pwszConnStr)
         SQLFreeHandle(SQL_HANDLE_ENV, hEnv);
     }
 }
-int open_db(CDatabase **db,char *dbname)
+int open_db(void **db,char *dbname)
 {
 	char str[1024];
 	_snprintf(str,sizeof(str),"ODBC;",dbname);
@@ -70,31 +72,27 @@ int open_db(CDatabase **db,char *dbname)
 	return result;
 	*/
 }
-int close_db(CDatabase *db)
+int close_db(void *db)
 {
 	if(db!=0){
-		if(db->IsOpen())
-			db->Close();
 	}
 	return TRUE;
 }
-int free_db(CDatabase *db)
+int free_db(void *db)
 {
 	if(db!=0){
-		close_db(db);
-		delete db;
 	}
 	return TRUE;
 }
-int get_db_info(CDatabase *db,CRecordset **info)
+int get_db_info(void *db,void **info)
 {
-	CRecordset *rec=new CRecordset(db);
 
 //SQLTables
 
 	return 0;
 }
 
+/*
 int get_field_count(CRecordset *rec)
 {
 	if(rec!=0){
@@ -157,4 +155,4 @@ int get_fields(CDatabase *db,char *table,char *list,int size)
 	return result;
 }
 
-} //extern "C"
+*/

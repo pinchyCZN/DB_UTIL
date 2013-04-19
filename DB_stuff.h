@@ -1,15 +1,47 @@
 #define VC_EXTRALEAN
 
-#include <afx.h>
-
-#include "afxdb.h"
+#include <windows.h>
+#include <sql.h>
+#include <sqlext.h>
+#include <stdio.h>
 #include <conio.h>
-#include <assert.h>
+#include <stdlib.h>
 
-extern "C"{
+struct DataBinding {
+   SQLSMALLINT TargetType;
+   SQLPOINTER TargetValuePtr;
+   SQLINTEGER BufferLength;
+   SQLINTEGER StrLen_or_Ind;
+};
+void printCatalog(const struct DataBinding* catalogResult) {
+   if (catalogResult[0].StrLen_or_Ind != SQL_NULL_DATA) 
+      printf("Catalog Name = %s\n", (char *)catalogResult[0].TargetValuePtr);
+}
+int get_tables(DB_WINDOW *win)
+{
+    SQLHSTMT    hstmt = NULL;
+	int i,numCols=255;
+	int bufferSize=1024;
+	struct DataBinding* catalogResult=0;
+	catalogResult=(struct DataBinding*)malloc( numCols * sizeof(struct DataBinding) );
+	if(catalogResult==0)
+		return FALSE;
+	for ( i = 0 ; i < numCols ; i++ ) {
+		catalogResult[i].TargetType = SQL_C_CHAR;
+		catalogResult[i].BufferLength = (bufferSize + 1);
+		catalogResult[i].TargetValuePtr = malloc( sizeof(unsigned char)*catalogResult[i].BufferLength );
+	}
+	for ( i = 0 ; i < numCols ; i++ )
+		retCode = SQLBindCol(hstmt, (SQLUSMALLINT)i + 1, catalogResult[i].TargetType, catalogResult[i].TargetValuePtr, catalogResult[i].BufferLength, &(catalogResult[i].StrLen_or_Ind));
+
+	if(SQLAllocHandle(SQL_HANDLE_STMT,win->hdbc,&hstmt)==SQL_SUCCESS){
+		SQLTables(hstmt, NULL, 0, NULL, 0, NULL, 0, NULL,0);
+	}
+	free(catalogResult);
+}
 
 
-int sql_test(char *pwszConnStr)
+int open_db(DB_WINDOW *win)
 {
     SQLHENV     hEnv = NULL;
     SQLHDBC     hDbc = NULL;
@@ -18,18 +50,20 @@ int sql_test(char *pwszConnStr)
 	if(SQLSetEnvAttr(hEnv,SQL_ATTR_ODBC_VERSION,(SQLPOINTER)SQL_OV_ODBC3,0)==SQL_SUCCESS){
 		if(SQLAllocHandle(SQL_HANDLE_DBC, hEnv, &hDbc)==SQL_SUCCESS){
 			char str[1024]={0};
-
 			if(SQLDriverConnect(hDbc,
 							 GetDesktopWindow(),
-							 (SQLCHAR*)pwszConnStr,
+							 (SQLCHAR*)"ODBC;",
 							 SQL_NTS,
 							 (SQLCHAR*)str,
 							 sizeof(str),
 							 NULL,
 							 SQL_DRIVER_COMPLETE)==SQL_SUCCESS){
 				if(str[0]!=0){
-					//write_ini(
+					write_ini_str("DATABASES","1",str);
 				}
+				win->hdbc=hDbc;
+				win->hdbenv=hEnv;
+				return TRUE;
 			}
 		}
 	}
@@ -44,57 +78,29 @@ int sql_test(char *pwszConnStr)
     {
         SQLFreeHandle(SQL_HANDLE_ENV, hEnv);
     }
+	return FALSE;
 }
-int open_db(CDatabase **db,char *dbname)
-{
-	char str[1024];
-	_snprintf(str,sizeof(str),"ODBC;",dbname);
-	sql_test(str);
-	return 0;
-	/*
-	int result=FALSE;
-	CString connect;
-	*db= new CDatabase;
-	if(*db==0)
-		return FALSE;
-
-	connect.Format("ODBC;UID=dba;PWD=sql;DBN=Journal;DBF=%s;ASTOP=YES;DSN=Journal;INT=NO;DBG=YES;DMRF=NO;LINKS=SharedMemory;COMP=NO",dbname);
-	TRY{
-		if((*db)->Open(NULL,FALSE,FALSE,connect,FALSE)!=0)
-			result=TRUE;
-	}
-	CATCH(CDBException, e){
-		printf("Error opening database:%s\n",e->m_strError);
-	}
-	END_CATCH
-	return result;
-	*/
-}
-int close_db(CDatabase *db)
+int close_db(void *db)
 {
 	if(db!=0){
-		if(db->IsOpen())
-			db->Close();
 	}
 	return TRUE;
 }
-int free_db(CDatabase *db)
+int free_db(void *db)
 {
 	if(db!=0){
-		close_db(db);
-		delete db;
 	}
 	return TRUE;
 }
-int get_db_info(CDatabase *db,CRecordset **info)
+int get_db_info(void *db,void **info)
 {
-	CRecordset *rec=new CRecordset(db);
 
 //SQLTables
 
 	return 0;
 }
 
+/*
 int get_field_count(CRecordset *rec)
 {
 	if(rec!=0){
@@ -157,4 +163,4 @@ int get_fields(CDatabase *db,char *table,char *list,int size)
 	return result;
 }
 
-} //extern "C"
+*/
