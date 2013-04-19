@@ -40,7 +40,7 @@ int get_tables(DB_WINDOW *win)
 		retCode = SQLBindCol(hstmt, (SQLUSMALLINT)i + 1, catalogResult[i].TargetType, catalogResult[i].TargetValuePtr, catalogResult[i].BufferLength, &(catalogResult[i].StrLen_or_Ind));
 
 	if(SQLAllocHandle(SQL_HANDLE_STMT,win->hdbc,&hstmt)==SQL_SUCCESS){
-		retCode = SQLTables( hstmt, (SQLCHAR*)SQL_ALL_CATALOGS, SQL_NTS, (SQLCHAR*)"", SQL_NTS, (SQLCHAR*)"", SQL_NTS, (SQLCHAR*)"", SQL_NTS );
+		retCode = SQLTables(hstmt, NULL, 0, NULL, 0, NULL, 0, NULL,0);
 		for ( retCode = SQLFetch(hstmt) ;  MySQLSuccess(retCode) ; retCode = SQLFetch(hstmt) )
 			printCatalog( catalogResult );
 	}

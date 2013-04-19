@@ -35,7 +35,7 @@ int thread(HANDLE event)
 				acquire_db_window(&ptr);
 				if(ptr!=0)
 					create_db_window(ghmdiclient,ptr);
-					mdi_open_db(&ptr,taskinfo);
+					mdi_open_db(ptr,taskinfo);
 				}
 				break;
 			default:
