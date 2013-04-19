@@ -22,33 +22,24 @@ int MySQLSuccess(SQLRETURN rc) {
 }
 int get_tables(DB_WINDOW *win)
 {
-    SQLHSTMT    hstmt = NULL;
-	int i,numCols=255;
-	int bufferSize=1024;
-	int retCode;
-	struct DataBinding* catalogResult=0;
-	catalogResult=(struct DataBinding*)malloc( numCols * sizeof(struct DataBinding) );
-	if(catalogResult==0)
-		return FALSE;
-	memset(catalogResult,0,numCols * sizeof(struct DataBinding));
-	for ( i = 0 ; i < numCols ; i++ ) {
-		catalogResult[i].TargetType = SQL_C_CHAR;
-		catalogResult[i].BufferLength = (bufferSize + 1);
-		catalogResult[i].TargetValuePtr = malloc( sizeof(unsigned char)*catalogResult[i].BufferLength );
+	HSTMT hStmt;
+	char pcName[256];
+	long lLen;
+	int count=0;
+	
+	SQLAllocStmt(win->hdbc, &hStmt);
+	if (SQLTables (hStmt, NULL, SQL_NTS, NULL, SQL_NTS, NULL, SQL_NTS, (unsigned char*)"'TABLE'", SQL_NTS) != SQL_ERROR)
+	{ /* OK */
+		if (SQLFetch (hStmt) != SQL_NO_DATA_FOUND)
+		{ /* Data found */
+			while (!SQLGetData (hStmt, 3, SQL_C_CHAR, pcName, 256, &lLen))
+			{ /* We have a name */
+				printf("%s\n",pcName);
+				SQLFetch(hStmt);
+			}
+		}
 	}
-	for ( i = 0 ; i < numCols ; i++ )
-		retCode = SQLBindCol(hstmt, (SQLUSMALLINT)i + 1, catalogResult[i].TargetType, catalogResult[i].TargetValuePtr, catalogResult[i].BufferLength, &(catalogResult[i].StrLen_or_Ind));
-
-	if(SQLAllocHandle(SQL_HANDLE_STMT,win->hdbc,&hstmt)==SQL_SUCCESS){
-		retCode = SQLTables(hstmt, NULL, 0, NULL, 0, NULL, 0, NULL,0);
-		for ( retCode = SQLFetch(hstmt) ;  MySQLSuccess(retCode) ; retCode = SQLFetch(hstmt) )
-			printCatalog( catalogResult );
-	}
-	for ( i = 0 ; i < numCols ; i++ ) {
-		if(catalogResult[i].TargetValuePtr!=0)
-			free(catalogResult[i].TargetValuePtr);
-	}
-	free(catalogResult);
+	SQLFreeStmt (hStmt, SQL_CLOSE);
 }
 
 
