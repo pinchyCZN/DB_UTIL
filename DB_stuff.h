@@ -20,21 +20,22 @@ void printCatalog(const struct DataBinding* catalogResult) {
 int MySQLSuccess(SQLRETURN rc) {
    return (rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO);
 }
-int get_tables(DB_WINDOW *win)
+int get_tables(DB_TREE *tree)
 {
 	HSTMT hStmt;
 	char pcName[256];
 	long lLen;
 	int count=0;
 	
-	SQLAllocStmt(win->hdbc, &hStmt);
+	SQLAllocStmt(tree->hdbc, &hStmt);
 	if (SQLTables (hStmt, NULL, SQL_NTS, NULL, SQL_NTS, NULL, SQL_NTS, (unsigned char*)"'TABLE'", SQL_NTS) != SQL_ERROR)
-	{ /* OK */
+	{
 		if (SQLFetch (hStmt) != SQL_NO_DATA_FOUND)
-		{ /* Data found */
+		{
 			while (!SQLGetData (hStmt, 3, SQL_C_CHAR, pcName, 256, &lLen))
-			{ /* We have a name */
+			{
 				printf("%s\n",pcName);
+				insert_item(pcName,tree->hroot);
 				SQLFetch(hStmt);
 			}
 		}
@@ -43,7 +44,7 @@ int get_tables(DB_WINDOW *win)
 }
 
 
-int open_db(DB_WINDOW *win)
+int open_db(DB_TREE *tree)
 {
     SQLHENV     hEnv = NULL;
     SQLHDBC     hDbc = NULL;
@@ -52,19 +53,30 @@ int open_db(DB_WINDOW *win)
 	if(SQLSetEnvAttr(hEnv,SQL_ATTR_ODBC_VERSION,(SQLPOINTER)SQL_OV_ODBC3,0)==SQL_SUCCESS){
 		if(SQLAllocHandle(SQL_HANDLE_DBC, hEnv, &hDbc)==SQL_SUCCESS){
 			char str[1024]={0};
-			if(SQLDriverConnect(hDbc,
+			char obdc_str[1024]={0};
+			int result=0;
+			_snprintf(obdc_str,sizeof(obdc_str),"%s",tree->name);
+			result=SQLDriverConnect(hDbc,
 							 GetDesktopWindow(),
-							 (SQLCHAR*)"ODBC;",
+							 (SQLCHAR*)obdc_str, //"ODBC;",
 							 SQL_NTS,
 							 (SQLCHAR*)str,
 							 sizeof(str),
 							 NULL,
-							 SQL_DRIVER_COMPLETE)==SQL_SUCCESS){
+							 SQL_DRIVER_COMPLETE);
+			if(result==SQL_SUCCESS || result==SQL_SUCCESS_WITH_INFO){
+				if(result==SQL_SUCCESS_WITH_INFO){
+					SQLCHAR state[6],msg[SQL_MAX_MESSAGE_LENGTH];
+					SQLINTEGER  error;
+					SQLSMALLINT msglen;
+					SQLGetDiagRec(SQL_HANDLE_DBC,hDbc,1,state,&error,msg,sizeof(msg),&msglen);
+					printf("msg=%s\n",msg);
+				}
 				if(str[0]!=0){
 					write_ini_str("DATABASES","1",str);
 				}
-				win->hdbc=hDbc;
-				win->hdbenv=hEnv;
+				tree->hdbc=hDbc;
+				tree->hdbenv=hEnv;
 				return TRUE;
 			}
 		}

@@ -26,6 +26,19 @@ int insert_item(char *name,HTREEITEM hparent)
 	tvins.item=tvi;
  	return TreeView_InsertItem(ghtreeview,&tvins);
 }
+int tree_get_item_text(HTREEITEM hitem,char *str,int len)
+{
+	TV_ITEM tvi;
+	if(hitem!=0 && str!=0 && len>0){
+		memset(&tvi,0,sizeof(tvi));
+		tvi.hItem=hitem;
+		tvi.mask=TVIF_TEXT;
+		tvi.pszText=str;
+		tvi.cchTextMax=len;
+		return TreeView_GetItem(ghtreeview,&tvi);
+	}
+	return FALSE;
+}
 int tree_get_root(char *name,HANDLE *hroot)
 {
 	HTREEITEM h;
@@ -51,9 +64,26 @@ int tree_get_root(char *name,HANDLE *hroot)
 		*hroot=0;
 	return FALSE;
 }
+int tree_delete_all_child(HTREEITEM hroot)
+{
+	HTREEITEM hitem;
+	hitem=TreeView_GetChild(ghtreeview,hroot);
+	while(hitem!=0){
+		HTREEITEM hsib;
+		hsib=TreeView_GetNextSibling(ghtreeview,hitem);
+		TreeView_DeleteItem(ghtreeview,hitem);
+		hitem=hsib;
+	}
+	return TRUE;
+
+}
 int tree_delete_all()
 {
 	return TreeView_DeleteAllItems(ghtreeview);
+}
+int expand_root(HTREEITEM hitem)
+{
+	return TreeView_Expand(ghtreeview,hitem,TVE_EXPAND);
 }
 int test_items()
 {
@@ -73,12 +103,61 @@ int test_items()
 	tree_get_root("root1",&h);
 	TreeView_DeleteItem(ghtreeview,h);	
 }
-LRESULT CALLBACK treeview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
+static WNDPROC wporigtreeview=0;
+LRESULT APIENTRY sc_treeview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
+{
+	static DWORD tick=0;
+	//if(FALSE)
+	//if(msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY)
+	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_MOUSEMOVE&&msg!=WM_NOTIFY)
+	{
+		if((GetTickCount()-tick)>500)
+			printf("--\n");
+		printf("t");
+		print_msg(msg,lparam,wparam,hwnd);
+		tick=GetTickCount();
+	}
+	switch(msg){
+	case WM_LBUTTONDBLCLK:
+		{
+		HTREEITEM hitem=0;
+		hitem=TreeView_GetSelection(hwnd);
+			if(hitem!=0){
+				HTREEITEM hroot=TreeView_GetParent(hwnd,hitem);
+				if(hroot!=0){
+					char root[80]={0},table[80]={0};
+					tree_get_item_text(hroot,root,sizeof(root));
+					tree_get_item_text(hitem,table,sizeof(table));
+					task_open_table(root,table);
+					printf("---------------root=%s,item=%s\n",root,table);
+				}
+			}
+		}
+		break;
+	}
+    return CallWindowProc(wporigtreeview,hwnd,msg,wparam,lparam);
+
+}
+LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
 	static int create_tree=FALSE;
+	static DWORD tick=0;
+	if(FALSE)
+	//if(msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY)
+	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_MOUSEMOVE&&msg!=WM_NOTIFY)
+	{
+		if((GetTickCount()-tick)>500)
+			printf("--\n");
+		printf("db");
+		print_msg(msg,lparam,wparam,hwnd);
+		tick=GetTickCount();
+	}
 	switch(msg){
 	case WM_CREATE:
 		PostMessage(hwnd,WM_USER,0,0);
+		break;
+	case WM_MOUSEACTIVATE:
+
 		break;
 	case WM_USER:
 		if(create_tree==FALSE){
@@ -94,8 +173,9 @@ LRESULT CALLBACK treeview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam
 										 IDC_TABLES,
 										 (HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE),
 										 NULL);
+			if(ghtreeview!=0)
+				wporigtreeview=SetWindowLong(ghtreeview,GWL_WNDPROC,(LONG)sc_treeview);
 			create_tree=TRUE;
-			test_items();
 		}
 		break;
 	case WM_SIZE:

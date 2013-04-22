@@ -13,14 +13,22 @@
 extern HINSTANCE ghinstance;
 
 typedef struct{
-	int in_use;
 	char name[1024];
 	void *hdbc;
 	void *hdbenv;
-	HWND hwnd,hbutton,hstatic,hlistview,hedit;
+	HWND hwnd,hbutton,hstatic,hlistview,hedit,hroot;
 }DB_WINDOW;
 
+typedef struct{
+	char name[1024];
+	void *hdbc;
+	void *hdbenv;
+	HWND htree,hroot;
+}DB_TREE;
+
+
 static DB_WINDOW db_windows[5];
+static DB_TREE db_tree[5];
 
 #include "treeview.h"
 
@@ -353,7 +361,7 @@ int create_dbview(HWND hwnd,HINSTANCE hinstance)
 	WNDCLASS wndclass;
 	HWND hswitch=0;
 	memset(&wndclass,0,sizeof(wndclass));
-	wndclass.lpfnWndProc=treeview_proc;
+	wndclass.lpfnWndProc=dbview_proc;
 	wndclass.hCursor=LoadCursor(NULL, IDC_ARROW);
 	wndclass.hbrBackground=COLOR_BTNFACE+1;
 	wndclass.lpszClassName="dbview";
@@ -420,12 +428,48 @@ int acquire_db_window(DB_WINDOW **win)
 	}
 	return FALSE;
 }
-int mdi_open_db(DB_WINDOW *win,char *name)
+int find_db_tree(char *name,DB_TREE **tree)
 {
-	if(open_db(win)){
-		get_tables(win);
+	int i;
+	for(i=0;i<sizeof(db_tree)/sizeof(DB_TREE);i++){
+		if(db_tree[i].hroot!=0)
+			if(stricmp(name,db_tree[i].name)==0){
+				*tree=&db_tree[i];
+				return TRUE;
+			}
 	}
-	return TRUE;
+	return FALSE;
+}
+int acquire_db_tree(char *name,DB_TREE **tree)
+{
+	int i;
+	if(find_db_tree(name,tree))
+		return TRUE;
+	for(i=0;i<sizeof(db_tree)/sizeof(DB_TREE);i++){
+		if(db_tree[i].hroot==0){
+			strncpy(db_tree[i].name,name,sizeof(db_tree[i].name));
+			db_tree[i].hroot=insert_root(name);
+			db_tree[i].htree=ghtreeview;
+			*tree=&db_tree[i];
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+int mdi_open_db(DB_TREE *tree)
+{
+	if(open_db(tree)){
+		if(tree->hroot!=0){
+			tree_delete_all_child(tree->hroot);
+			get_tables(tree);
+			expand_root(tree->hroot);
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+int mdi_open_table(DB_TREE *tree,DB_WINDOW *win)
+{
 }
 int mdi_close_db(DB_WINDOW *win)
 {
@@ -461,7 +505,8 @@ int init_mdi_stuff()
 {
 	extern int show_joins,lua_script_enable;
 	int list_width=60;
-	memset(&db_windows,0,sizeof(db_windows)/sizeof(DB_WINDOW));
+	memset(&db_windows,0,sizeof(db_windows));
+	memset(&db_tree,0,sizeof(db_tree));
 	create_popup_menus();
 	return TRUE;
 }

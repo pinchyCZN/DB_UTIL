@@ -27,13 +27,68 @@ int load_icon(HWND hwnd)
 	}
 	return FALSE;
 }
+int load_window_ini(HWND hwnd)
+{
+	char str[20];
+	RECT rect;
+	int width=0,height=0,x=0,y=0;
+	int result=FALSE;
+	get_ini_value("SETTINGS","main_window_width",&width);
+	get_ini_value("SETTINGS","main_window_height",&height);
+	get_ini_value("SETTINGS","main_window_xpos",&x);
+	get_ini_value("SETTINGS","main_window_ypos",&y);
+	if(GetWindowRect(GetDesktopWindow(),&rect)!=0){
+		int flags=SWP_SHOWWINDOW;
+		if(width<50 || height<50)
+			flags|=SWP_NOSIZE;
+		if(x<-32 || y<=-32)
+			flags|=SWP_NOMOVE;
+		if(x<((rect.right-rect.left)-50))
+			if(y<((rect.bottom-rect.top)-50))
+				if(SetWindowPos(hwnd,HWND_TOP,x,y,width,height,flags)!=0)
+					result=TRUE;
+	}
+	str[0]=0;
+	if(get_ini_str("SETTINGS","main_window_maximized",str,sizeof(str))){
+		if(strcmp(str,"true")==0){
+			ShowWindow(hwnd,SW_SHOWMAXIMIZED);
+			result=TRUE;
+		}
+	}
+	return result;
+}
+int save_window_ini(HWND hwnd)
+{
+	char str[20];
+	RECT rect;
+	WINDOWPLACEMENT wp;
+	wp.length=sizeof(wp);
+	if(GetWindowPlacement(hwnd,&wp)!=0){
+		if(wp.flags&WPF_RESTORETOMAXIMIZED)
+			write_ini_str("SETTINGS","main_window_maximized","true");
+		else
+			write_ini_str("SETTINGS","main_window_maximized","false");
+		rect=wp.rcNormalPosition;
+		str[0]=0;
+		_snprintf(str,sizeof(str),"%i",rect.right-rect.left);
+		write_ini_str("SETTINGS","main_window_width",str);
+		_snprintf(str,sizeof(str),"%i",rect.bottom-rect.top);
+		write_ini_str("SETTINGS","main_window_height",str);
+		_snprintf(str,sizeof(str),"%i",rect.left);
+		write_ini_str("SETTINGS","main_window_xpos",str);
+		_snprintf(str,sizeof(str),"%i",rect.top);
+		write_ini_str("SETTINGS","main_window_ypos",str);
+		return TRUE;
+	}
+	return FALSE;
+}
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
 	static DWORD tick=0;
 	RECT rect;
 	//if(FALSE)
 	//if(msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY)
-	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE)
+	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_MOUSEMOVE)
 	{
 		if((GetTickCount()-tick)>500)
 			printf("--\n");
@@ -96,7 +151,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 	case WM_COMMAND:
 		switch(LOWORD(wparam)){
 		case IDM_OPEN:
-			task_open_db("C:\\Journal Manager\\journal.db");
+			task_open_db("DSN=Journal");
 			break;
 		}
 		break;
@@ -118,19 +173,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 	case WM_CLOSE:
         break;
 	case WM_DESTROY:
-		{
-			RECT rect={0};
-			WINDOWPLACEMENT wp;
-			int w=0,h=0,maximized=0;
-			wp.length=sizeof(wp);
-			if(GetWindowPlacement(hwnd,&wp)!=0){
-				rect=wp.rcNormalPosition;
-				if(wp.flags&WPF_RESTORETOMAXIMIZED)
-					maximized=1;
-				w=rect.right-rect.left;
-				h=rect.bottom-rect.top;
-			}
-		}
+		save_window_ini(hwnd);
 		PostQuitMessage(0);
         break;
     }
@@ -179,6 +222,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 
 	ShowWindow(ghmainframe,nCmdShow);
 	UpdateWindow(ghmainframe);
+	load_window_ini(ghmainframe);
 
 
     while(GetMessage(&msg,NULL,0,0)){
