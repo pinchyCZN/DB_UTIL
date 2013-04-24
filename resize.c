@@ -455,6 +455,12 @@ int resize_main_window(HWND hwnd,int tree_width)
 int resize_mdi_window(HWND hwnd,int edit_height)
 {
 	int i,found=FALSE;
+	RECT rect={0};
+	GetClientRect(hwnd,&rect);
+	if(edit_height<10)
+		edit_height=10;
+	else if(edit_height>rect.bottom-10)
+		edit_height=rect.bottom-10;
 	for(i=0;i<sizeof(mdi_anchors)/sizeof(short);i+=2){
 		if(mdi_anchors[i]==CONTROL_ID && mdi_anchors[i+1]==IDC_MDI_EDIT)
 			found=TRUE;

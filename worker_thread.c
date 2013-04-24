@@ -41,14 +41,9 @@ int thread(HANDLE event)
 			switch(task){
 			case TASK_OPEN_DB:
 				{
-				void *win=0,*db=0;
+				void *db=0;
 				acquire_db_tree(localinfo,&db);
-				if(mdi_open_db(db,localinfo))
-					win=0;
-					if(acquire_db_window(&win))
-						create_db_window(ghmdiclient,win);
-					else
-						free_window(win);
+				mdi_open_db(db,localinfo);
 				}
 				break;
 			case TASK_OPEN_TABLE:
@@ -61,6 +56,11 @@ int thread(HANDLE event)
 						strncpy(dbname,localinfo,sizeof(dbname));
 						strncpy(table,p+1,sizeof(table));
 						if(find_db_tree(dbname,&db)){
+							void *win=0;
+							if(acquire_db_window(&win))
+								create_db_window(ghmdiclient,win);
+							else
+								free_window(win);
 
 						}
 					}
