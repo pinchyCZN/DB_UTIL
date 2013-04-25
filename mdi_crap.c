@@ -498,6 +498,7 @@ int custom_dispatch(MSG *msg)
 
 int create_popup_menus()
 {
+	create_treeview_menus();
 	return 0;
 }
 

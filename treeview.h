@@ -1,5 +1,11 @@
 HWND ghtreeview;
-
+static HMENU db_menu=0;
+enum {
+	CMD_CLOSEDB=10000,
+	CMD_SELECTTOP,
+	CMD_SELECTALL,
+	CMD_TABLE_STRUCT
+};
 int insert_root(char *name)
 {
 	TV_INSERTSTRUCT tvins;
@@ -85,6 +91,18 @@ int expand_root(HTREEITEM hitem)
 {
 	return TreeView_Expand(ghtreeview,hitem,TVE_EXPAND);
 }
+int create_treeview_menus()
+{
+	if(db_menu!=0)DestroyMenu(db_menu);
+	if(db_menu=CreatePopupMenu()){
+		//InsertMenu(list_menu,0xFFFFFFFF,MF_BYPOSITION|MF_SEPARATOR,0,0);
+		InsertMenu(db_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_CLOSEDB,"close DB");
+		InsertMenu(db_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SELECTTOP,"SELECT * TOP 1000");
+		InsertMenu(db_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SELECTALL,"SELECT * ALL");
+		InsertMenu(db_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_TABLE_STRUCT,"table struct");
+	}
+	return TRUE;
+}
 int test_items()
 {
 	HTREEITEM h;
@@ -118,6 +136,18 @@ LRESULT APIENTRY sc_treeview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		tick=GetTickCount();
 	}
 	switch(msg){
+	case WM_RBUTTONDOWN:
+		{
+			TV_HITTESTINFO ht={0};
+			ht.pt.x=LOWORD(lparam); //x
+			ht.pt.y=HIWORD(lparam); 
+			TreeView_HitTest(hwnd,&ht);
+			printf("hitetest %08X %08X\n",ht.hItem,ht.flags);
+			if(ht.hItem!=0)
+				TreeView_SelectItem(hwnd,ht.hItem);
+				
+		}
+		break;
 	case WM_LBUTTONDBLCLK:
 		{
 		HTREEITEM hitem=0;
@@ -142,7 +172,7 @@ LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
 	static int create_tree=FALSE;
 	static DWORD tick=0;
-	if(FALSE)
+	//if(FALSE)
 	//if(msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY)
 	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_MOUSEMOVE&&msg!=WM_NOTIFY)
 	{
@@ -155,6 +185,13 @@ LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 	switch(msg){
 	case WM_CREATE:
 		PostMessage(hwnd,WM_USER,0,0);
+		break;
+	case WM_CONTEXTMENU:
+		{
+			POINT screen={0};
+			GetCursorPos(&screen);
+			TrackPopupMenu(db_menu,TPM_LEFTALIGN,screen.x,screen.y,0,hwnd,NULL);
+		}
 		break;
 	case WM_MOUSEACTIVATE:
 
