@@ -124,6 +124,10 @@ SOURCE=.\DB_stuff.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\listview.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\treeview.h
 # End Source File
 # End Group

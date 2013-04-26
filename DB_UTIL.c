@@ -50,7 +50,7 @@ int load_window_ini(HWND hwnd)
 	}
 	str[0]=0;
 	if(get_ini_str("SETTINGS","main_window_maximized",str,sizeof(str))){
-		if(strcmp(str,"true")==0){
+		if(str[0]=='1'){
 			ShowWindow(hwnd,SW_SHOWMAXIMIZED);
 			result=TRUE;
 		}
@@ -64,10 +64,7 @@ int save_window_ini(HWND hwnd)
 	WINDOWPLACEMENT wp;
 	wp.length=sizeof(wp);
 	if(GetWindowPlacement(hwnd,&wp)!=0){
-		if(wp.flags&WPF_RESTORETOMAXIMIZED)
-			write_ini_str("SETTINGS","main_window_maximized","true");
-		else
-			write_ini_str("SETTINGS","main_window_maximized","false");
+		write_ini_str("SETTINGS","main_window_maximized",wp.flags&WPF_RESTORETOMAXIMIZED?"1":"0");
 		rect=wp.rcNormalPosition;
 		str[0]=0;
 		_snprintf(str,sizeof(str),"%i",rect.right-rect.left);

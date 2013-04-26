@@ -35,7 +35,7 @@ int get_tables(DB_TREE *tree)
 			while (!SQLGetData (hStmt, 3, SQL_C_CHAR, pcName, 256, &lLen))
 			{
 				printf("%s\n",pcName);
-				insert_item(pcName,tree->hroot);
+				insert_item(pcName,tree->hroot,IDC_TABLE_ITEM);
 				SQLFetch(hStmt);
 			}
 		}
@@ -94,17 +94,80 @@ int open_db(DB_TREE *tree)
     }
 	return FALSE;
 }
-int close_db(void *db)
+int close_db(DB_TREE *tree)
 {
-	if(db!=0){
+	if(tree!=0){
+		SQLDisconnect(tree->hdbc);
+		SQLFreeHandle(SQL_HANDLE_DBC,tree->hdbc);
+		SQLFreeHandle(SQL_HANDLE_ENV,tree->hdbenv);
+		tree->hdbc=0;
+		tree->hdbenv=0;
+		return TRUE;
 	}
-	return TRUE;
+	return FALSE;
 }
-int free_db(void *db)
+
+int fetch_columns(SQLHSTMT hstmt,TABLE_WINDOW *win)
 {
-	if(db!=0){
+	SQLSMALLINT i,cols=0; 
+	if(hstmt!=0 && win!=0){
+		SQLNumResultCols(hstmt,&cols);
+		for(i=0;i<cols;i++){
+			char str[255]={0};
+			SQLColAttribute(hstmt,i+1,SQL_DESC_NAME,str,sizeof(str),NULL,NULL);
+			if(str[0]!=0)
+				lv_add_column(win->hlistview,str,i);
+		}
+		return cols;
 	}
-	return TRUE;
+	return cols;
+}
+int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
+{
+	SQLINTEGER rows=0;
+	if(hstmt!=0){
+		while(SQLFetch(hstmt)!=SQL_NO_DATA_FOUND){
+			int i,len;
+			for(i=0;i<cols;i++){
+				char str[1024]={0};
+				int len=0,result;
+				result=SQLGetData(hstmt,i+1,SQL_C_CHAR,str,sizeof(str),&len);
+				if(result==SQL_SUCCESS || result==SQL_SUCCESS_WITH_INFO){
+					lv_insert_data(win->hlistview,rows,i,str);
+				}
+				if(win->abort)
+					break;
+			}
+			rows++;
+			if(win->abort)
+				break;
+		}
+	}
+	return rows;
+}
+int execute_sql(TABLE_WINDOW *win,char *sql)
+{
+	if(win!=0 && win->hdbc!=0 && win->hdbenv!=0){
+		int retcode;
+		SQLHSTMT hstmt=0;
+		SQLAllocHandle(SQL_HANDLE_STMT,win->hdbc,&hstmt);
+		retcode=SQLExecDirect(hstmt,sql,SQL_NTS);
+		switch(retcode){
+        case SQL_SUCCESS_WITH_INFO:
+        case SQL_SUCCESS:
+			{
+			SQLINTEGER rows=0,cols=0;
+			SQLRowCount(hstmt,&rows);
+			cols=fetch_columns(hstmt,win);
+			fetch_rows(hstmt,win,cols);
+			}
+			break;
+        case SQL_ERROR:
+			break;
+		}
+		SQLFreeStmt(hstmt,SQL_CLOSE);
+
+	}
 }
 int get_db_info(void *db,void **info)
 {
@@ -113,7 +176,15 @@ int get_db_info(void *db,void **info)
 
 	return 0;
 }
-
+int assign_db_to_table(DB_TREE *db,TABLE_WINDOW *win)
+{
+	if(db!=0 && win!=0){
+		win->hdbc=db->hdbc;
+		win->hdbenv=db->hdbenv;
+		return TRUE;
+	}
+	return FALSE;
+}
 /*
 int get_field_count(CRecordset *rec)
 {

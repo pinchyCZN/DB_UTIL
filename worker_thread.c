@@ -8,7 +8,8 @@ char taskinfo[1024*2]={0};
 char localinfo[sizeof(taskinfo)]={0};
 enum{
 	TASK_OPEN_TABLE,
-	TASK_OPEN_DB
+	TASK_OPEN_DB,
+	TASK_CLOSE_DB
 };
 
 int task_open_db(char *name)
@@ -21,11 +22,22 @@ int task_open_db(char *name)
 }
 int task_open_table(char *dbname,char *table)
 {
-	task=TASK_OPEN_TABLE;
 	_snprintf(taskinfo,sizeof(taskinfo),"%s;%s",dbname,table);
 	taskinfo[sizeof(taskinfo)-1]=0;
+	task=TASK_OPEN_TABLE;
 	SetEvent(event);
 	return TRUE;
+}
+int task_close_db(char *dbname)
+{
+	if(dbname!=0){
+		_snprintf(taskinfo,sizeof(taskinfo),"%s",dbname);
+		taskinfo[sizeof(taskinfo)-1]=0;
+		task=TASK_CLOSE_DB;
+		SetEvent(event);
+		return TRUE;
+	}
+	return FALSE;
 }
 int thread(HANDLE event)
 {
@@ -39,6 +51,13 @@ int thread(HANDLE event)
 			strncpy(localinfo,taskinfo,sizeof(localinfo));
 			printf("db=%s\n",localinfo);
 			switch(task){
+			case TASK_CLOSE_DB:
+				{
+				void *db=0;
+				if(find_db_tree(localinfo,&db))
+					mdi_close_db(db);
+				}
+				break;
 			case TASK_OPEN_DB:
 				{
 				void *db=0;
@@ -57,8 +76,13 @@ int thread(HANDLE event)
 						strncpy(table,p+1,sizeof(table));
 						if(find_db_tree(dbname,&db)){
 							void *win=0;
-							if(acquire_db_window(&win))
-								create_db_window(ghmdiclient,win);
+							if(acquire_table_window(&win)){
+								char sql[256]={0};
+								create_table_window(ghmdiclient,win);
+								assign_db_to_table(db,win);
+								_snprintf(sql,sizeof(sql),"SELECT * FROM %s;",table);
+								execute_sql(win,sql);
+							}
 							else
 								free_window(win);
 

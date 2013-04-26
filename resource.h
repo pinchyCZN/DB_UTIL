@@ -11,6 +11,8 @@
 #define IDC_MDI_CLIENT                  1006
 #define IDC_TREEVIEW                    1007
 #define IDC_MDI_EDIT                    1008
+#define IDC_DB_ITEM                     1009
+#define IDC_TABLE_ITEM                  1010
 #define IDM_SETTINGS                    40002
 #define IDM_OPEN                        40006
 #define IDM_CLOSE                       40007
@@ -21,7 +23,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        104
 #define _APS_NEXT_COMMAND_VALUE         40008
-#define _APS_NEXT_CONTROL_VALUE         1009
+#define _APS_NEXT_CONTROL_VALUE         1011
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

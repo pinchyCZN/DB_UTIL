@@ -11,13 +11,15 @@
 #include "resource.h"
 
 extern HINSTANCE ghinstance;
+extern HWND ghmainframe,ghmdiclient,ghtreeview;
 
 typedef struct{
 	char name[1024];
 	void *hdbc;
 	void *hdbenv;
+	int abort;
 	HWND hwnd,hbutton,hstatic,hlistview,hedit,hroot;
-}DB_WINDOW;
+}TABLE_WINDOW;
 
 typedef struct{
 	char name[1024];
@@ -27,38 +29,11 @@ typedef struct{
 }DB_TREE;
 
 
-static DB_WINDOW db_windows[5];
+static TABLE_WINDOW table_windows[5];
 static DB_TREE db_tree[5];
 
 #include "treeview.h"
-
-int test_listview(HWND hlistview)
-{
-	LV_COLUMN col;
-	int i;
-	char str[20]={0};
-	for(i=0;i<10;i++){
-		sprintf(str,"col%i",i);
-		col.mask = LVCF_WIDTH|LVCF_TEXT;
-		col.cx = 40;
-		col.pszText = str;
-		ListView_InsertColumn(hlistview,i,&col);
-	}
-	for(i=0;i<10;i++){
-		LVITEM listItem;
-		int index=0,item=0x80000000-1; //add to end of list
-		sprintf(str,"text%i",i);
-		listItem.mask = LVIF_TEXT;
-		listItem.pszText = str;
-		listItem.iItem = item;
-		listItem.iSubItem =0;
-		item=ListView_InsertItem(hlistview,&listItem);
-		if(item>=0){
-			sprintf(str,"sub%i",i);
-			ListView_SetItemText(hlistview,item,1,str);
-		}
-	}
-}
+#include "listview.h"
 
 
 LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
@@ -79,7 +54,7 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
     {
 	case WM_CREATE:
 		{
-		DB_WINDOW *win=0;
+		TABLE_WINDOW *win=0;
 		LPCREATESTRUCT pcs = (LPCREATESTRUCT)lparam;
 		LPMDICREATESTRUCT pmdics = (LPMDICREATESTRUCT)(pcs->lpCreateParams);
 		win=pmdics->lParam;
@@ -87,8 +62,9 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 			win->hwnd=hwnd;
 		}
 		create_mdi_window(hwnd,ghinstance,win);
+		load_mdi_size(hwnd);
 		resize_mdi_window(hwnd,mdi_split);
-		test_listview(win->hlistview);
+		//test_listview(win->hlistview);
 		}
         break;
 	case WM_MOUSEACTIVATE:
@@ -141,7 +117,7 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 		break;
 	case WM_CLOSE:
 		{
-			DB_WINDOW *win=0;
+			TABLE_WINDOW *win=0;
 			if(find_win_by_hwnd(hwnd,&win)){
 				free_window(win);
 			}
@@ -186,12 +162,47 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 		break;
 	case WM_SIZE:
 		resize_mdi_window(hwnd,mdi_split);
+		save_mdi_size(hwnd);
 		break;
 
     }
 	return DefMDIChildProc(hwnd, msg, wparam, lparam);
 }
 
+int load_mdi_size(HWND hwnd)
+{
+	int width=0,height=0,max=0;
+	get_ini_value("SETTINGS","mdi_width",&width);
+	get_ini_value("SETTINGS","mdi_height",&height);
+	get_ini_value("SETTINGS","mdi_height",&max);
+	if(width!=0 && height!=0){
+		RECT rect={0};
+		GetClientRect(ghmdiclient,&rect);
+		if(width>rect.right)
+			width=rect.right;
+		if(height>rect.bottom)
+			height=rect.bottom;
+		SetWindowPos(hwnd,HWND_TOP,0,0,width,height,SWP_NOMOVE|SWP_SHOWWINDOW);
+		return TRUE;
+	}
+	return FALSE;
+}
+int save_mdi_size(HWND hwnd)
+{
+	WINDOWPLACEMENT wp;
+	if(GetWindowPlacement(hwnd,&wp)!=0){
+		RECT rect={0};
+		char str[80]={0};
+		rect=wp.rcNormalPosition;
+		_snprintf(str,sizeof(str),"%i",rect.right-rect.left);
+		write_ini_str("SETTINGS","mdi_width",str);
+		_snprintf(str,sizeof(str),"%i",rect.bottom-rect.top);
+		write_ini_str("SETTINGS","mdi_height",str);
+		write_ini_str("SETTINGS","mdi_maximized",wp.flags&WPF_RESTORETOMAXIMIZED?"1":"0");
+		return TRUE;
+	}
+	return FALSE;
+}
 int move_console()
 {
 	char title[MAX_PATH]={0}; 
@@ -258,7 +269,7 @@ int create_listview_columns(HWND hlistview,char *list)
 		ListView_InsertColumn(hlistview,i,&col);
 
 }
-int create_mdi_window(HWND hwnd,HINSTANCE hinstance,DB_WINDOW *win)
+int create_mdi_window(HWND hwnd,HINSTANCE hinstance,TABLE_WINDOW *win)
 {
 	HWND hedit,hlistview=0;
 	if(win==0)
@@ -301,7 +312,7 @@ int setup_mdi_classes(HINSTANCE hinstance)
     wc.hIcon         = LoadIcon(NULL, IDI_APPLICATION);
     wc.hCursor       = LoadCursor(NULL, IDC_ARROW);
     wc.hbrBackground = (HBRUSH)(COLOR_3DFACE+1);
-    wc.lpszClassName = "dbwindow";
+    wc.lpszClassName = "tablewindow";
 
     if(!RegisterClass(&wc))
 		result=FALSE;
@@ -379,7 +390,7 @@ int create_dbview(HWND hwnd,HINSTANCE hinstance)
 	return hswitch;
 }
 
-int create_db_window(HWND hmdiclient,DB_WINDOW *win)
+int create_table_window(HWND hmdiclient,TABLE_WINDOW *win)
 { 
 	int maximized=0,style,handle;
 	MDICREATESTRUCT cs;
@@ -390,7 +401,7 @@ int create_db_window(HWND hmdiclient,DB_WINDOW *win)
 	else
 		style = MDIS_ALLCHILDSTYLES;
 	cs.cx=cs.cy=cs.x=cs.y=CW_USEDEFAULT;
-	cs.szClass="dbwindow";
+	cs.szClass="tablewindow";
 	cs.szTitle=title;
 	cs.style=style;
 	cs.hOwner=ghinstance;
@@ -399,30 +410,30 @@ int create_db_window(HWND hmdiclient,DB_WINDOW *win)
 	return handle;
 }
 
-int find_win_by_hwnd(HWND hwnd,DB_WINDOW **win)
+int find_win_by_hwnd(HWND hwnd,TABLE_WINDOW **win)
 {
 	int i;
-	for(i=0;i<sizeof(db_windows)/sizeof(DB_WINDOW);i++){
-		if(db_windows[i].hwnd==hwnd){
-			*win=&db_windows[i];
+	for(i=0;i<sizeof(table_windows)/sizeof(TABLE_WINDOW);i++){
+		if(table_windows[i].hwnd==hwnd){
+			*win=&table_windows[i];
 			return TRUE;
 		}
 	}
 	return FALSE;
 }
-int free_window(DB_WINDOW *win)
+int free_window(TABLE_WINDOW *win)
 {
 	if(win!=0){
-		memset(win,0,sizeof(DB_WINDOW));
+		memset(win,0,sizeof(TABLE_WINDOW));
 	}
 	return TRUE;
 }
-int acquire_db_window(DB_WINDOW **win)
+int acquire_table_window(TABLE_WINDOW **win)
 {
 	int i;
-	for(i=0;i<sizeof(db_windows)/sizeof(DB_WINDOW);i++){
-		if(db_windows[i].hwnd==0){
-			*win=&db_windows[i];
+	for(i=0;i<sizeof(table_windows)/sizeof(TABLE_WINDOW);i++){
+		if(table_windows[i].hwnd==0){
+			*win=&table_windows[i];
 			return TRUE;
 		}
 	}
@@ -448,7 +459,7 @@ int acquire_db_tree(char *name,DB_TREE **tree)
 	for(i=0;i<sizeof(db_tree)/sizeof(DB_TREE);i++){
 		if(db_tree[i].hroot==0){
 			strncpy(db_tree[i].name,name,sizeof(db_tree[i].name));
-			db_tree[i].hroot=insert_root(name);
+			db_tree[i].hroot=insert_root(name,IDC_DB_ITEM);
 			db_tree[i].htree=ghtreeview;
 			*tree=&db_tree[i];
 			return TRUE;
@@ -468,17 +479,22 @@ int mdi_open_db(DB_TREE *tree)
 	}
 	return FALSE;
 }
-int mdi_open_table(DB_TREE *tree,DB_WINDOW *win)
+int mdi_open_table(DB_TREE *tree,TABLE_WINDOW *win)
 {
 }
-int mdi_close_db(DB_WINDOW *win)
+int mdi_close_db(DB_TREE *tree)
 {
-	return TRUE;
+	if(tree!=0 && close_db(tree)){
+		TreeView_DeleteItem(ghtreeview,tree->hroot);
+		memset(tree,0,sizeof(DB_TREE));
+		return TRUE;
+	}
+	return FALSE;
 }
 
 
 
-int mdi_test_db(DB_WINDOW *win)
+int mdi_test_db(TABLE_WINDOW *win)
 {
 	//get_fields(win->DB,
 }
@@ -506,7 +522,7 @@ int init_mdi_stuff()
 {
 	extern int show_joins,lua_script_enable;
 	int list_width=60;
-	memset(&db_windows,0,sizeof(db_windows));
+	memset(&table_windows,0,sizeof(table_windows));
 	memset(&db_tree,0,sizeof(db_tree));
 	create_popup_menus();
 	return TRUE;

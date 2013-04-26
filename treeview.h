@@ -1,31 +1,35 @@
 HWND ghtreeview;
 static HMENU db_menu=0;
+static HMENU table_menu=0;
 enum {
 	CMD_CLOSEDB=10000,
+	CMD_DB_INFO,
 	CMD_SELECTTOP,
 	CMD_SELECTALL,
 	CMD_TABLE_STRUCT
 };
-int insert_root(char *name)
+int insert_root(char *name,int lparam)
 {
 	TV_INSERTSTRUCT tvins;
 	TV_ITEM tvi;
-	tvi.mask=TVIF_TEXT;
+	tvi.mask=TVIF_TEXT|TVIF_PARAM;
 	tvi.pszText=name;
+	tvi.lParam=lparam;
 
 	tvins.hParent=TVI_ROOT;
 	tvins.hInsertAfter=TVI_SORT;
 	tvins.item=tvi;
 	return TreeView_InsertItem(ghtreeview,&tvins);
 }
-int insert_item(char *name,HTREEITEM hparent)
+int insert_item(char *name,HTREEITEM hparent,int lparam)
 {
 	TV_INSERTSTRUCT tvins;
 	TV_ITEM tvi;
 	if(hparent==0)
 		return 0;
-	tvi.mask=TVIF_TEXT;
+	tvi.mask=TVIF_TEXT|TVIF_PARAM;
 	tvi.pszText=name;
+	tvi.lParam=lparam;
  
 	tvins.hParent=hparent;
 	tvins.hInsertAfter=TVI_SORT;
@@ -52,13 +56,7 @@ int tree_get_root(char *name,HANDLE *hroot)
 	while(h!=0){
 		TV_ITEM tvi;
 		char str[MAX_PATH]={0};
-		memset(&tvi,0,sizeof(tvi));
-		tvi.hItem=h;
-		tvi.mask=TVIF_TEXT;
-		tvi.pszText=str;
-		tvi.cchTextMax=sizeof(str);
-		TreeView_GetItem(ghtreeview,&tvi);
-		if(tvi.pszText!=0){
+		if(tree_get_item_text(h,str,sizeof(str))){
 			if(stricmp(tvi.pszText,name)==0){
 				*hroot=h;
 				return TRUE;
@@ -69,6 +67,61 @@ int tree_get_root(char *name,HANDLE *hroot)
 	if(hroot!=0)
 		*hroot=0;
 	return FALSE;
+}
+int tree_get_info(HTREEITEM hitem,char *str,int str_size,int *lparam)
+{
+	int result=FALSE;
+	if(hitem!=0){
+		TV_ITEM tvi;
+		memset(&tvi,0,sizeof(tvi));
+		tvi.hItem=hitem;
+		if(str!=0 && str_size>0){
+			tvi.mask|=TVIF_TEXT;
+			tvi.pszText=str;
+			tvi.cchTextMax=str_size;
+		}
+		if(lparam!=0)
+			tvi.mask|=TVIF_PARAM;
+		if(TreeView_GetItem(ghtreeview,&tvi)){
+			if(lparam!=0)
+				*lparam=tvi.lParam;
+			result=TRUE;
+		}
+	}
+	return result;
+}
+int tree_get_db_table(HTREEITEM hitem,char *db,int db_size,char *table,int table_size,int *item_type)
+{
+	int result=FALSE;
+	if(hitem!=0){
+		char str[MAX_PATH]={0};
+		int type=0;
+		if(tree_get_info(hitem,str,sizeof(str),&type)){
+			if(type==IDC_TABLE_ITEM){
+				HTREEITEM hparent;
+				if(table!=0 && table_size>0)
+					strncpy(table,str,table_size);
+				if(item_type!=0)
+					*item_type=type;
+				hparent=TreeView_GetParent(ghtreeview,hitem);
+				result=TRUE;
+				if(hparent!=0 && db!=0 && db_size>0){
+					str[0]=0;
+					if(tree_get_info(hparent,str,sizeof(str),&type))
+						if(type==IDC_DB_ITEM)
+							strncpy(db,str,db_size);
+				}
+
+			}
+			else if(type==IDC_DB_ITEM && db!=0 && db_size>0){
+				strncpy(db,str,db_size);
+				if(item_type!=0)
+					*item_type=type;
+				result=TRUE;
+			}
+		}
+	}
+	return result;
 }
 int tree_delete_all_child(HTREEITEM hroot)
 {
@@ -81,7 +134,6 @@ int tree_delete_all_child(HTREEITEM hroot)
 		hitem=hsib;
 	}
 	return TRUE;
-
 }
 int tree_delete_all()
 {
@@ -95,11 +147,17 @@ int create_treeview_menus()
 {
 	if(db_menu!=0)DestroyMenu(db_menu);
 	if(db_menu=CreatePopupMenu()){
-		//InsertMenu(list_menu,0xFFFFFFFF,MF_BYPOSITION|MF_SEPARATOR,0,0);
+		InsertMenu(db_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_DB_INFO,"DB info");
+		InsertMenu(db_menu,0xFFFFFFFF,MF_BYPOSITION|MF_SEPARATOR,0,0);
 		InsertMenu(db_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_CLOSEDB,"close DB");
-		InsertMenu(db_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SELECTTOP,"SELECT * TOP 1000");
-		InsertMenu(db_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SELECTALL,"SELECT * ALL");
-		InsertMenu(db_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_TABLE_STRUCT,"table struct");
+	}
+	if(table_menu!=0)DestroyMenu(table_menu);
+	if(table_menu=CreatePopupMenu()){
+		InsertMenu(table_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SELECTTOP,"SELECT * TOP 1000");
+		InsertMenu(table_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SELECTALL,"SELECT * ALL");
+		InsertMenu(table_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_TABLE_STRUCT,"table struct");
+		InsertMenu(table_menu,0xFFFFFFFF,MF_BYPOSITION|MF_SEPARATOR,0,0);
+		InsertMenu(table_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_CLOSEDB,"close DB");
 	}
 	return TRUE;
 }
@@ -110,12 +168,12 @@ int test_items()
 	for(j=0;j<10;j++){
 		char str[80];
 		sprintf(str,"root%i",j);
-		insert_root(str);
+		insert_root(str,IDC_DB_ITEM);
 		for(i=0;i<4;i++){
 			sprintf(str,"root%i",j);
 			tree_get_root(str,&h);
 			sprintf(str,"item%i",i);
-			insert_item(str,h);
+			insert_item(str,h,IDC_TABLE_ITEM);
 		}
 	}
 	tree_get_root("root1",&h);
@@ -142,7 +200,6 @@ LRESULT APIENTRY sc_treeview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			ht.pt.x=LOWORD(lparam); //x
 			ht.pt.y=HIWORD(lparam); 
 			TreeView_HitTest(hwnd,&ht);
-			printf("hitetest %08X %08X\n",ht.hItem,ht.flags);
 			if(ht.hItem!=0)
 				TreeView_SelectItem(hwnd,ht.hItem);
 				
@@ -153,13 +210,12 @@ LRESULT APIENTRY sc_treeview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		HTREEITEM hitem=0;
 		hitem=TreeView_GetSelection(hwnd);
 			if(hitem!=0){
-				HTREEITEM hroot=TreeView_GetParent(hwnd,hitem);
-				if(hroot!=0){
-					char root[80]={0},table[80]={0};
-					tree_get_item_text(hroot,root,sizeof(root));
-					tree_get_item_text(hitem,table,sizeof(table));
-					task_open_table(root,table);
-					printf("---------------root=%s,item=%s\n",root,table);
+				char db[80]={0},table[80]={0};
+				int type=0;
+				tree_get_db_table(hitem,db,sizeof(db),table,sizeof(table),&type);
+				if(type==IDC_TABLE_ITEM){
+					task_open_table(db,table);
+					printf("---------------db=%s,item=%s\n",db,table);
 				}
 			}
 		}
@@ -188,13 +244,43 @@ LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 		break;
 	case WM_CONTEXTMENU:
 		{
-			POINT screen={0};
-			GetCursorPos(&screen);
-			TrackPopupMenu(db_menu,TPM_LEFTALIGN,screen.x,screen.y,0,hwnd,NULL);
+			POINT p={0};
+			TV_HITTESTINFO ht={0};
+			int type=0;
+			HMENU hmenu=0;
+			p.x=LOWORD(lparam);
+			p.y=HIWORD(lparam);
+			ScreenToClient(ghtreeview,&p);
+			ht.pt.x=p.x;
+			ht.pt.y=p.y;
+			TreeView_HitTest(ghtreeview,&ht);
+			if(ht.hItem!=0)
+				tree_get_info(ht.hItem,0,0,&type);
+			if(type==IDC_DB_ITEM)
+				hmenu=db_menu;
+			else
+				hmenu=table_menu;
+			TrackPopupMenu(hmenu,TPM_LEFTALIGN,LOWORD(lparam),HIWORD(lparam),0,hwnd,NULL);
 		}
 		break;
-	case WM_MOUSEACTIVATE:
-
+	case WM_COMMAND:
+		switch(LOWORD(wparam)){
+		case CMD_CLOSEDB:
+			{
+			char str[MAX_PATH]={0};
+			tree_get_db_table(TreeView_GetSelection(ghtreeview),str,sizeof(str),0,0,0);
+			if(str[0]!=0){
+				task_close_db(str);
+				printf("close db\n");
+			}
+			}
+			break;
+		case CMD_DB_INFO:
+		case CMD_SELECTTOP:
+		case CMD_SELECTALL:
+		case CMD_TABLE_STRUCT:
+			break;
+		}
 		break;
 	case WM_USER:
 		if(create_tree==FALSE){
