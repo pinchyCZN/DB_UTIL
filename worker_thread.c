@@ -9,7 +9,9 @@ char localinfo[sizeof(taskinfo)]={0};
 enum{
 	TASK_OPEN_TABLE,
 	TASK_OPEN_DB,
-	TASK_CLOSE_DB
+	TASK_CLOSE_DB,
+	TASK_NEW_QUERY,
+	TASK_EXECUTE_QUERY
 };
 
 int task_open_db(char *name)
@@ -39,6 +41,19 @@ int task_close_db(char *dbname)
 	}
 	return FALSE;
 }
+int task_new_query()
+{
+	task=TASK_NEW_QUERY;
+	SetEvent(event);
+	return TRUE;
+
+}
+int task_execute_query()
+{
+	task=TASK_EXECUTE_QUERY;
+	SetEvent(event);
+	return TRUE;
+}
 int thread(HANDLE event)
 {
 	int id;
@@ -65,6 +80,35 @@ int thread(HANDLE event)
 				mdi_open_db(db,localinfo);
 				}
 				break;
+			case TASK_EXECUTE_QUERY:
+				{
+				void *win=0;
+				mdi_get_current_win(&win);
+				if(win!=0){
+					char *s=0;
+					int size=0x10000;
+					s=malloc(size);
+					if(s!=0){
+						mdi_get_edit_text(win,s,size);
+						execute_sql(win,s);
+						free(s);
+					}
+				}
+				}
+				break;
+			case TASK_NEW_QUERY:
+				{
+				void *db=0;
+				find_selected_tree(&db);
+				if(db!=0){
+					void *win=0;
+					if(acquire_table_window(&win)){
+						create_table_window(ghmdiclient,win);
+						assign_db_to_table(db,win);
+					}
+				}
+				}
+				break;
 			case TASK_OPEN_TABLE:
 				{
 					char dbname[80]={0},table[80]={0},*p;
@@ -81,6 +125,7 @@ int thread(HANDLE event)
 								create_table_window(ghmdiclient,win);
 								assign_db_to_table(db,win);
 								_snprintf(sql,sizeof(sql),"SELECT * FROM %s;",table);
+								mdi_set_edit_text(win,sql);
 								execute_sql(win,sql);
 							}
 							else

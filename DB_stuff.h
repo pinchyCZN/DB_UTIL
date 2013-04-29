@@ -134,12 +134,14 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 				result=SQLGetData(hstmt,i+1,SQL_C_CHAR,str,sizeof(str),&len);
 				if(result==SQL_SUCCESS || result==SQL_SUCCESS_WITH_INFO){
 					lv_insert_data(win->hlistview,rows,i,str);
+//Sleep(250);
 				}
-				if(win->abort)
+				if(win->abort || win->hwnd==0)
 					break;
+
 			}
 			rows++;
-			if(win->abort)
+			if(win->abort || win->hwnd==0)
 				break;
 		}
 	}
@@ -157,9 +159,11 @@ int execute_sql(TABLE_WINDOW *win,char *sql)
         case SQL_SUCCESS:
 			{
 			SQLINTEGER rows=0,cols=0;
+			mdi_create_abort(win);
 			SQLRowCount(hstmt,&rows);
 			cols=fetch_columns(hstmt,win);
 			fetch_rows(hstmt,win,cols);
+			mdi_destroy_abort(win);
 			}
 			break;
         case SQL_ERROR:
@@ -181,6 +185,7 @@ int assign_db_to_table(DB_TREE *db,TABLE_WINDOW *win)
 	if(db!=0 && win!=0){
 		win->hdbc=db->hdbc;
 		win->hdbenv=db->hdbenv;
+		SetWindowText(win->hwnd,db->name);
 		return TRUE;
 	}
 	return FALSE;

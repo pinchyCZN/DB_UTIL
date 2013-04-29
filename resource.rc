@@ -65,6 +65,7 @@ IDR_MENU1 MENU DISCARDABLE
 BEGIN
     MENUITEM "OPEN",                        IDM_OPEN
     MENUITEM "Close",                       IDM_CLOSE
+    MENUITEM "New QUERY",                   IDM_QUERY
     MENUITEM "Settings",                    IDM_SETTINGS
     MENUITEM "Window",                      65535
 END
@@ -85,9 +86,22 @@ BEGIN
     PUSHBUTTON      "IDC_MDI_LISTVIEW",IDC_MDI_LISTVIEW,157,121,154,54
     GROUPBOX        "IDC_MDI_CLIENT",IDC_MDI_CLIENT,143,52,180,133
     GROUPBOX        "IDC_TREEVIEW",IDC_TREEVIEW,8,5,94,171
-    PUSHBUTTON      "IDC_MDI_EDIT",IDC_MDI_EDIT,160,66,151,47
+    PUSHBUTTON      "IDC_MDI_EDIT",IDC_MDI_EDIT,157,67,151,47
     PUSHBUTTON      "IDC_DB_ITEM",IDC_DB_ITEM,17,17,69,14
     PUSHBUTTON      "IDC_TABLE_ITEM",IDC_TABLE_ITEM,18,36,68,14
+    PUSHBUTTON      "IDC_SQL_ABORT",IDC_SQL_ABORT,143,18,75,14
+    PUSHBUTTON      "IDC_EXECUTE_SQL",IDC_EXECUTE_SQL,230,17,82,14
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Accelerator
+//
+
+IDR_ACCELERATOR1 ACCELERATORS DISCARDABLE 
+BEGIN
+    VK_F5,          IDC_EXECUTE_SQL,        VIRTKEY, NOINVERT
 END
 
 #endif    // English (U.S.) resources

@@ -150,6 +150,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 		case IDM_OPEN:
 			task_open_db("DSN=Journal");
 			break;
+		case IDM_QUERY:
+			task_new_query();
+			break;
+		case IDC_EXECUTE_SQL:
+			task_execute_query();
+			break;
 		}
 		break;
 	case WM_KILLFOCUS:
@@ -184,6 +190,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 {
 	MSG msg;
     INITCOMMONCONTROLSEX ctrls;
+	HACCEL haccel;
 	int debug=0;
 #ifdef _DEBUG
 	debug=1;
@@ -220,21 +227,21 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 	ShowWindow(ghmainframe,nCmdShow);
 	UpdateWindow(ghmainframe);
 	load_window_ini(ghmainframe);
-
+	haccel=LoadAccelerators(ghinstance,MAKEINTRESOURCE(IDR_ACCELERATOR1));
 
     while(GetMessage(&msg,NULL,0,0)){
-		static DWORD tick=0;
-		//if(msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY)
-		if(FALSE)
-		if(msg.message!=0x118&&msg.message!=WM_NCHITTEST&&msg.message!=WM_SETCURSOR&&msg.message!=WM_ENTERIDLE)
-		{
-			if((GetTickCount()-tick)>500)
-				printf("--\n");
-			printf("x");
-			print_msg(msg.message,msg.lParam,msg.wParam,msg.hwnd);
-			tick=GetTickCount();
-		}
-		if(!TranslateMDISysAccel(ghmdiclient, &msg)){
+		if(!TranslateMDISysAccel(ghmdiclient, &msg) && !TranslateAccelerator(ghmainframe,haccel,&msg)){
+			//if(msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY)
+			//if(FALSE)
+			if(msg.message!=0x118&&msg.message!=WM_NCHITTEST&&msg.message!=WM_SETCURSOR&&msg.message!=WM_ENTERIDLE&&msg.message!=WM_NCMOUSEMOVE&&msg.message!=WM_MOUSEFIRST)
+			{
+				static DWORD tick=0;
+				if((GetTickCount()-tick)>500)
+					printf("--\n");
+				printf("x");
+				print_msg(msg.message,msg.lParam,msg.wParam,msg.hwnd);
+				tick=GetTickCount();
+			}
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}

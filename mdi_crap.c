@@ -18,7 +18,7 @@ typedef struct{
 	void *hdbc;
 	void *hdbenv;
 	int abort;
-	HWND hwnd,hbutton,hstatic,hlistview,hedit,hroot;
+	HWND hwnd,hbutton,hstatic,hlistview,hedit,hroot,habort;
 }TABLE_WINDOW;
 
 typedef struct{
@@ -40,8 +40,8 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 {
 	static int split_drag=FALSE,mdi_split=60;
 	static DWORD tick=0;
-	if(FALSE)
-	if(/*msg!=WM_NCMOUSEMOVE&&*/msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE/*&&msg!=WM_NOTIFY*/)
+	//if(FALSE)
+	if(/*msg!=WM_NCMOUSEMOVE&&*/msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY)
 		//if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE)
 	{
 		if((GetTickCount()-tick)>500)
@@ -73,6 +73,13 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 			//return MA_NOACTIVATE;
 		}
 		break;
+	case WM_CHAR:
+		if(GetFocus()==GetDlgItem(hwnd,IDC_SQL_ABORT)){
+			TABLE_WINDOW *win=0;
+			if(find_win_by_hwnd(hwnd,&win))
+				win->abort;
+		}
+		break;
 	case WM_VKEYTOITEM:
 		break;
 	case WM_SETFOCUS:
@@ -82,17 +89,6 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
         break;
 	case WM_CONTEXTMENU:
 		break;
-	case WM_SYSCOMMAND:
-		switch(wparam&0xFFF0){
-		case SC_MAXIMIZE:
-			write_ini_str("SETTINGS","MDI_MAXIMIZED","1");
-			break;
-		case SC_RESTORE:
-			write_ini_str("SETTINGS","MDI_MAXIMIZED","0");
-			break;
-		}
-		break;
-
 	case WM_CTLCOLORSTATIC:
 		/*{
 			RECT rect;
@@ -154,11 +150,30 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 		//LOWORD(wParam) item control
 		//lParam handle of control
 		switch(LOWORD(wparam)){
+		case IDC_SQL_ABORT:
+			{
+			TABLE_WINDOW *win=0;
+			find_win_by_hwnd(hwnd,&win);
+			if(win!=0)
+				win->abort=TRUE;
+			}
+			break;
+		case IDC_EXECUTE_SQL:
+			printf("fgsdfgsdfg\n");
+			break;
 		}
 		break;
 	case WM_HELP:
 		break;
-	case WM_USER://custom edit input wparam=key
+	case WM_USER:
+		switch(LOWORD(lparam)){
+		case IDC_SQL_ABORT:
+			if(HIWORD(lparam))
+				create_abort(wparam);
+			else
+				destroy_abort(wparam);
+			break;
+		}
 		break;
 	case WM_SIZE:
 		resize_mdi_window(hwnd,mdi_split);
@@ -277,7 +292,7 @@ int create_mdi_window(HWND hwnd,HINSTANCE hinstance,TABLE_WINDOW *win)
 
     hedit = CreateWindow("EDIT", 
                                      "",
-                                     WS_TABSTOP|WS_CHILD|WS_VISIBLE|ES_AUTOHSCROLL|ES_AUTOVSCROLL|ES_MULTILINE|ES_WANTRETURN,
+                                     WS_TABSTOP|WS_CHILD|WS_CLIPSIBLINGS|WS_VISIBLE|ES_AUTOHSCROLL|ES_AUTOVSCROLL|ES_MULTILINE|ES_WANTRETURN,
                                      0,0,
                                      0,0,
                                      hwnd,
@@ -286,7 +301,7 @@ int create_mdi_window(HWND hwnd,HINSTANCE hinstance,TABLE_WINDOW *win)
                                      NULL);
     hlistview = CreateWindow(WC_LISTVIEW, 
                                      "",
-                                     WS_TABSTOP|WS_CHILD|WS_VISIBLE|LVS_REPORT|LVS_SHOWSELALWAYS, //|LVS_OWNERDRAWFIXED, //|LVS_EDITLABELS,
+                                     WS_TABSTOP|WS_CHILD|WS_CLIPSIBLINGS|WS_VISIBLE|LVS_REPORT|LVS_SHOWSELALWAYS, //|LVS_OWNERDRAWFIXED, //|LVS_EDITLABELS,
                                      0,0,
                                      0,0,
                                      hwnd,
@@ -451,6 +466,25 @@ int find_db_tree(char *name,DB_TREE **tree)
 	}
 	return FALSE;
 }
+int find_selected_tree(DB_TREE **tree)
+{
+	int i;
+	HANDLE hroot=0;
+	tree_find_focused_root(&hroot);
+	for(i=0;i<sizeof(db_tree)/sizeof(DB_TREE);i++){
+		if(hroot!=0){
+			if(db_tree[i].hroot==hroot){
+				*tree=&db_tree[i];
+				return TRUE;
+			}
+		}
+		else if(db_tree[i].hroot!=0){
+			*tree=&db_tree[i];
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
 int acquire_db_tree(char *name,DB_TREE **tree)
 {
 	int i;
@@ -499,11 +533,76 @@ int mdi_test_db(TABLE_WINDOW *win)
 	//get_fields(win->DB,
 }
 
+int mdi_get_current_win(TABLE_WINDOW **win)
+{
+	HWND hwnd;
+	hwnd=SendMessage(ghmdiclient,WM_MDIGETACTIVE,0,0);
+	if(hwnd!=0){
+		return find_win_by_hwnd(hwnd,win);
+	}
+	return FALSE;
+}
 
+int mdi_create_abort(TABLE_WINDOW *win)
+{
+	//PostMessage(ghmdiclient,WM_USER,win,MAKELPARAM(TRUE,IDC_SQL_ABORT));
+	PostMessage(win->hwnd,WM_USER,win,MAKELPARAM(IDC_SQL_ABORT,TRUE));
+}
+int mdi_destroy_abort(TABLE_WINDOW *win)
+{
+//	PostMessage(ghmdiclient,WM_USER,win,MAKELPARAM(IDC_SQL_ABORT,FALSE));
+	PostMessage(win->hwnd,WM_USER,win,MAKELPARAM(IDC_SQL_ABORT,FALSE));
+}
+int mdi_set_edit_text(TABLE_WINDOW *win,char *str)
+{
+	if(win!=0 && win->hedit!=0)
+		SetWindowText(win->hedit,str);
+	return TRUE;
+}
+int mdi_get_edit_text(TABLE_WINDOW *win,char *str,int size)
+{
+	if(win!=0 && win->hedit!=0)
+		GetWindowText(win->hedit,str,size);
+	return TRUE;
+}
+int mdi_set_title(TABLE_WINDOW *win,char *title)
+{
+	if(win!=0 && win->hwnd!=0)
+		SetWindowText(win->hwnd,title);
+	return TRUE;
+}
+int create_abort(TABLE_WINDOW *win)
+{
+	if(win==0 || win->hwnd==0)
+		return FALSE;
+    win->habort = CreateWindow("BUTTON", 
+                                     "abort",
+                                     WS_TABSTOP|WS_CHILD|WS_CLIPSIBLINGS|WS_VISIBLE|BS_TEXT,
+                                     0,0,
+                                     80,20,
+                                     win->hwnd,
+                                     IDC_SQL_ABORT,
+                                     ghinstance,
+                                     NULL);
+	if(win->habort!=0){
+		SetWindowPos(win->habort,HWND_TOP,0,0,80,20,SWP_SHOWWINDOW);
+		SetWindowText(win->habort,"Abort");
+		SetFocus(win->habort);
+		win->abort=FALSE;
+	}
+	return win->habort!=0;
+}
 
-
-
-
+int destroy_abort(TABLE_WINDOW *win)
+{
+	int result=FALSE;
+	if(win==0 || win->habort==0)
+		return FALSE;
+	win->abort=FALSE;
+	result=DestroyWindow(win->habort);
+	win->habort=0;
+	return result;
+}
 
 
 

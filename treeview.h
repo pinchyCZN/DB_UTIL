@@ -68,6 +68,25 @@ int tree_get_root(char *name,HANDLE *hroot)
 		*hroot=0;
 	return FALSE;
 }
+int tree_find_focused_root(HANDLE *hroot)
+{
+	HTREEITEM h;
+	h=TreeView_GetSelection(ghtreeview);
+	while(h!=0){
+		HTREEITEM hparent;
+		hparent=TreeView_GetParent(ghtreeview,h);
+		if(hparent==0)
+			break;
+		else
+			h=hparent;
+	}
+	if(h!=0 && hroot!=0){
+		*hroot=h;
+		return TRUE;
+	}
+	else
+		return FALSE;
+}
 int tree_get_info(HTREEITEM hitem,char *str,int str_size,int *lparam)
 {
 	int result=FALSE;
