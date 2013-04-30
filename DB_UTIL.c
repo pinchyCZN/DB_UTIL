@@ -230,6 +230,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 	haccel=LoadAccelerators(ghinstance,MAKEINTRESOURCE(IDR_ACCELERATOR1));
 
     while(GetMessage(&msg,NULL,0,0)){
+		if(!custom_dispatch(&msg))
 		if(!TranslateMDISysAccel(ghmdiclient, &msg) && !TranslateAccelerator(ghmainframe,haccel,&msg)){
 			//if(msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY)
 			//if(FALSE)

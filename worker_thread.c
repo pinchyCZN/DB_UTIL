@@ -87,6 +87,7 @@ int thread(HANDLE event)
 				if(win!=0){
 					char *s=0;
 					int size=0x10000;
+					mdi_clear_listview(win);
 					s=malloc(size);
 					if(s!=0){
 						mdi_get_edit_text(win,s,size);

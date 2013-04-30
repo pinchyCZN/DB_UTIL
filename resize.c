@@ -83,8 +83,8 @@ int process_anchor_list(HWND hwnd,short *list)
 			HWND item=GetDlgItem(hwnd,list[i+1]);
 			if(item!=0){
 				RECT rect={0};
-				GetClientRect(item,&rect);
-				x+=rect.right;
+				GetWindowRect(item,&rect);
+				x+=rect.right-rect.left;
 				width=crect.right-x;
 			}
 			}
@@ -94,8 +94,8 @@ int process_anchor_list(HWND hwnd,short *list)
 			HWND item=GetDlgItem(hwnd,list[i+1]);
 			if(item!=0){
 				RECT rect={0};
-				GetClientRect(item,&rect);
-				y+=rect.bottom;
+				GetWindowRect(item,&rect);
+				y+=rect.bottom-rect.top;
 				height=crect.bottom-y;
 			}
 			}
@@ -387,7 +387,7 @@ short main_dlg_anchors[]={
 		CONTROL_FINISH,-1,
 	CONTROL_ID,IDC_MDI_CLIENT,
 		HUG_CTRL_X,IDC_TREEVIEW,
-		XPOS,8,
+		XPOS,5,
 		HUG_T,0,
 		SIZE_HEIGHT_OFF,-20,
 		CONTROL_FINISH,-1,

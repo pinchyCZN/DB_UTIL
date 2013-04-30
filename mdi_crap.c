@@ -34,12 +34,13 @@ static DB_TREE db_tree[5];
 
 #include "treeview.h"
 #include "listview.h"
-
+#include "intellisense.h"
 
 LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
 	static int split_drag=FALSE,mdi_split=60;
 	static DWORD tick=0;
+	static HWND last_focus=0;
 	//if(FALSE)
 	if(/*msg!=WM_NCMOUSEMOVE&&*/msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY)
 		//if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE)
@@ -83,9 +84,14 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 	case WM_VKEYTOITEM:
 		break;
 	case WM_SETFOCUS:
-	case WM_IME_SETCONTEXT:
-		break;
-	case WM_MDIACTIVATE:
+//	case WM_IME_SETCONTEXT:
+//	case WM_NCACTIVATE:
+//	case WM_MDIACTIVATE:
+		{
+		TABLE_WINDOW *win=0;
+		if(find_win_by_hwnd(hwnd,&win))
+			SetFocus(win->hedit);
+		}
         break;
 	case WM_CONTEXTMENU:
 		break;
@@ -158,9 +164,6 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 				win->abort=TRUE;
 			}
 			break;
-		case IDC_EXECUTE_SQL:
-			printf("fgsdfgsdfg\n");
-			break;
 		}
 		break;
 	case WM_HELP:
@@ -172,6 +175,9 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 				create_abort(wparam);
 			else
 				destroy_abort(wparam);
+			break;
+		case IDC_MDI_EDIT:
+			handle_intellisense(hwnd);
 			break;
 		}
 		break;
@@ -220,8 +226,8 @@ int save_mdi_size(HWND hwnd)
 }
 int move_console()
 {
-	char title[MAX_PATH]={0}; 
-	HWND hcon; 
+	char title[MAX_PATH]={0};
+	HWND hcon;
 	GetConsoleTitle(title,sizeof(title));
 	if(title[0]!=0){
 		hcon=FindWindow(NULL,title);
@@ -231,12 +237,12 @@ int move_console()
 }
 void open_console()
 {
-	char title[MAX_PATH]={0}; 
-	HWND hcon; 
+	char title[MAX_PATH]={0};
+	HWND hcon;
 	FILE *hf;
 	static BYTE consolecreated=FALSE;
 	static int hcrt=0;
-	
+
 	if(consolecreated==TRUE)
 	{
 		GetConsoleTitle(title,sizeof(title));
@@ -248,26 +254,26 @@ void open_console()
 		FlushConsoleInputBuffer(hcon);
 		return;
 	}
-	AllocConsole(); 
+	AllocConsole();
 	hcrt=_open_osfhandle((long)GetStdHandle(STD_OUTPUT_HANDLE),_O_TEXT);
 
 	fflush(stdin);
-	hf=_fdopen(hcrt,"w"); 
-	*stdout=*hf; 
+	hf=_fdopen(hcrt,"w");
+	*stdout=*hf;
 	setvbuf(stdout,NULL,_IONBF,0);
 	GetConsoleTitle(title,sizeof(title));
 	if(title[0]!=0){
 		hcon=FindWindow(NULL,title);
-		ShowWindow(hcon,SW_SHOW); 
+		ShowWindow(hcon,SW_SHOW);
 		SetForegroundWindow(hcon);
 	}
 	consolecreated=TRUE;
 }
 void hide_console()
 {
-	char title[MAX_PATH]={0}; 
-	HANDLE hcon; 
-	
+	char title[MAX_PATH]={0};
+	HANDLE hcon;
+
 	GetConsoleTitle(title,sizeof(title));
 	if(title[0]!=0){
 		hcon=FindWindow(NULL,title);
@@ -290,16 +296,16 @@ int create_mdi_window(HWND hwnd,HINSTANCE hinstance,TABLE_WINDOW *win)
 	if(win==0)
 		return FALSE;
 
-    hedit = CreateWindow("EDIT", 
+    hedit = CreateWindow("RichEdit20A",
                                      "",
-                                     WS_TABSTOP|WS_CHILD|WS_CLIPSIBLINGS|WS_VISIBLE|ES_AUTOHSCROLL|ES_AUTOVSCROLL|ES_MULTILINE|ES_WANTRETURN,
+                                     WS_TABSTOP|WS_CHILD|WS_CLIPSIBLINGS|WS_VISIBLE|WS_HSCROLL|WS_VSCROLL|ES_AUTOHSCROLL|ES_AUTOVSCROLL|ES_MULTILINE|ES_WANTRETURN,
                                      0,0,
                                      0,0,
                                      hwnd,
                                      IDC_MDI_EDIT,
                                      hinstance,
                                      NULL);
-    hlistview = CreateWindow(WC_LISTVIEW, 
+    hlistview = CreateWindow(WC_LISTVIEW,
                                      "",
                                      WS_TABSTOP|WS_CHILD|WS_CLIPSIBLINGS|WS_VISIBLE|LVS_REPORT|LVS_SHOWSELALWAYS, //|LVS_OWNERDRAWFIXED, //|LVS_EDITLABELS,
                                      0,0,
@@ -312,6 +318,8 @@ int create_mdi_window(HWND hwnd,HINSTANCE hinstance,TABLE_WINDOW *win)
 	win->hedit=hedit;
 	if(hlistview!=0)
 		ListView_SetExtendedListViewStyle(hlistview,ListView_GetExtendedListViewStyle(hlistview)|LVS_EX_FULLROWSELECT);
+	if(hedit!=0)
+
 	return TRUE;
 }
 
@@ -360,7 +368,7 @@ int create_mdiclient(HWND hwnd,HMENU hmenu,HINSTANCE hinstance)
 int create_mainwindow(void *wndproc,HMENU hmenu,HINSTANCE hinstance)
 {
 	WNDCLASS wndclass;
-	HWND hframe=0;	
+	HWND hframe=0;
 	memset(&wndclass,0,sizeof(wndclass));
 
 	wndclass.style=0; //CS_HREDRAW|CS_VREDRAW;
@@ -369,8 +377,8 @@ int create_mainwindow(void *wndproc,HMENU hmenu,HINSTANCE hinstance)
 	wndclass.hInstance=hinstance;
 	wndclass.hbrBackground=COLOR_BTNFACE+1;
 	wndclass.lpszClassName="mdiframe";
-	
-	if(RegisterClass(&wndclass)!=0){	
+
+	if(RegisterClass(&wndclass)!=0){
 		hframe = CreateWindow("mdiframe","DB_UTIL",
 			WS_CLIPSIBLINGS|WS_CLIPCHILDREN|WS_OVERLAPPEDWINDOW, //0x6CF0000
 			0,0,
@@ -406,7 +414,7 @@ int create_dbview(HWND hwnd,HINSTANCE hinstance)
 }
 
 int create_table_window(HWND hmdiclient,TABLE_WINDOW *win)
-{ 
+{
 	int maximized=0,style,handle;
 	MDICREATESTRUCT cs;
 	char title[256]={0};
@@ -528,9 +536,12 @@ int mdi_close_db(DB_TREE *tree)
 
 
 
-int mdi_test_db(TABLE_WINDOW *win)
+int mdi_clear_listview(TABLE_WINDOW *win)
 {
-	//get_fields(win->DB,
+	if(win!=0 && win->hlistview!=0)
+		return ListView_DeleteAllItems(win->hlistview);
+	else
+		return FALSE;
 }
 
 int mdi_get_current_win(TABLE_WINDOW **win)
@@ -575,7 +586,7 @@ int create_abort(TABLE_WINDOW *win)
 {
 	if(win==0 || win->hwnd==0)
 		return FALSE;
-    win->habort = CreateWindow("BUTTON", 
+    win->habort = CreateWindow("BUTTON",
                                      "abort",
                                      WS_TABSTOP|WS_CHILD|WS_CLIPSIBLINGS|WS_VISIBLE|BS_TEXT,
                                      0,0,
@@ -608,6 +619,88 @@ int destroy_abort(TABLE_WINDOW *win)
 
 int custom_dispatch(MSG *msg)
 {
+	TABLE_WINDOW *win=0;
+	HWND hwnd=0;
+	int i,type=0;
+
+	hwnd=WindowFromPoint(msg->pt);
+
+	for(i=0;i<sizeof(table_windows)/sizeof(TABLE_WINDOW);i++){
+		if(table_windows[i].hlistview==msg->hwnd){
+			win=&table_windows[i];
+			type=IDC_MDI_LISTVIEW;
+		}
+		else if(table_windows[i].hedit==msg->hwnd){
+			win=&table_windows[i];
+			type=IDC_MDI_EDIT;
+		}
+		else if(table_windows[i].hwnd==msg->hwnd){
+			win=&table_windows[i];
+			type=IDC_MDI_CLIENT;
+		}
+		else if(msg->message==WM_MOUSEWHEEL && hwnd!=0){
+			if(table_windows[i].hlistview==hwnd){
+				win=&table_windows[i];
+				type=IDC_MDI_LISTVIEW;
+			}
+			else if(table_windows[i].hedit==hwnd){
+				win=&table_windows[i];
+				type=IDC_MDI_EDIT;
+			}
+			else if(table_windows[i].hwnd==hwnd){
+				win=&table_windows[i];
+				type=IDC_MDI_CLIENT;
+			}
+		}
+	}
+	if(win!=0){
+		switch(msg->message){
+		case WM_MOUSEWHEEL:
+			switch(type){
+			case IDC_MDI_LISTVIEW:
+				msg->hwnd=win->hlistview;
+				DispatchMessage(msg);
+				return TRUE;
+			case IDC_MDI_EDIT:
+				msg->hwnd=win->hedit;
+				DispatchMessage(msg);
+				return TRUE;
+			case IDC_MDI_CLIENT:
+				msg->hwnd=win->hlistview;
+				DispatchMessage(msg);
+				return TRUE;
+			}
+			break;
+		case WM_KEYFIRST:
+			if(type==IDC_MDI_EDIT){
+				if(win->hwnd!=0)
+					PostMessage(win->hwnd,WM_USER,msg->wParam,MAKELPARAM(IDC_MDI_EDIT,0));
+			}
+			switch(msg->wParam){
+			case VK_TAB:
+				if(type==IDC_MDI_LISTVIEW || type==IDC_MDI_CLIENT)
+					SetFocus(win->hedit);
+				else if(type==IDC_MDI_EDIT){
+					if(GetKeyState(VK_CONTROL)&0x8000 && GetKeyState(VK_SHIFT)&0x8000){
+						SetFocus(win->hlistview);
+						return TRUE;
+					}
+				}
+				break;
+			case 'W':
+				if(GetKeyState(VK_CONTROL)&0x8000)
+					if(win->hwnd!=0)
+						PostMessage(win->hwnd,WM_CLOSE,0,0);
+			default:
+				if(type==IDC_MDI_CLIENT){
+					msg->hwnd=win->hedit;
+					SetFocus(win->hedit);
+				}
+				break;
+			}
+			break;
+		}
+	}
 	return FALSE;
 }
 
