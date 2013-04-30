@@ -124,6 +124,10 @@ SOURCE=.\DB_stuff.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\intellisense.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\listview.h
 # End Source File
 # Begin Source File

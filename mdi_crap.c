@@ -671,11 +671,13 @@ int custom_dispatch(MSG *msg)
 				return TRUE;
 			}
 			break;
-		case WM_KEYFIRST:
+		case WM_CHAR:
 			if(type==IDC_MDI_EDIT){
 				if(win->hwnd!=0)
 					PostMessage(win->hwnd,WM_USER,msg->wParam,MAKELPARAM(IDC_MDI_EDIT,0));
 			}
+			break;
+		case WM_KEYFIRST:
 			switch(msg->wParam){
 			case VK_TAB:
 				if(type==IDC_MDI_LISTVIEW || type==IDC_MDI_CLIENT)
