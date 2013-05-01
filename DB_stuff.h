@@ -159,11 +159,9 @@ int execute_sql(TABLE_WINDOW *win,char *sql)
         case SQL_SUCCESS:
 			{
 			SQLINTEGER rows=0,cols=0;
-			mdi_create_abort(win);
 			SQLRowCount(hstmt,&rows);
 			cols=fetch_columns(hstmt,win);
 			fetch_rows(hstmt,win,cols);
-			mdi_destroy_abort(win);
 			}
 			break;
         case SQL_ERROR:
@@ -185,6 +183,7 @@ int assign_db_to_table(DB_TREE *db,TABLE_WINDOW *win)
 	if(db!=0 && win!=0){
 		win->hdbc=db->hdbc;
 		win->hdbenv=db->hdbenv;
+		win->hroot=db->hroot;
 		SetWindowText(win->hwnd,db->name);
 		return TRUE;
 	}

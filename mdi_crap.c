@@ -18,7 +18,7 @@ typedef struct{
 	void *hdbc;
 	void *hdbenv;
 	int abort;
-	HWND hwnd,hbutton,hstatic,hlistview,hedit,hroot,habort;
+	HWND hwnd,hlistview,hedit,hroot,habort,hintel;
 }TABLE_WINDOW;
 
 typedef struct{
@@ -41,7 +41,7 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 	static int split_drag=FALSE,mdi_split=60;
 	static DWORD tick=0;
 	static HWND last_focus=0;
-	//if(FALSE)
+	if(FALSE)
 	if(/*msg!=WM_NCMOUSEMOVE&&*/msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY)
 		//if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE)
 	{
@@ -177,7 +177,19 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 				destroy_abort(wparam);
 			break;
 		case IDC_MDI_EDIT:
-			handle_intellisense(hwnd);
+			switch(wparam){ //key
+			case VK_ESCAPE:
+				{
+				TABLE_WINDOW *win=0;
+				find_win_by_hwnd(hwnd,&win);
+				if(win!=0)
+					win->abort=TRUE;
+				}
+				break;
+			default:
+				handle_intellisense(hwnd);
+				break;
+			}
 			break;
 		}
 		break;
@@ -538,8 +550,14 @@ int mdi_close_db(DB_TREE *tree)
 
 int mdi_clear_listview(TABLE_WINDOW *win)
 {
-	if(win!=0 && win->hlistview!=0)
-		return ListView_DeleteAllItems(win->hlistview);
+	if(win!=0 && win->hlistview!=0){
+		int i;
+		ListView_DeleteAllItems(win->hlistview);
+		for(i=0;i<1000;i++){
+			if(!ListView_DeleteColumn(win->hlistview,i))
+				break;
+		}
+	}
 	else
 		return FALSE;
 }
@@ -584,7 +602,7 @@ int mdi_set_title(TABLE_WINDOW *win,char *title)
 }
 int create_abort(TABLE_WINDOW *win)
 {
-	if(win==0 || win->hwnd==0)
+	if(win==0 || win->hwnd==0 || win->habort!=0)
 		return FALSE;
     win->habort = CreateWindow("BUTTON",
                                      "abort",
@@ -638,6 +656,10 @@ int custom_dispatch(MSG *msg)
 			win=&table_windows[i];
 			type=IDC_MDI_CLIENT;
 		}
+		else if(table_windows[i].habort==msg->hwnd){
+			win=&table_windows[i];
+			type=IDC_SQL_ABORT;
+		}
 		else if(msg->message==WM_MOUSEWHEEL && hwnd!=0){
 			if(table_windows[i].hlistview==hwnd){
 				win=&table_windows[i];
@@ -672,7 +694,7 @@ int custom_dispatch(MSG *msg)
 			}
 			break;
 		case WM_CHAR:
-			if(type==IDC_MDI_EDIT){
+			if(type==IDC_MDI_EDIT || msg->wParam==VK_ESCAPE){
 				if(win->hwnd!=0)
 					PostMessage(win->hwnd,WM_USER,msg->wParam,MAKELPARAM(IDC_MDI_EDIT,0));
 			}

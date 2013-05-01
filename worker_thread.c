@@ -87,6 +87,7 @@ int thread(HANDLE event)
 				if(win!=0){
 					char *s=0;
 					int size=0x10000;
+					mdi_create_abort(win);
 					mdi_clear_listview(win);
 					s=malloc(size);
 					if(s!=0){
@@ -94,6 +95,7 @@ int thread(HANDLE event)
 						execute_sql(win,s);
 						free(s);
 					}
+					mdi_destroy_abort(win);
 				}
 				}
 				break;
@@ -127,7 +129,9 @@ int thread(HANDLE event)
 								assign_db_to_table(db,win);
 								_snprintf(sql,sizeof(sql),"SELECT * FROM %s;",table);
 								mdi_set_edit_text(win,sql);
+								mdi_create_abort(win);
 								execute_sql(win,sql);
+								mdi_destroy_abort(win);
 							}
 							else
 								free_window(win);
