@@ -533,15 +533,15 @@ int mdi_open_db(DB_TREE *tree)
 	}
 	return FALSE;
 }
-int mdi_open_table(DB_TREE *tree,TABLE_WINDOW *win)
-{
-}
 int mdi_close_db(DB_TREE *tree)
 {
-	if(tree!=0 && close_db(tree)){
-		TreeView_DeleteItem(ghtreeview,tree->hroot);
-		memset(tree,0,sizeof(DB_TREE));
-		return TRUE;
+	if(tree!=0){
+		if(close_db(tree)){
+			if(tree->hroot!=0)
+				TreeView_DeleteItem(ghtreeview,tree->hroot);
+			memset(tree,0,sizeof(DB_TREE));
+			return TRUE;
+		}
 	}
 	return FALSE;
 }

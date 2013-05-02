@@ -97,9 +97,12 @@ int open_db(DB_TREE *tree)
 int close_db(DB_TREE *tree)
 {
 	if(tree!=0){
-		SQLDisconnect(tree->hdbc);
-		SQLFreeHandle(SQL_HANDLE_DBC,tree->hdbc);
-		SQLFreeHandle(SQL_HANDLE_ENV,tree->hdbenv);
+		if(tree->hdbc!=0){
+			SQLDisconnect(tree->hdbc);
+			SQLFreeHandle(SQL_HANDLE_DBC,tree->hdbc);
+		}
+		if(tree->hdbenv!=0)
+			SQLFreeHandle(SQL_HANDLE_ENV,tree->hdbenv);
 		tree->hdbc=0;
 		tree->hdbenv=0;
 		return TRUE;

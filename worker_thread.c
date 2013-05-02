@@ -77,7 +77,12 @@ int thread(HANDLE event)
 				{
 				void *db=0;
 				acquire_db_tree(localinfo,&db);
-				mdi_open_db(db,localinfo);
+				if(!mdi_open_db(db,localinfo)){
+					char str[80];
+					mdi_close_db(db);
+					_snprintf(str,sizeof(str),"Cant open %s",localinfo);
+					MessageBox(ghmainframe,str,"OPEN DB FAIL",MB_OK);
+				}
 				}
 				break;
 			case TASK_EXECUTE_QUERY:
