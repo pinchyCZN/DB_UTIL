@@ -129,16 +129,22 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 {
 	SQLINTEGER rows=0;
 	if(hstmt!=0){
-		while(SQLFetch(hstmt)!=SQL_NO_DATA_FOUND){
+		while(TRUE){
+			int result=0;
 			int i,len;
+			result=SQLFetch(hstmt);
+			if(!(result==SQL_SUCCESS || result==SQL_SUCCESS_WITH_INFO))
+				break;
 			for(i=0;i<cols;i++){
 				char str[1024]={0};
-				int len=0,result;
+				int len=0;
 				result=SQLGetData(hstmt,i+1,SQL_C_CHAR,str,sizeof(str),&len);
 				if(result==SQL_SUCCESS || result==SQL_SUCCESS_WITH_INFO){
 					lv_insert_data(win->hlistview,rows,i,str);
 //Sleep(250);
 				}
+				else
+					break;
 				if(win->abort || win->hwnd==0)
 					break;
 

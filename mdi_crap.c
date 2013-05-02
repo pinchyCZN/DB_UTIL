@@ -39,12 +39,13 @@ static DB_TREE db_tree[5];
 LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
 	static int split_drag=FALSE,mdi_split=60;
-	static DWORD tick=0;
 	static HWND last_focus=0;
 	if(FALSE)
-	if(/*msg!=WM_NCMOUSEMOVE&&*/msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY)
+	if(msg!=WM_NCMOUSEMOVE&&msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY
+		&&msg!=WM_ERASEBKGND)
 		//if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE)
 	{
+		static DWORD tick=0;
 		if((GetTickCount()-tick)>500)
 			printf("--\n");
 		printf("m");
@@ -64,8 +65,6 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 		}
 		create_mdi_window(hwnd,ghinstance,win);
 		load_mdi_size(hwnd);
-		resize_mdi_window(hwnd,mdi_split);
-		//test_listview(win->hlistview);
 		}
         break;
 	case WM_MOUSEACTIVATE:
@@ -118,6 +117,7 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 	case WM_ENDSESSION:
 		break;
 	case WM_CLOSE:
+		save_mdi_size(hwnd);
 		{
 			TABLE_WINDOW *win=0;
 			if(find_win_by_hwnd(hwnd,&win)){
@@ -151,6 +151,17 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 			}
 		}
 		break;
+	case WM_SYSCOMMAND:
+		switch(wparam&0xFFF0){
+		case SC_MAXIMIZE:
+			write_ini_str("SETTINGS","mdi_maximized","1");
+			break;
+		case SC_RESTORE:
+			write_ini_str("SETTINGS","mdi_maximized","0");
+			break;
+		}
+		break;
+
     case WM_COMMAND:
 		//HIWORD(wParam) notification code
 		//LOWORD(wParam) item control
@@ -168,6 +179,9 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 		break;
 	case WM_HELP:
 		break;
+	case WM_USER+1:
+		ShowWindow(hwnd,SW_MAXIMIZE);
+		break;
 	case WM_USER:
 		switch(LOWORD(lparam)){
 		case IDC_SQL_ABORT:
@@ -176,26 +190,10 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 			else
 				destroy_abort(wparam);
 			break;
-		case IDC_MDI_EDIT:
-			switch(wparam){ //key
-			case VK_ESCAPE:
-				{
-				TABLE_WINDOW *win=0;
-				find_win_by_hwnd(hwnd,&win);
-				if(win!=0)
-					win->abort=TRUE;
-				}
-				break;
-			default:
-				handle_intellisense(hwnd);
-				break;
-			}
-			break;
 		}
 		break;
 	case WM_SIZE:
 		resize_mdi_window(hwnd,mdi_split);
-		save_mdi_size(hwnd);
 		break;
 
     }
@@ -207,15 +205,22 @@ int load_mdi_size(HWND hwnd)
 	int width=0,height=0,max=0;
 	get_ini_value("SETTINGS","mdi_width",&width);
 	get_ini_value("SETTINGS","mdi_height",&height);
-	get_ini_value("SETTINGS","mdi_height",&max);
+	get_ini_value("SETTINGS","mdi_maximized",&max);
 	if(width!=0 && height!=0){
+		WINDOWPLACEMENT wp={0};
 		RECT rect={0};
+		wp.length=sizeof(wp);
+		wp.showCmd=SW_SHOWNORMAL;
+		wp.rcNormalPosition.bottom=height;
+		wp.rcNormalPosition.right=width;
 		GetClientRect(ghmdiclient,&rect);
 		if(width>rect.right)
 			width=rect.right;
 		if(height>rect.bottom)
 			height=rect.bottom;
-		SetWindowPos(hwnd,HWND_TOP,0,0,width,height,SWP_NOMOVE|SWP_SHOWWINDOW);
+		SetWindowPos(hwnd,HWND_TOP,0,0,width,height,SWP_SHOWWINDOW|SWP_NOMOVE);
+		if(max)
+			PostMessage(hwnd,WM_USER+1,0,0);
 		return TRUE;
 	}
 	return FALSE;
@@ -223,6 +228,7 @@ int load_mdi_size(HWND hwnd)
 int save_mdi_size(HWND hwnd)
 {
 	WINDOWPLACEMENT wp;
+	wp.length=sizeof(wp);
 	if(GetWindowPlacement(hwnd,&wp)!=0){
 		RECT rect={0};
 		char str[80]={0};
@@ -243,7 +249,7 @@ int move_console()
 	GetConsoleTitle(title,sizeof(title));
 	if(title[0]!=0){
 		hcon=FindWindow(NULL,title);
-		SetWindowPos(hcon,0,600,0,800,600,SWP_NOZORDER);
+		SetWindowPos(hcon,0,1200,0,800,600,SWP_NOZORDER);
 	}
 	return 0;
 }
@@ -331,7 +337,7 @@ int create_mdi_window(HWND hwnd,HINSTANCE hinstance,TABLE_WINDOW *win)
 	if(hlistview!=0)
 		ListView_SetExtendedListViewStyle(hlistview,ListView_GetExtendedListViewStyle(hlistview)|LVS_EX_FULLROWSELECT);
 	if(hedit!=0)
-
+		subclass_edit(hedit);
 	return TRUE;
 }
 
@@ -430,11 +436,7 @@ int create_table_window(HWND hmdiclient,TABLE_WINDOW *win)
 	int maximized=0,style,handle;
 	MDICREATESTRUCT cs;
 	char title[256]={0};
-	get_ini_value("SETTINGS","MDI_MAXIMIZED",&maximized);
-	if(maximized!=0)
-		style = WS_MAXIMIZE|MDIS_ALLCHILDSTYLES;
-	else
-		style = MDIS_ALLCHILDSTYLES;
+	style = MDIS_ALLCHILDSTYLES;
 	cs.cx=cs.cy=cs.x=cs.y=CW_USEDEFAULT;
 	cs.szClass="tablewindow";
 	cs.szTitle=title;
@@ -694,9 +696,11 @@ int custom_dispatch(MSG *msg)
 			}
 			break;
 		case WM_CHAR:
-			if(type==IDC_MDI_EDIT || msg->wParam==VK_ESCAPE){
-				if(win->hwnd!=0)
-					PostMessage(win->hwnd,WM_USER,msg->wParam,MAKELPARAM(IDC_MDI_EDIT,0));
+			switch(msg->wParam){
+			case VK_ESCAPE:
+				if(win->habort!=0 && win->hwnd!=0 && type!=0)
+					mdi_destroy_abort(win);
+				break;
 			}
 			break;
 		case WM_KEYFIRST:
@@ -710,6 +714,11 @@ int custom_dispatch(MSG *msg)
 						return TRUE;
 					}
 				}
+				else if(type!=0){
+					SetFocus(win->hlistview);
+					return TRUE;
+				}
+
 				break;
 			case 'W':
 				if(GetKeyState(VK_CONTROL)&0x8000)

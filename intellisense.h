@@ -3,10 +3,8 @@
 char tab_word[20]={0};
 int tab_continue=FALSE,tab_pos=0;
 
-int create_intellisense(HWND hwnd)
+int create_intellisense(TABLE_WINDOW *win)
 {
-	TABLE_WINDOW *win=0;
-	find_win_by_hwnd(hwnd,&win);
 	if(win!=0 && win->hintel==0){
 		win->hintel = CreateWindow("LISTBOX",
 										 "",
@@ -24,10 +22,8 @@ int create_intellisense(HWND hwnd)
 	}
 	return FALSE;
 }
-int destroy_intellisense(HWND hwnd)
+int destroy_intellisense(TABLE_WINDOW *win)
 {
-	TABLE_WINDOW *win=0;
-	find_win_by_hwnd(hwnd,&win);
 	if(win!=0 && win->hintel!=0){
 		DestroyWindow(win->hintel);
 		win->hintel=0;
@@ -59,10 +55,8 @@ int populate_intel(TABLE_WINDOW *win,char *src)
 		}
 	}
 }
-int handle_intellisense(HWND hwnd)
+int handle_intellisense(TABLE_WINDOW *win,int key)
 {
-	TABLE_WINDOW *win=0;
-	find_win_by_hwnd(hwnd,&win);
 	if(win!=0){
 		int start=0,end=0,line,lindex;
 		SendMessage(win->hedit,EM_GETSEL,&start,&end);
@@ -80,13 +74,13 @@ int handle_intellisense(HWND hwnd)
 			if(get_substr(str,start,tab_word,sizeof(tab_word),&tab_pos)){
 				tab_continue=TRUE;
 				printf("substr=%s\n",tab_word);
-				create_intellisense(hwnd);
+				create_intellisense(win);
 				if(win->hintel!=0){
 					populate_intel(win,tab_word);
 				}
 			}
 			else{
-				destroy_intellisense(hwnd);
+				destroy_intellisense(win);
 			}
 		}
 	}
@@ -131,3 +125,51 @@ int get_substr(char *str,int start,char *substr,int size,int *pos)
 	return found;
 }
 
+int find_win_by_hedit(HWND hedit,TABLE_WINDOW **win)
+{
+	int i;
+	for(i=0;i<sizeof(table_windows)/sizeof(TABLE_WINDOW);i++){
+		if(table_windows[i].hedit==hedit){
+			*win=&table_windows[i];
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+
+static WNDPROC wporigtedit=0;
+LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
+{
+	if(msg!=WM_NCMOUSEMOVE&&msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY
+		&&msg!=WM_ERASEBKGND)
+		//if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE)
+	{
+		static DWORD tick=0;
+		if((GetTickCount()-tick)>500)
+			printf("--\n");
+		printf("e");
+		print_msg(msg,lparam,wparam,hwnd);
+		tick=GetTickCount();
+	}
+	switch(msg){
+	case WM_CHAR:
+		PostMessage(hwnd,WM_USER,wparam,lparam);
+		break;
+	case WM_USER:
+		{
+		TABLE_WINDOW *win=0;
+		find_win_by_hedit(hwnd,&win);
+		if(win!=0)
+			handle_intellisense(win,wparam);
+		}
+		break;
+	}
+	
+    return CallWindowProc(wporigtedit,hwnd,msg,wparam,lparam);
+}
+int subclass_edit(HWND hedit)
+{
+	wporigtedit=SetWindowLong(hedit,GWL_WNDPROC,(LONG)sc_edit);
+	printf("subclass=%08X\n",wporigtedit);
+}
