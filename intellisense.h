@@ -5,22 +5,31 @@ int tab_continue=FALSE,tab_pos=0;
 
 int create_intellisense(TABLE_WINDOW *win)
 {
+	int result=FALSE;
 	if(win!=0 && win->hintel==0){
 		win->hintel = CreateWindow("LISTBOX",
 										 "",
 										 WS_TABSTOP|WS_CHILD|WS_CLIPSIBLINGS|WS_VISIBLE|LBS_HASSTRINGS|LBS_SORT|LBS_STANDARD,
 										 0,0,
-										 80,20,
+										 0,0,
 										 win->hwnd,
 										 IDC_INTELLISENSE,
 										 ghinstance,
 										 NULL);
 		if(win->hintel!=0){
-			SetWindowPos(win->hintel,HWND_TOP,0,30,80,120,SWP_SHOWWINDOW);
-			return TRUE;
+			int start=-1,end=-1;
+			SendMessage(win->hedit,EM_GETSEL,&start,&end);
+			if(end<start)
+				start=end;
+			if(start!=-1){
+				POINT p={0};
+				SendMessage(win->hedit,EM_POSFROMCHAR,&p,start);
+				SetWindowPos(win->hintel,HWND_TOP,p.x,p.y+20,80,120,SWP_SHOWWINDOW);
+				result=TRUE;
+			}
 		}
 	}
-	return FALSE;
+	return result;
 }
 int destroy_intellisense(TABLE_WINDOW *win)
 {
@@ -30,6 +39,10 @@ int destroy_intellisense(TABLE_WINDOW *win)
 		return TRUE;
 	}
 	return FALSE;
+}
+int get_intel_count(HWND hroot,char *src,int table)
+{
+
 }
 int populate_intel(TABLE_WINDOW *win,char *src)
 {
@@ -53,10 +66,19 @@ int populate_intel(TABLE_WINDOW *win,char *src)
 			}
 			h=TreeView_GetNextSibling(ghtreeview,h);
 		}
+		if(SendMessage(win->hintel,LB_GETCOUNT,0,0)<=0)
+			destroy_intellisense(win);
+		else{
+			SendMessage(win->hintel,LB_SETCURSEL,0,0);
+			return TRUE;
+		}
 	}
+	return FALSE;
 }
+
 int handle_intellisense(TABLE_WINDOW *win,int key)
 {
+	printf("key=%02X\n",0xFF&key);
 	if(win!=0){
 		int start=0,end=0,line,lindex;
 		SendMessage(win->hedit,EM_GETSEL,&start,&end);
@@ -136,6 +158,57 @@ int find_win_by_hedit(HWND hedit,TABLE_WINDOW **win)
 	}
 	return FALSE;
 }
+int replace_current_word(TABLE_WINDOW *win,char *str)
+{
+	int start=0,end=0,line;
+	if(win==0)
+		return FALSE;
+	if(win->hedit==0)
+		return FALSE;
+	SendMessage(win->hedit,EM_GETSEL,&start,&end);
+	if(end<start)
+		start=end;
+	line=SendMessage(win->hedit,EM_LINEFROMCHAR,start,0);
+	if(line>=0){
+		char s[1024];
+		int len,lindex;
+		((WORD*)s)[0]=sizeof(s);
+		len=SendMessage(win->hedit,EM_GETLINE,line,s);
+		lindex=SendMessage(win->hedit,EM_LINEINDEX,line,0);
+		start-=lindex;
+		if(start>=0 && len>0){
+
+
+
+
+
+			SendMessage(win->hedit,EM_REPLACESEL,TRUE,str);
+			return TRUE;
+		}
+
+
+	}
+	
+
+}
+int insert_selection(TABLE_WINDOW *win)
+{
+	if(win!=0 && win->hintel!=0){
+		int sel=SendMessage(win->hintel,LB_GETCURSEL,0,0);
+		if(sel>=0){
+			int len;
+			char str[256]={0};
+			len=SendMessage(win->hintel,LB_GETTEXTLEN,sel,0);
+			if(len<sizeof(str)){
+				SendMessage(win->hintel,LB_GETTEXT,sel,str);
+				if(str[0]!=0){
+					return replace_current_word(win,str);
+				}
+			}
+		}
+	}
+	return FALSE;
+}
 
 
 static WNDPROC wporigtedit=0;
@@ -154,7 +227,50 @@ LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 	}
 	switch(msg){
 	case WM_CHAR:
-		PostMessage(hwnd,WM_USER,wparam,lparam);
+		switch(wparam){
+		case VK_ESCAPE:
+			break;
+		default:
+			PostMessage(hwnd,WM_USER,wparam,lparam);
+			if(wparam==VK_SPACE && (GetKeyState(VK_CONTROL)&0x8000))
+				return 0;
+			break;
+		}
+		break;
+	case WM_KEYFIRST:
+		{
+		TABLE_WINDOW *win=0;
+		find_win_by_hedit(hwnd,&win);
+		if(win==0)
+			break;
+		switch(wparam){
+		case VK_HOME:
+		case VK_END:
+		case VK_PRIOR:
+		case VK_NEXT:
+		case VK_UP:
+		case VK_DOWN:
+			if(win->hintel!=0)
+				SendMessage(win->hintel,msg,wparam,lparam);
+			return 0;
+			break;
+		case VK_RETURN:
+			{
+				int result=insert_selection(win);
+				destroy_intellisense(win);
+				if(result)
+					return 0;
+			}
+			break;
+		case VK_ESCAPE:
+			destroy_intellisense(win);
+			return 0;
+			break;
+		default:
+			break;
+
+		}
+		}
 		break;
 	case WM_USER:
 		{

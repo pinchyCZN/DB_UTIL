@@ -94,6 +94,35 @@ int open_db(DB_TREE *tree)
     }
 	return FALSE;
 }
+int reassign_tables(DB_TREE *tree)
+{
+	int i;
+	if(tree==0)
+		return FALSE;
+	for(i=0;i<sizeof(table_windows)/sizeof(TABLE_WINDOW);i++){
+		if(table_windows[i].hwnd!=0 && stricmp(table_windows[i].name,tree->name)==0){
+			table_windows[i].hroot=tree->hroot;
+			table_windows[i].hdbc=tree->hdbc;
+			table_windows[i].hdbenv=tree->hdbenv;
+		}
+	}
+	return TRUE;
+
+}
+int release_tables(HWND hroot)
+{
+	int i;
+	if(hroot==0)
+		return FALSE;
+	for(i=0;i<sizeof(table_windows)/sizeof(TABLE_WINDOW);i++){
+		if(table_windows[i].hroot==hroot){
+			table_windows[i].hroot=0;
+			table_windows[i].hdbc=0;
+			table_windows[i].hdbenv=0;
+		}
+	}
+	return TRUE;
+}
 int close_db(DB_TREE *tree)
 {
 	if(tree!=0){
@@ -105,6 +134,7 @@ int close_db(DB_TREE *tree)
 			SQLFreeHandle(SQL_HANDLE_ENV,tree->hdbenv);
 		tree->hdbc=0;
 		tree->hdbenv=0;
+		release_tables(tree->hroot);
 		return TRUE;
 	}
 	return FALSE;
@@ -115,11 +145,14 @@ int fetch_columns(SQLHSTMT hstmt,TABLE_WINDOW *win)
 	SQLSMALLINT i,cols=0; 
 	if(hstmt!=0 && win!=0){
 		SQLNumResultCols(hstmt,&cols);
+		win->columns=0;
 		for(i=0;i<cols;i++){
 			char str[255]={0};
 			SQLColAttribute(hstmt,i+1,SQL_DESC_NAME,str,sizeof(str),NULL,NULL);
-			if(str[0]!=0)
+			if(str[0]!=0){
+				win->columns++;
 				lv_add_column(win->hlistview,str,i);
+			}
 		}
 		return cols;
 	}
@@ -169,6 +202,7 @@ int execute_sql(TABLE_WINDOW *win,char *sql)
 			{
 			SQLINTEGER rows=0,cols=0;
 			SQLRowCount(hstmt,&rows);
+			mdi_clear_listview(win);
 			cols=fetch_columns(hstmt,win);
 			fetch_rows(hstmt,win,cols);
 			}
@@ -193,6 +227,7 @@ int assign_db_to_table(DB_TREE *db,TABLE_WINDOW *win)
 		win->hdbc=db->hdbc;
 		win->hdbenv=db->hdbenv;
 		win->hroot=db->hroot;
+		strncpy(win->name,db->name,sizeof(win->name));
 		SetWindowText(win->hwnd,db->name);
 		return TRUE;
 	}

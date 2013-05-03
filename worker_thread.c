@@ -83,6 +83,8 @@ int thread(HANDLE event)
 					_snprintf(str,sizeof(str),"Cant open %s",localinfo);
 					MessageBox(ghmainframe,str,"OPEN DB FAIL",MB_OK);
 				}
+				else
+					reassign_tables(db);
 				}
 				break;
 			case TASK_EXECUTE_QUERY:
@@ -93,7 +95,6 @@ int thread(HANDLE event)
 					char *s=0;
 					int size=0x10000;
 					mdi_create_abort(win);
-					mdi_clear_listview(win);
 					s=malloc(size);
 					if(s!=0){
 						mdi_get_edit_text(win,s,size);

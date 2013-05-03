@@ -18,6 +18,7 @@ typedef struct{
 	void *hdbc;
 	void *hdbenv;
 	int abort;
+	int columns;
 	HWND hwnd,hlistview,hedit,hroot,habort,hintel;
 }TABLE_WINDOW;
 
@@ -300,14 +301,7 @@ void hide_console()
 	}
 }
 
-int create_listview_columns(HWND hlistview,char *list)
-{
-	LV_COLUMN col;
-	int i;
-	for(i=0;i<10;i++)
-		ListView_InsertColumn(hlistview,i,&col);
 
-}
 int create_mdi_window(HWND hwnd,HINSTANCE hinstance,TABLE_WINDOW *win)
 {
 	HWND hedit,hlistview=0;
@@ -548,17 +542,13 @@ int mdi_close_db(DB_TREE *tree)
 	return FALSE;
 }
 
-
-
 int mdi_clear_listview(TABLE_WINDOW *win)
 {
 	if(win!=0 && win->hlistview!=0){
 		int i;
 		ListView_DeleteAllItems(win->hlistview);
-		for(i=0;i<1000;i++){
-			if(!ListView_DeleteColumn(win->hlistview,i))
-				break;
-		}
+		for(i=0;i<win->columns;i++)
+			ListView_DeleteColumn(win->hlistview,0);
 	}
 	else
 		return FALSE;
