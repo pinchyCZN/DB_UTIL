@@ -7,7 +7,7 @@ int create_intellisense(TABLE_WINDOW *win)
 {
 	int result=FALSE;
 	if(win!=0 && win->hintel==0){
-		win->hintel = CreateWindow("LISTBOX",
+		win->hintel = CreateWindowEx(WS_EX_CLIENTEDGE,"LISTBOX",
 										 "",
 										 WS_TABSTOP|WS_CHILD|WS_CLIPSIBLINGS|WS_VISIBLE|LBS_HASSTRINGS|LBS_SORT|LBS_STANDARD,
 										 0,0,
@@ -109,7 +109,57 @@ int handle_intellisense(TABLE_WINDOW *win,int key)
 	return tab_continue;
 }
 
+int find_word_start(char *str,int pos,int *start)
+{
+	int i,found=FALSE;
+	if(str[pos]<=' '){
+		pos--;
+		if(pos<0)
+			pos=0;
+	}
 
+	if(str[pos]<=' ')
+		return FALSE;
+	for(i=pos;i>=0;i--){
+		if(str[i]<=' ')
+			break;
+		else if(str[i]>='!' && str[i]<='/')
+			break;
+		else
+			found=TRUE;
+	}
+	i++;
+	if(i<0)
+		i=0;
+	*start=i;
+	return found;
+}
+int find_word_end(char *str,int pos,int *end)
+{
+	int i;
+	for(i=pos;i<pos+255;i++){
+		if(str[i]<=' ')
+			break;
+		if(str[i]>='!' && str[i]<='/')
+			break;
+	}
+	*end=i;
+	return TRUE;
+}
+
+int is_word_boundary(char a)
+{
+	if(a<='/')
+		return TRUE;
+	else if(a=='_')
+		return FALSE;
+	else if(a>=':' && a<='@')
+		return TRUE;
+	else if(a>='[' && a<='\'')
+		return TRUE;
+	else
+		return FALSE;
+}
 
 int get_substr(char *str,int start,char *substr,int size,int *pos)
 {
@@ -123,7 +173,7 @@ int get_substr(char *str,int start,char *substr,int size,int *pos)
 
 		while(start>0){
 			start--;
-			if(str[start]<=' '){
+			if(is_word_boundary(str[start])){ //if(str[start]<=' ' || (str[start]>='!' && str[start]<='/')){
 				start++;
 				break;
 			}
@@ -132,7 +182,7 @@ int get_substr(char *str,int start,char *substr,int size,int *pos)
 		len=strlen(str+start);
 		index=0;
 		for(i=0;i<len;i++){
-			if(str[start+i]<=' '){
+			if(is_word_boundary(str[start+i])){ //str[start+i]<=' ' || (str[start+i]>='!' && str[start+i]<='/')){
 				break;
 			}
 			else
@@ -158,6 +208,30 @@ int find_win_by_hedit(HWND hedit,TABLE_WINDOW **win)
 	}
 	return FALSE;
 }
+int testit(TABLE_WINDOW *win)
+{
+	int start,end;
+	int line;
+
+	SendMessage(win->hedit,EM_GETSEL,&start,&end);
+	if(end<start)
+		start=end;
+	line=SendMessage(win->hedit,EM_LINEFROMCHAR,start,0);
+	if(line>=0){
+		char s[1024];
+		int len,lindex,linestart;
+		((WORD*)s)[0]=sizeof(s);
+		len=SendMessage(win->hedit,EM_GETLINE,line,s);
+		lindex=SendMessage(win->hedit,EM_LINEINDEX,line,0);
+		linestart=start-lindex;
+		if(linestart>=0 && len>0){
+			int i=0,wordstart=linestart,wordend=linestart;
+			s[len-1]=0;
+			if(find_word_start(s,linestart,&wordstart))
+				printf("wordstart=%s\n",s+wordstart);
+		}
+	}
+}
 int replace_current_word(TABLE_WINDOW *win,char *str)
 {
 	int start=0,end=0,line;
@@ -171,17 +245,29 @@ int replace_current_word(TABLE_WINDOW *win,char *str)
 	line=SendMessage(win->hedit,EM_LINEFROMCHAR,start,0);
 	if(line>=0){
 		char s[1024];
-		int len,lindex;
+		int len,lindex,linestart;
 		((WORD*)s)[0]=sizeof(s);
 		len=SendMessage(win->hedit,EM_GETLINE,line,s);
 		lindex=SendMessage(win->hedit,EM_LINEINDEX,line,0);
-		start-=lindex;
-		if(start>=0 && len>0){
-
-
-
-
-
+		linestart=start-lindex;
+		if(linestart>=0 && len>0){
+			int i=0,wordstart=linestart,wordend=linestart;
+			s[len-1]=0;
+			find_word_start(s,linestart,&wordstart);
+			printf("wordstart=%s\n",s+wordstart);
+			find_word_end(s,linestart,&wordend);
+			/*
+			for(i=linestart-1;i>=0;i--){
+				if(s[i]<=' ' || s[i]>=0x7F){
+					i++;
+					break;
+				}
+			}
+			wordstart=i;
+			*/
+			start=lindex+wordstart;
+			end=lindex+wordend;
+			SendMessage(win->hedit,EM_SETSEL,start,end);
 			SendMessage(win->hedit,EM_REPLACESEL,TRUE,str);
 			return TRUE;
 		}
@@ -214,6 +300,8 @@ int insert_selection(TABLE_WINDOW *win)
 static WNDPROC wporigtedit=0;
 LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
+	static int last_insert=FALSE;
+	if(FALSE)
 	if(msg!=WM_NCMOUSEMOVE&&msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY
 		&&msg!=WM_ERASEBKGND)
 		//if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE)
@@ -228,6 +316,10 @@ LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 	switch(msg){
 	case WM_CHAR:
 		switch(wparam){
+		case VK_RETURN:
+			if(last_insert)
+				return TRUE;
+			break;
 		case VK_ESCAPE:
 			break;
 		default:
@@ -243,6 +335,7 @@ LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		find_win_by_hedit(hwnd,&win);
 		if(win==0)
 			break;
+		testit(win);
 		switch(wparam){
 		case VK_HOME:
 		case VK_END:
@@ -250,16 +343,20 @@ LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		case VK_NEXT:
 		case VK_UP:
 		case VK_DOWN:
-			if(win->hintel!=0)
+			if(win->hintel!=0){
 				SendMessage(win->hintel,msg,wparam,lparam);
-			return 0;
+				return 0;
+			}
 			break;
 		case VK_RETURN:
 			{
 				int result=insert_selection(win);
 				destroy_intellisense(win);
-				if(result)
-					return 0;
+				if(result){
+					last_insert=TRUE;
+					return TRUE;
+				}
+					//msg=WM_USER+1;
 			}
 			break;
 		case VK_ESCAPE:
@@ -271,6 +368,8 @@ LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 
 		}
 		}
+		break;
+	case WM_USER+1:
 		break;
 	case WM_USER:
 		{
