@@ -94,6 +94,7 @@ int thread(HANDLE event)
 				if(win!=0){
 					char *s=0;
 					int size=0x10000;
+					reopen_db(win);
 					mdi_create_abort(win);
 					s=malloc(size);
 					if(s!=0){

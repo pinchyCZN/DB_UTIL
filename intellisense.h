@@ -253,29 +253,17 @@ int replace_current_word(TABLE_WINDOW *win,char *str)
 		if(linestart>=0 && len>0){
 			int i=0,wordstart=linestart,wordend=linestart;
 			s[len-1]=0;
-			find_word_start(s,linestart,&wordstart);
-			printf("wordstart=%s\n",s+wordstart);
-			find_word_end(s,linestart,&wordend);
-			/*
-			for(i=linestart-1;i>=0;i--){
-				if(s[i]<=' ' || s[i]>=0x7F){
-					i++;
-					break;
-				}
+			if(find_word_start(s,linestart,&wordstart)){
+				find_word_end(s,linestart,&wordend);
+				start=lindex+wordstart;
+				end=lindex+wordend;
+				SendMessage(win->hedit,EM_SETSEL,start,end);
+				SendMessage(win->hedit,EM_REPLACESEL,TRUE,str);
+				return TRUE;
 			}
-			wordstart=i;
-			*/
-			start=lindex+wordstart;
-			end=lindex+wordend;
-			SendMessage(win->hedit,EM_SETSEL,start,end);
-			SendMessage(win->hedit,EM_REPLACESEL,TRUE,str);
-			return TRUE;
 		}
-
-
 	}
-	
-
+	return FALSE;
 }
 int insert_selection(TABLE_WINDOW *win)
 {

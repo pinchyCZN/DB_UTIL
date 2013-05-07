@@ -214,6 +214,30 @@ int execute_sql(TABLE_WINDOW *win,char *sql)
 
 	}
 }
+int reopen_db(TABLE_WINDOW *win)
+{
+	if(win!=0){
+		if(win->hdbc==0 && win->hdbenv==0){
+			DB_TREE *db=0;
+			acquire_db_tree(win->name,&db);
+			if(!mdi_open_db(db,win->name)){
+				char str[80];
+				mdi_close_db(db);
+				_snprintf(str,sizeof(str),"Cant open %s",win->name);
+				MessageBox(ghmainframe,str,"OPEN DB FAIL",MB_OK);
+				return FALSE;
+			}
+			else{
+				reassign_tables(db);
+				return TRUE;
+			}
+
+		}
+		else
+			return TRUE;
+	}
+	return FALSE;
+}
 int get_db_info(void *db,void **info)
 {
 
@@ -233,67 +257,3 @@ int assign_db_to_table(DB_TREE *db,TABLE_WINDOW *win)
 	}
 	return FALSE;
 }
-/*
-int get_field_count(CRecordset *rec)
-{
-	if(rec!=0){
-		TRY{
-			return rec->GetODBCFieldCount();
-		}CATCH(CDBException, e){
-			printf("Error getting field count:%s\n",e->m_strError);
-		}
-		END_CATCH
-		return 0;
-	}
-	else
-		return 0;
-}
-
-int get_field_name(CRecordset *rec,int index,char *str,int size)
-{
-	if(index<rec->GetODBCFieldCount()){
-		CODBCFieldInfo info;
-		rec->GetODBCFieldInfo(index,info);
-		if(str!=0 && size>0){
-			strncpy(str,info.m_strName,size);
-			str[size-1]=0;
-		}
-		return TRUE;
-	}
-	return FALSE;
-}
-int get_fields(CDatabase *db,char *table,char *list,int size)
-{
-	CString str,SqlString;
-	int i;
-	int result=FALSE;
-	CRecordset rec1( db );
-
-	SqlString = 
-	"SELECT TOP 1 * FROM [";
-	SqlString+=table;
-	SqlString+="]; ";
-
-	TRY{
-		rec1.Open(CRecordset::snapshot,SqlString,CRecordset::readOnly);
-		if(size>0 && list!=0){
-			list[0]=0;
-			for(i=0;i<rec1.GetODBCFieldCount();i++)
-			{
-				CODBCFieldInfo finfo;
-				rec1.GetODBCFieldInfo((short)i,finfo);
-				if(_snprintf(list,size,"%s%s,",list,finfo.m_strName)>0)
-					result=TRUE;
-				else
-					result=FALSE;
-			}
-		}
-		rec1.Close();
-	}CATCH(CDBException, e){
-		if(rec1.IsOpen())
-			rec1.Close();
-	}END_CATCH
-	return result;
-}
-
-*/
