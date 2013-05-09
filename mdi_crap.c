@@ -24,6 +24,7 @@ typedef struct{
 
 typedef struct{
 	char name[1024];
+	char connect_str[1024];
 	void *hdbc;
 	void *hdbenv;
 	HWND htree,hroot;
@@ -521,6 +522,7 @@ int mdi_open_db(DB_TREE *tree)
 {
 	if(open_db(tree)){
 		if(tree->hroot!=0){
+			rename_tree_item(tree->hroot,tree->name);
 			tree_delete_all_child(tree->hroot);
 			get_tables(tree);
 			expand_root(tree->hroot);
@@ -529,7 +531,7 @@ int mdi_open_db(DB_TREE *tree)
 	}
 	return FALSE;
 }
-int mdi_close_db(DB_TREE *tree)
+int mdi_remove_db(DB_TREE *tree)
 {
 	if(tree!=0){
 		if(close_db(tree)){

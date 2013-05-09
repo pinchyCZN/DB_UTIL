@@ -34,7 +34,7 @@ int get_tables(DB_TREE *tree)
 		{
 			while (!SQLGetData (hStmt, 3, SQL_C_CHAR, pcName, 256, &lLen))
 			{
-				printf("%s\n",pcName);
+				//printf("%s\n",pcName);
 				insert_item(pcName,tree->hroot,IDC_TABLE_ITEM);
 				SQLFetch(hStmt);
 			}
@@ -43,7 +43,41 @@ int get_tables(DB_TREE *tree)
 	SQLFreeStmt (hStmt, SQL_CLOSE);
 }
 
-
+int extract_db_name(DB_TREE *tree)
+{
+	int i,len,index=0;
+	char *s=0;
+	s=strstr(tree->connect_str,"SourceDB=");
+	if(s!=0){
+		len=strlen(s);
+		for(i=0;i<len;i++){
+			if(s[i]==';')
+				break;
+			if(index>=sizeof(tree->name)-1)
+				break;
+			tree->name[index++]=s[i];
+		}
+	}
+	s=strstr(tree->connect_str,"DSN=");
+	if(s!=0){
+		if(index>0 && index<sizeof(tree->name)-1)
+			tree->name[index++]=';';
+		len=strlen(s);
+		for(i=0;i<len;i++){
+			if(s[i]==';')
+				break;
+			if(index>=sizeof(tree->name)-1)
+				break;
+			tree->name[index++]=s[i];
+		}
+	}
+	if(s!=0){
+		tree->name[index]=0;
+		if(index>=0)
+			return TRUE;
+	}
+	return FALSE;
+}
 int open_db(DB_TREE *tree)
 {
     SQLHENV     hEnv = NULL;
@@ -73,6 +107,9 @@ int open_db(DB_TREE *tree)
 					printf("msg=%s\n",msg);
 				}
 				if(str[0]!=0){
+					strncpy(tree->connect_str,str,sizeof(tree->connect_str));
+					extract_db_name(tree);
+					printf("connect str=%s\n",str);
 					write_ini_str("DATABASES","1",str);
 				}
 				tree->hdbc=hDbc;
@@ -220,9 +257,9 @@ int reopen_db(TABLE_WINDOW *win)
 		if(win->hdbc==0 && win->hdbenv==0){
 			DB_TREE *db=0;
 			acquire_db_tree(win->name,&db);
-			if(!mdi_open_db(db,win->name)){
+			if(!mdi_open_db(db)){
 				char str[80];
-				mdi_close_db(db);
+				mdi_remove_db(db);
 				_snprintf(str,sizeof(str),"Cant open %s",win->name);
 				MessageBox(ghmainframe,str,"OPEN DB FAIL",MB_OK);
 				return FALSE;

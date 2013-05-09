@@ -36,6 +36,18 @@ int insert_item(char *name,HTREEITEM hparent,int lparam)
 	tvins.item=tvi;
  	return TreeView_InsertItem(ghtreeview,&tvins);
 }
+int rename_tree_item(HTREEITEM hitem,char *str)
+{
+	TV_ITEM tvi;
+	if(hitem!=0 && str!=0){
+		memset(&tvi,0,sizeof(tvi));
+		tvi.hItem=hitem;
+		tvi.mask=TVIF_TEXT;
+		tvi.pszText=str;
+		return TreeView_SetItem(ghtreeview,&tvi);
+	}
+	return FALSE;
+}
 int tree_get_item_text(HTREEITEM hitem,char *str,int len)
 {
 	TV_ITEM tvi;
@@ -198,6 +210,22 @@ int test_items()
 	tree_get_root("root1",&h);
 	TreeView_DeleteItem(ghtreeview,h);	
 }
+int open_selected_table(HWND htreeview)
+{
+	HTREEITEM hitem=0;
+	hitem=TreeView_GetSelection(htreeview);
+	if(hitem!=0){
+		char db[80]={0},table[80]={0};
+		int type=0;
+		tree_get_db_table(hitem,db,sizeof(db),table,sizeof(table),&type);
+		if(type==IDC_TABLE_ITEM){
+			task_open_table(db,table);
+			printf("---------------db=%s,item=%s\n",db,table);
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
 static WNDPROC wporigtreeview=0;
 LRESULT APIENTRY sc_treeview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
@@ -225,19 +253,7 @@ LRESULT APIENTRY sc_treeview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		}
 		break;
 	case WM_LBUTTONDBLCLK:
-		{
-		HTREEITEM hitem=0;
-		hitem=TreeView_GetSelection(hwnd);
-			if(hitem!=0){
-				char db[80]={0},table[80]={0};
-				int type=0;
-				tree_get_db_table(hitem,db,sizeof(db),table,sizeof(table),&type);
-				if(type==IDC_TABLE_ITEM){
-					task_open_table(db,table);
-					printf("---------------db=%s,item=%s\n",db,table);
-				}
-			}
-		}
+		open_selected_table(hwnd);
 		break;
 	}
     return CallWindowProc(wporigtreeview,hwnd,msg,wparam,lparam);
@@ -247,9 +263,9 @@ LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
 	static int create_tree=FALSE;
 	static DWORD tick=0;
-	if(FALSE)
+	//if(FALSE)
 	//if(msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY)
-	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_MOUSEMOVE&&msg!=WM_NOTIFY)
+	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_MOUSEMOVE) //&&msg!=WM_NOTIFY)
 	{
 		if((GetTickCount()-tick)>500)
 			printf("--\n");
@@ -280,6 +296,28 @@ LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 			else
 				hmenu=table_menu;
 			TrackPopupMenu(hmenu,TPM_LEFTALIGN,LOWORD(lparam),HIWORD(lparam),0,hwnd,NULL);
+		}
+		break;
+	case WM_NOTIFY:
+		{
+		NMHDR *nm=lparam;
+		if(nm!=0)
+		switch(nm->idFrom){
+		case IDC_TABLES:
+			switch(nm->code){
+			case TVN_KEYDOWN:
+				{
+				TV_KEYDOWN *tvn=lparam;
+				switch(tvn->wVKey){
+				case VK_RETURN:
+					open_selected_table(ghtreeview);
+					printf("%08x %08X %08X\n",nm->code,nm->hwndFrom,nm->idFrom);
+					break;
+				}
+				}
+			}
+			break;
+		}
 		}
 		break;
 	case WM_COMMAND:

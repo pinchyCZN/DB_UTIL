@@ -4,6 +4,7 @@
 extern HWND ghmainframe,ghmdiclient,ghtreeview;
 HANDLE event;
 int task=0;
+int keep_closed=FALSE;
 char taskinfo[1024*2]={0};
 char localinfo[sizeof(taskinfo)]={0};
 enum{
@@ -70,7 +71,7 @@ int thread(HANDLE event)
 				{
 				void *db=0;
 				if(find_db_tree(localinfo,&db))
-					mdi_close_db(db);
+					mdi_remove_db(db);
 				}
 				break;
 			case TASK_OPEN_DB:
@@ -79,7 +80,7 @@ int thread(HANDLE event)
 				acquire_db_tree(localinfo,&db);
 				if(!mdi_open_db(db,localinfo)){
 					char str[80];
-					mdi_close_db(db);
+					mdi_remove_db(db);
 					_snprintf(str,sizeof(str),"Cant open %s",localinfo);
 					MessageBox(ghmainframe,str,"OPEN DB FAIL",MB_OK);
 				}
@@ -121,8 +122,8 @@ int thread(HANDLE event)
 				break;
 			case TASK_OPEN_TABLE:
 				{
-					char dbname[80]={0},table[80]={0},*p;
-					p=strchr(localinfo,';');
+					char dbname[MAX_PATH*2]={0},table[80]={0},*p;
+					p=strrchr(localinfo,';');
 					if(p!=0){
 						void *db=0;
 						p[0]=0;
