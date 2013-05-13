@@ -4,7 +4,7 @@
 extern HWND ghmainframe,ghmdiclient,ghtreeview;
 HANDLE event;
 int task=0;
-int keep_closed=FALSE;
+int keep_closed=TRUE;
 char taskinfo[1024*2]={0};
 char localinfo[sizeof(taskinfo)]={0};
 enum{
@@ -78,7 +78,7 @@ int thread(HANDLE event)
 				{
 				void *db=0;
 				acquire_db_tree(localinfo,&db);
-				if(!mdi_open_db(db,localinfo)){
+				if(!mdi_open_db(db,TRUE)){
 					char str[80];
 					mdi_remove_db(db);
 					_snprintf(str,sizeof(str),"Cant open %s",localinfo);
@@ -86,6 +86,8 @@ int thread(HANDLE event)
 				}
 				else
 					reassign_tables(db);
+					if(keep_closed)
+						close_db(db);
 				}
 				break;
 			case TASK_EXECUTE_QUERY:
@@ -104,6 +106,11 @@ int thread(HANDLE event)
 						free(s);
 					}
 					mdi_destroy_abort(win);
+					if(keep_closed){
+						void *db=0;
+						acquire_db_tree_from_win(win,&db);
+						close_db(db);
+					}
 				}
 				}
 				break;
@@ -134,12 +141,16 @@ int thread(HANDLE event)
 							if(acquire_table_window(&win)){
 								char sql[256]={0};
 								create_table_window(ghmdiclient,win);
+								open_db(db);
 								assign_db_to_table(db,win);
-								_snprintf(sql,sizeof(sql),"SELECT * FROM %s;",table);
+								_snprintf(sql,sizeof(sql),"SELECT * FROM %s",table);
 								mdi_set_edit_text(win,sql);
 								mdi_create_abort(win);
 								execute_sql(win,sql);
 								mdi_destroy_abort(win);
+								if(keep_closed)
+									close_db(db);
+
 							}
 							else
 								free_window(win);

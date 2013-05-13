@@ -82,8 +82,12 @@ int open_db(DB_TREE *tree)
 {
     SQLHENV     hEnv = NULL;
     SQLHDBC     hDbc = NULL;
+	if(tree==0)
+		return FALSE;
+	if(tree->hdbc!=0 || tree->hdbenv!=0)
+		return TRUE;
     if(SQLAllocHandle(SQL_HANDLE_ENV,SQL_NULL_HANDLE,&hEnv)==SQL_ERROR)
-		return 0;
+		return FALSE;
 	if(SQLSetEnvAttr(hEnv,SQL_ATTR_ODBC_VERSION,(SQLPOINTER)SQL_OV_ODBC3,0)==SQL_SUCCESS){
 		if(SQLAllocHandle(SQL_HANDLE_DBC, hEnv, &hDbc)==SQL_SUCCESS){
 			char str[1024]={0};
@@ -160,7 +164,7 @@ int release_tables(HWND hroot)
 	}
 	return TRUE;
 }
-int close_db(DB_TREE *tree)
+int release_db(DB_TREE *tree)
 {
 	if(tree!=0){
 		if(tree->hdbc!=0){
@@ -171,6 +175,14 @@ int close_db(DB_TREE *tree)
 			SQLFreeHandle(SQL_HANDLE_ENV,tree->hdbenv);
 		tree->hdbc=0;
 		tree->hdbenv=0;
+		return TRUE;
+	}
+	return FALSE;
+}
+int close_db(DB_TREE *tree)
+{
+	if(tree!=0){
+		release_db(tree);
 		release_tables(tree->hroot);
 		return TRUE;
 	}
@@ -228,6 +240,7 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 }
 int execute_sql(TABLE_WINDOW *win,char *sql)
 {
+	int result=FALSE;
 	if(win!=0 && win->hdbc!=0 && win->hdbenv!=0){
 		int retcode;
 		SQLHSTMT hstmt=0;
@@ -242,14 +255,15 @@ int execute_sql(TABLE_WINDOW *win,char *sql)
 			mdi_clear_listview(win);
 			cols=fetch_columns(hstmt,win);
 			fetch_rows(hstmt,win,cols);
+			result=TRUE;
 			}
 			break;
         case SQL_ERROR:
 			break;
 		}
 		SQLFreeStmt(hstmt,SQL_CLOSE);
-
 	}
+	return result;
 }
 int reopen_db(TABLE_WINDOW *win)
 {
@@ -257,7 +271,7 @@ int reopen_db(TABLE_WINDOW *win)
 		if(win->hdbc==0 && win->hdbenv==0){
 			DB_TREE *db=0;
 			acquire_db_tree(win->name,&db);
-			if(!mdi_open_db(db)){
+			if(!mdi_open_db(db,FALSE)){
 				char str[80];
 				mdi_remove_db(db);
 				_snprintf(str,sizeof(str),"Cant open %s",win->name);

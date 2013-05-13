@@ -518,6 +518,11 @@ int acquire_db_tree(char *name,DB_TREE **tree)
 	}
 	return FALSE;
 }
+int	acquire_db_tree_from_win(TABLE_WINDOW *win,DB_TREE **tree)
+{
+	return acquire_db_tree(win->name,tree);
+}
+
 int mdi_open_db(DB_TREE *tree)
 {
 	if(open_db(tree)){
