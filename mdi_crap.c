@@ -42,7 +42,7 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 {
 	static int split_drag=FALSE,mdi_split=60;
 	static HWND last_focus=0;
-	if(FALSE)
+	//if(FALSE)
 	if(msg!=WM_NCMOUSEMOVE&&msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY
 		&&msg!=WM_ERASEBKGND)
 		//if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE)
@@ -95,6 +95,10 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 		}
         break;
 	case WM_CONTEXTMENU:
+		break;
+	case WM_DRAWITEM:
+		list_drawitem(hwnd,wparam,lparam);
+		return TRUE;
 		break;
 	case WM_CTLCOLORSTATIC:
 		/*{
@@ -320,7 +324,7 @@ int create_mdi_window(HWND hwnd,HINSTANCE hinstance,TABLE_WINDOW *win)
                                      NULL);
     hlistview = CreateWindow(WC_LISTVIEW,
                                      "",
-                                     WS_TABSTOP|WS_CHILD|WS_CLIPSIBLINGS|WS_VISIBLE|LVS_REPORT|LVS_SHOWSELALWAYS, //|LVS_OWNERDRAWFIXED, //|LVS_EDITLABELS,
+                                     WS_TABSTOP|WS_CHILD|WS_CLIPSIBLINGS|WS_VISIBLE|LVS_REPORT|LVS_OWNERDRAWFIXED	, //|LVS_OWNERDRAWFIXED, //|LVS_SHOWSELALWAYS,
                                      0,0,
                                      0,0,
                                      hwnd,
@@ -329,8 +333,9 @@ int create_mdi_window(HWND hwnd,HINSTANCE hinstance,TABLE_WINDOW *win)
                                      NULL);
 	win->hlistview=hlistview;
 	win->hedit=hedit;
-	if(hlistview!=0)
-		ListView_SetExtendedListViewStyle(hlistview,ListView_GetExtendedListViewStyle(hlistview)|LVS_EX_FULLROWSELECT);
+	if(hlistview!=0){
+		ListView_SetExtendedListViewStyle(hlistview,ListView_GetExtendedListViewStyle(hlistview)|LVS_EX_FULLROWSELECT|LVS_EX_GRIDLINES);
+	}
 	if(hedit!=0)
 		subclass_edit(hedit);
 	return TRUE;
@@ -523,25 +528,36 @@ int	acquire_db_tree_from_win(TABLE_WINDOW *win,DB_TREE **tree)
 	return acquire_db_tree(win->name,tree);
 }
 
-int mdi_open_db(DB_TREE *tree)
+int mdi_open_db(DB_TREE *tree,int load_tables)
 {
+	int result=FALSE;
 	if(open_db(tree)){
-		if(tree->hroot!=0){
-			rename_tree_item(tree->hroot,tree->name);
-			tree_delete_all_child(tree->hroot);
-			get_tables(tree);
-			expand_root(tree->hroot);
-			return TRUE;
+		if(load_tables){
+			if(tree->hroot!=0){
+				rename_tree_item(tree->hroot,tree->name);
+				tree_delete_all_child(tree->hroot);
+				get_tables(tree);
+				expand_root(tree->hroot);
+				result=TRUE;
+			}
 		}
+		else
+			result=TRUE;
 	}
-	return FALSE;
+	return result;
 }
 int mdi_remove_db(DB_TREE *tree)
 {
 	if(tree!=0){
 		if(close_db(tree)){
-			if(tree->hroot!=0)
+			if(tree->hroot!=0){
+				int i;
 				TreeView_DeleteItem(ghtreeview,tree->hroot);
+				for(i=0;i<sizeof(table_windows)/sizeof(TABLE_WINDOW);i++){
+					if(table_windows[i].hroot==tree->hroot)
+						table_windows[i].hroot=0;
+				}
+			}
 			memset(tree,0,sizeof(DB_TREE));
 			return TRUE;
 		}
@@ -573,13 +589,17 @@ int mdi_get_current_win(TABLE_WINDOW **win)
 
 int mdi_create_abort(TABLE_WINDOW *win)
 {
+	if(win==0 || win->hwnd==0)
+		return FALSE;
 	//PostMessage(ghmdiclient,WM_USER,win,MAKELPARAM(TRUE,IDC_SQL_ABORT));
-	PostMessage(win->hwnd,WM_USER,win,MAKELPARAM(IDC_SQL_ABORT,TRUE));
+	return PostMessage(win->hwnd,WM_USER,win,MAKELPARAM(IDC_SQL_ABORT,TRUE));
 }
 int mdi_destroy_abort(TABLE_WINDOW *win)
 {
+	if(win==0 || win->hwnd==0)
+		return FALSE;
 //	PostMessage(ghmdiclient,WM_USER,win,MAKELPARAM(IDC_SQL_ABORT,FALSE));
-	PostMessage(win->hwnd,WM_USER,win,MAKELPARAM(IDC_SQL_ABORT,FALSE));
+	return PostMessage(win->hwnd,WM_USER,win,MAKELPARAM(IDC_SQL_ABORT,FALSE));
 }
 int mdi_set_edit_text(TABLE_WINDOW *win,char *str)
 {

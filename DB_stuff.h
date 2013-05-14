@@ -157,7 +157,6 @@ int release_tables(HWND hroot)
 		return FALSE;
 	for(i=0;i<sizeof(table_windows)/sizeof(TABLE_WINDOW);i++){
 		if(table_windows[i].hroot==hroot){
-			table_windows[i].hroot=0;
 			table_windows[i].hdbc=0;
 			table_windows[i].hdbenv=0;
 		}
@@ -183,7 +182,7 @@ int close_db(DB_TREE *tree)
 {
 	if(tree!=0){
 		release_db(tree);
-		release_tables(tree->hroot);
+		release_tables(tree->hroot,FALSE);
 		return TRUE;
 	}
 	return FALSE;

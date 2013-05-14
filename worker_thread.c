@@ -9,6 +9,7 @@ char taskinfo[1024*2]={0};
 char localinfo[sizeof(taskinfo)]={0};
 enum{
 	TASK_OPEN_TABLE,
+	TASK_REFRESH_TABLES,
 	TASK_OPEN_DB,
 	TASK_CLOSE_DB,
 	TASK_NEW_QUERY,
@@ -52,6 +53,12 @@ int task_new_query()
 int task_execute_query()
 {
 	task=TASK_EXECUTE_QUERY;
+	SetEvent(event);
+	return TRUE;
+}
+int task_refresh_tables()
+{
+	task=TASK_REFRESH_TABLES;
 	SetEvent(event);
 	return TRUE;
 }
@@ -125,6 +132,13 @@ int thread(HANDLE event)
 						assign_db_to_table(db,win);
 					}
 				}
+				}
+				break;
+			case TASK_REFRESH_TABLES:
+				{
+				void *db=0;
+				acquire_db_tree(localinfo,&db);
+				mdi_open_db(db,TRUE);
 				}
 				break;
 			case TASK_OPEN_TABLE:

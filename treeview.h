@@ -4,6 +4,7 @@ static HMENU table_menu=0;
 enum {
 	CMD_CLOSEDB=10000,
 	CMD_DB_INFO,
+	CMD_DB_REFRESH_TABLES,
 	CMD_SELECTTOP,
 	CMD_SELECTALL,
 	CMD_TABLE_STRUCT
@@ -179,6 +180,7 @@ int create_treeview_menus()
 	if(db_menu!=0)DestroyMenu(db_menu);
 	if(db_menu=CreatePopupMenu()){
 		InsertMenu(db_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_DB_INFO,"DB info");
+		InsertMenu(db_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_DB_REFRESH_TABLES,"Refresh tables");
 		InsertMenu(db_menu,0xFFFFFFFF,MF_BYPOSITION|MF_SEPARATOR,0,0);
 		InsertMenu(db_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_CLOSEDB,"close DB");
 	}
@@ -188,6 +190,7 @@ int create_treeview_menus()
 		InsertMenu(table_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SELECTALL,"SELECT * ALL");
 		InsertMenu(table_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_TABLE_STRUCT,"table struct");
 		InsertMenu(table_menu,0xFFFFFFFF,MF_BYPOSITION|MF_SEPARATOR,0,0);
+		InsertMenu(table_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_DB_REFRESH_TABLES,"Refresh tables");
 		InsertMenu(table_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_CLOSEDB,"close DB");
 	}
 	return TRUE;
@@ -324,12 +327,22 @@ LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 		switch(LOWORD(wparam)){
 		case CMD_CLOSEDB:
 			{
-			char str[MAX_PATH]={0};
-			tree_get_db_table(TreeView_GetSelection(ghtreeview),str,sizeof(str),0,0,0);
-			if(str[0]!=0){
-				task_close_db(str);
-				printf("close db\n");
+				char str[MAX_PATH]={0};
+				tree_get_db_table(TreeView_GetSelection(ghtreeview),str,sizeof(str),0,0,0);
+				if(str[0]!=0){
+					task_close_db(str);
+					printf("close db\n");
+				}
 			}
+			break;
+		case CMD_DB_REFRESH_TABLES:
+			{
+				char str[MAX_PATH]={0};
+				tree_get_db_table(TreeView_GetSelection(ghtreeview),str,sizeof(str),0,0,0);
+				if(str[0]!=0){
+					task_refresh_tables(str);
+					printf("reload tables\n");
+				}
 			}
 			break;
 		case CMD_DB_INFO:
