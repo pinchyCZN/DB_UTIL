@@ -44,7 +44,7 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 	static HWND last_focus=0;
 	//if(FALSE)
 	if(msg!=WM_NCMOUSEMOVE&&msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY
-		&&msg!=WM_ERASEBKGND)
+		&&msg!=WM_ERASEBKGND&&msg!=WM_DRAWITEM) 
 		//if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE)
 	{
 		static DWORD tick=0;
@@ -96,9 +96,34 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
         break;
 	case WM_CONTEXTMENU:
 		break;
+	case WM_NOTIFY:
+		{
+			NMHDR *nmhdr=lparam;
+			if(nmhdr!=0 && nmhdr->idFrom==IDC_MDI_LISTVIEW){
+				int item=-1;
+				LV_HITTESTINFO lvhit={0};
+				switch(nmhdr->code){
+				case NM_CLICK:
+					GetCursorPos(&lvhit.pt);
+					ListView_SubItemHitTest(nmhdr->hwndFrom,&lvhit);
+					printf("item = %i\n",lvhit.iSubItem);
+					break;
+				case LVN_KEYDOWN:
+					break;
+				case LVN_COLUMNCLICK:
+					break;
+				}
+			}
+		}
+		break;
 	case WM_DRAWITEM:
-		list_drawitem(hwnd,wparam,lparam);
-		return TRUE;
+		{
+			DRAWITEMSTRUCT *di=lparam;
+			if(di!=0 && di->CtlType==ODT_LISTVIEW){
+				list_drawitem(hwnd,wparam,lparam);
+				return TRUE;
+			}
+		}
 		break;
 	case WM_CTLCOLORSTATIC:
 		/*{

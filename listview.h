@@ -77,39 +77,61 @@ int subclass_listview(HWND hlistview)
 
 
 
-int draw_item(DRAWITEMSTRUCT *di,char *list_string)
+int draw_item(DRAWITEMSTRUCT *di)
 {
-	int style;
-	RECT rect;
-	SIZE size;
-    HDC hdcMem;
-    HBITMAP hbmpOld;
-	int bgcolor=COLOR_BACKGROUND;
-	int is_file=FALSE,is_line=FALSE,is_offset=FALSE;
+	int i,count,xpos;
+	int textcolor,bgcolor;
+	HWND header;
 
+	header=SendMessage(di->hwndItem,LVM_GETHEADER,0,0);
+	if(header==0)
+		return;
+	count=SendMessage(header,HDM_GETITEMCOUNT,0,0);
+	if(count>1000)
+		count=1000;
 
-	hdcMem=CreateCompatibleDC(di->hDC);
+	bgcolor=GetSysColor(di->itemState&ODS_SELECTED ? COLOR_HIGHLIGHT:COLOR_WINDOW);
+	textcolor=GetSysColor(di->itemState&ODS_SELECTED ? COLOR_HIGHLIGHTTEXT:COLOR_WINDOWTEXT);
+	xpos=0;
+	for(i=0;i<count;i++){
+		char text[1024]={0};
+		LV_ITEM lvi={0};
+		RECT rect;
+		SIZE size;
+		int width,style;
 
-	if(di->itemState&ODS_SELECTED)
-		bgcolor=COLOR_HIGHLIGHT;
-	else
-		bgcolor=COLOR_WINDOW;
+		lvi.mask=LVIF_TEXT;
+		lvi.iItem=di->itemID;
+		lvi.iSubItem=i;
+		lvi.pszText=text;
+		lvi.cchTextMax=sizeof(text);
 
-	FillRect(di->hDC,&di->rcItem,bgcolor+1);
-	BitBlt(di->hDC,di->rcItem.left,di->rcItem.top,di->rcItem.left+16,di->rcItem.top+16,hdcMem,0,0,SRCINVERT);
-	rect=di->rcItem;
-	rect.left+=16;
-//		DrawText(di->hDC,text,-1,&rect,style);
-//	SetTextColor(di->hDC,(0xFFFFFF^GetSysColor(COLOR_BTNTEXT)));
-	SetTextColor(di->hDC,GetSysColor(di->itemState&ODS_SELECTED ? COLOR_HIGHLIGHTTEXT:COLOR_WINDOWTEXT));
-	SetBkColor(di->hDC,GetSysColor(di->itemState&ODS_SELECTED ? COLOR_HIGHLIGHT:COLOR_WINDOW));
-	style=DT_LEFT|DT_NOPREFIX;
+		ListView_GetItemText(di->hwndItem,di->itemID,i,text,sizeof(text));
+		text[sizeof(text)-1]=0;
+		width=ListView_GetColumnWidth(di->hwndItem,i);
 
-//		SetTextColor(di->hDC,file_text_color);
+		rect=di->rcItem;
+		rect.left=xpos;
+		rect.right=xpos+width;
+	//		DrawText(di->hDC,text,-1,&rect,style);
+	//	SetTextColor(di->hDC,(0xFFFFFF^GetSysColor(COLOR_BTNTEXT)));
+		FillRect(di->hDC,&rect,di->itemState&ODS_SELECTED ? COLOR_HIGHLIGHT+1:COLOR_WINDOW+1);
+		if(text[0]!=0){
 
-	GetTextExtentPoint32(di->hDC,list_string,strlen(list_string),&size);
-	rect.right=rect.left+size.cx;
-	DrawText(di->hDC,list_string,-1,&rect,style);
+			SetTextColor(di->hDC,textcolor);
+			SetBkColor(di->hDC,bgcolor);
+
+			style=DT_LEFT|DT_NOPREFIX;
+			style=DT_RIGHT|DT_NOPREFIX;
+
+		//		SetTextColor(di->hDC,file_text_color);
+
+			//GetTextExtentPoint32(di->hDC,text,strlen(text),&size);
+			//rect.right=rect.left+size.cx;
+			DrawText(di->hDC,text,-1,&rect,style);
+		}
+		xpos+=width;
+	}
 	if(di->itemState&ODS_FOCUS)
 		DrawFocusRect(di->hDC,&di->rcItem); 
 
@@ -129,68 +151,17 @@ int draw_item(DRAWITEMSTRUCT *di,char *list_string)
 		break;
 	}
 	*/
-	GetTextExtentPoint32(di->hDC,list_string,strlen(list_string),&size);
+	//GetTextExtentPoint32(di->hDC,list_string,strlen(list_string),&size);
 	//set_list_width(size.cx+16);
-    DeleteDC(hdcMem);
 	return TRUE;
 }
 int list_drawitem(HWND hwnd,int id,DRAWITEMSTRUCT *di)
 {
-	char text[1024];
-	if(FALSE)
-	{
-		{
-			static DWORD tick=0;
-			if((GetTickCount()-tick)>500)
-				printf("--\n");
-			tick=GetTickCount();
-		}
-		{
-			char s1[100]={0},s2[100]={0};
-			int c=0;
-			if(di->itemAction&ODA_DRAWENTIRE)
-				c++;
-			if(di->itemAction&ODA_SELECT)
-				c++;
-			if(di->itemAction&ODS_FOCUS)
-				c++;
-			if(c>1)
-				c=c;
-			if(di->itemAction&ODA_DRAWENTIRE)
-				strcat(s1,"ODA_DRAWENTIRE|");
-			if(di->itemAction&ODA_FOCUS)
-				strcat(s1,"ODA_FOCUS|");
-			if(di->itemAction&ODA_SELECT)
-				strcat(s1,"ODA_SELECT|");
-			if(di->itemState&ODS_DEFAULT)
-				strcat(s2,"ODS_DEFAULT|");
-			if(di->itemState&ODS_DISABLED)
-				strcat(s2,"ODS_DISABLED|");
-			if(di->itemState&ODS_FOCUS)
-				strcat(s2,"ODS_FOCUS|");
-			if(di->itemState&ODS_GRAYED)
-				strcat(s2,"ODS_GRAYED|");
-			if(di->itemState&ODS_SELECTED)
-				strcat(s2,"ODS_SELECTED|");
-			printf("%2i %s\t%s\n",di->itemID,s1,s2);
-		}
-	}
 	switch(di->itemAction){
+	default:
 	case ODA_DRAWENTIRE:
-		text[0]=0;
-		SendDlgItemMessage(hwnd,id,LB_GETTEXT,di->itemID,text);
-		draw_item(di,text);
-	case ODA_FOCUS:
-		text[0]=0;
-		SendDlgItemMessage(hwnd,id,LB_GETTEXT,di->itemID,text);
-		draw_item(di,text);
+		draw_item(di);
 		break;
-	case ODA_SELECT:
-		text[0]=0;
-		SendDlgItemMessage(hwnd,id,LB_GETTEXT,di->itemID,text);
-		draw_item(di,text);
-		break;
-
 	}
 	return TRUE;
 }
