@@ -77,7 +77,7 @@ int subclass_listview(HWND hlistview)
 
 
 
-int draw_item(DRAWITEMSTRUCT *di)
+int draw_item(DRAWITEMSTRUCT *di,TABLE_WINDOW *win)
 {
 	int i,count,xpos;
 	int textcolor,bgcolor;
@@ -111,11 +111,20 @@ int draw_item(DRAWITEMSTRUCT *di)
 		width=ListView_GetColumnWidth(di->hwndItem,i);
 
 		rect=di->rcItem;
-		rect.left=xpos;
-		rect.right=xpos+width;
+		rect.left+=xpos;
+		rect.right=rect.left+xpos+width;
+		//rect.left=xpos;
+		//rect.right=xpos+width;
 	//		DrawText(di->hDC,text,-1,&rect,style);
 	//	SetTextColor(di->hDC,(0xFFFFFF^GetSysColor(COLOR_BTNTEXT)));
-		FillRect(di->hDC,&rect,di->itemState&ODS_SELECTED ? COLOR_HIGHLIGHT+1:COLOR_WINDOW+1);
+		if((di->itemState&ODS_SELECTED) && win!=0 && win->selected_column==i){
+			FillRect(di->hDC,&rect,COLOR_WINDOW+1);
+			DrawFocusRect(di->hDC,&rect); 
+		}
+		else{
+			FillRect(di->hDC,&rect,di->itemState&ODS_SELECTED ? COLOR_HIGHLIGHT+1:COLOR_WINDOW+1);
+			FrameRect(di->hDC,&rect,GetStockObject(GRAY_BRUSH));
+		}
 		if(text[0]!=0){
 
 			SetTextColor(di->hDC,textcolor);
@@ -132,8 +141,8 @@ int draw_item(DRAWITEMSTRUCT *di)
 		}
 		xpos+=width;
 	}
-	if(di->itemState&ODS_FOCUS)
-		DrawFocusRect(di->hDC,&di->rcItem); 
+	//if(di->itemState&ODS_FOCUS)
+		
 
 	/*
 	switch(di->itemAction){
@@ -157,10 +166,13 @@ int draw_item(DRAWITEMSTRUCT *di)
 }
 int list_drawitem(HWND hwnd,int id,DRAWITEMSTRUCT *di)
 {
+	TABLE_WINDOW *win=0;
+	find_win_by_hwnd(hwnd,&win);
+
 	switch(di->itemAction){
 	default:
 	case ODA_DRAWENTIRE:
-		draw_item(di);
+		draw_item(di,win);
 		break;
 	}
 	return TRUE;

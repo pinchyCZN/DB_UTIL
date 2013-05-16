@@ -19,6 +19,7 @@ typedef struct{
 	void *hdbenv;
 	int abort;
 	int columns;
+	int selected_column;
 	HWND hwnd,hlistview,hedit,hroot,habort,hintel;
 }TABLE_WINDOW;
 
@@ -99,13 +100,18 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 	case WM_NOTIFY:
 		{
 			NMHDR *nmhdr=lparam;
+			TABLE_WINDOW *win=0;
 			if(nmhdr!=0 && nmhdr->idFrom==IDC_MDI_LISTVIEW){
 				int item=-1;
 				LV_HITTESTINFO lvhit={0};
 				switch(nmhdr->code){
 				case NM_CLICK:
 					GetCursorPos(&lvhit.pt);
+					ScreenToClient(nmhdr->hwndFrom,&lvhit.pt);
 					ListView_SubItemHitTest(nmhdr->hwndFrom,&lvhit);
+					find_win_by_hwnd(hwnd,&win);
+					if(win!=0)
+						win->selected_column=lvhit.iSubItem;
 					printf("item = %i\n",lvhit.iSubItem);
 					break;
 				case LVN_KEYDOWN:
@@ -359,7 +365,7 @@ int create_mdi_window(HWND hwnd,HINSTANCE hinstance,TABLE_WINDOW *win)
 	win->hlistview=hlistview;
 	win->hedit=hedit;
 	if(hlistview!=0){
-		ListView_SetExtendedListViewStyle(hlistview,ListView_GetExtendedListViewStyle(hlistview)|LVS_EX_FULLROWSELECT|LVS_EX_GRIDLINES);
+		ListView_SetExtendedListViewStyle(hlistview,ListView_GetExtendedListViewStyle(hlistview)|LVS_EX_FULLROWSELECT);
 	}
 	if(hedit!=0)
 		subclass_edit(hedit);
@@ -475,9 +481,15 @@ int create_table_window(HWND hmdiclient,TABLE_WINDOW *win)
 int find_win_by_hwnd(HWND hwnd,TABLE_WINDOW **win)
 {
 	int i;
+	static TABLE_WINDOW *w=0;
+	if(w!=0 && w->hwnd==hwnd){
+		*win=w;
+		return TRUE;
+	}
 	for(i=0;i<sizeof(table_windows)/sizeof(TABLE_WINDOW);i++){
 		if(table_windows[i].hwnd==hwnd){
 			*win=&table_windows[i];
+			w=&table_windows[i];
 			return TRUE;
 		}
 	}
