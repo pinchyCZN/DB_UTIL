@@ -16,6 +16,7 @@
 #define IDC_TABLE_ITEM                  1010
 #define IDC_SQL_ABORT                   1011
 #define IDC_INTELLISENSE                1014
+#define IDC_LV_EDIT                     1016
 #define IDM_SETTINGS                    40002
 #define IDM_OPEN                        40006
 #define IDM_CLOSE                       40007
@@ -28,7 +29,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        106
 #define _APS_NEXT_COMMAND_VALUE         40010
-#define _APS_NEXT_CONTROL_VALUE         1015
+#define _APS_NEXT_CONTROL_VALUE         1017
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

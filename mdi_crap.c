@@ -20,7 +20,7 @@ typedef struct{
 	int abort;
 	int columns;
 	int selected_column;
-	HWND hwnd,hlistview,hedit,hroot,habort,hintel;
+	HWND hwnd,hlistview,hlvedit,hedit,hroot,habort,hintel;
 }TABLE_WINDOW;
 
 typedef struct{
@@ -105,16 +105,64 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 				int item=-1;
 				LV_HITTESTINFO lvhit={0};
 				switch(nmhdr->code){
+				case NM_DBLCLK:
+					find_win_by_hwnd(hwnd,&win);
+					if(win!=0){
+						RECT rect={0};
+						GetCursorPos(&lvhit.pt);
+						ScreenToClient(nmhdr->hwndFrom,&lvhit.pt);
+						if(ListView_SubItemHitTest(nmhdr->hwndFrom,&lvhit)>=0)
+							create_lv_edit_selected(win);
+						/*
+							if(ListView_GetSubItemRect(nmhdr->hwndFrom,lvhit.iItem,lvhit.iSubItem,LVIR_BOUNDS,&rect)!=0){
+								char text[255]={0};
+								create_lv_edit(win,&rect);
+								ListView_GetItemText(nmhdr->hwndFrom,lvhit.iItem,lvhit.iSubItem,text,sizeof(text));
+								if(text[0]!=0 && win->hlvedit!=0){
+									SetWindowText(win->hlvedit,text);
+									SetFocus(win->hlvedit);
+								}
+							}
+						*/
+					}
+					break;
 				case NM_CLICK:
 					GetCursorPos(&lvhit.pt);
 					ScreenToClient(nmhdr->hwndFrom,&lvhit.pt);
-					ListView_SubItemHitTest(nmhdr->hwndFrom,&lvhit);
-					find_win_by_hwnd(hwnd,&win);
-					if(win!=0)
-						win->selected_column=lvhit.iSubItem;
+					if(ListView_SubItemHitTest(nmhdr->hwndFrom,&lvhit)>=0){
+						find_win_by_hwnd(hwnd,&win);
+						if(win!=0){
+							RECT rect={0};
+							ListView_GetItemRect(nmhdr->hwndFrom,lvhit.iItem,&rect,LVIR_BOUNDS);
+							win->selected_column=lvhit.iSubItem;
+							InvalidateRect(nmhdr->hwndFrom,&rect,TRUE);
+						}
+					}
 					printf("item = %i\n",lvhit.iSubItem);
 					break;
 				case LVN_KEYDOWN:
+					{
+						find_win_by_hwnd(hwnd,&win);
+						if(win!=0){
+							int dir=0;
+							LV_KEYDOWN *lvkey=lparam;
+							switch(lvkey->wVKey){
+							case VK_F2:
+							case VK_RETURN:
+								create_lv_edit_selected(win);
+								break;
+							case VK_LEFT:dir=-1;break;
+							case VK_RIGHT:dir=1;break;
+							case VK_ESCAPE:
+								destroy_lv_edit(win);
+							}
+							win->selected_column+=dir;
+							if(win->selected_column<0)
+								win->selected_column=0;
+							if(win->selected_column>=win->columns)
+								win->selected_column=win->columns-1;
+						}
+					}
 					break;
 				case LVN_COLUMNCLICK:
 					break;
@@ -126,8 +174,12 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 		{
 			DRAWITEMSTRUCT *di=lparam;
 			if(di!=0 && di->CtlType==ODT_LISTVIEW){
-				list_drawitem(hwnd,wparam,lparam);
-				return TRUE;
+				TABLE_WINDOW *win=0;
+				find_win_by_hwnd(hwnd,&win);
+				if(win!=0){
+					draw_item(di,win);
+					return TRUE;
+				}
 			}
 		}
 		break;
@@ -221,6 +273,15 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 		break;
 	case WM_USER:
 		switch(LOWORD(lparam)){
+		case IDC_LV_EDIT:
+			switch(HIWORD(lparam)){
+			case IDOK:
+			default:
+			case IDCANCEL:
+				destroy_lv_edit(wparam);
+				break;
+			}
+			break;
 		case IDC_SQL_ABORT:
 			if(HIWORD(lparam))
 				create_abort(wparam);
@@ -366,6 +427,7 @@ int create_mdi_window(HWND hwnd,HINSTANCE hinstance,TABLE_WINDOW *win)
 	win->hedit=hedit;
 	if(hlistview!=0){
 		ListView_SetExtendedListViewStyle(hlistview,ListView_GetExtendedListViewStyle(hlistview)|LVS_EX_FULLROWSELECT);
+		subclass_listview(hlistview);
 	}
 	if(hedit!=0)
 		subclass_edit(hedit);
