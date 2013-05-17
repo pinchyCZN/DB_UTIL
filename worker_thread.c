@@ -13,7 +13,8 @@ enum{
 	TASK_OPEN_DB,
 	TASK_CLOSE_DB,
 	TASK_NEW_QUERY,
-	TASK_EXECUTE_QUERY
+	TASK_EXECUTE_QUERY,
+	TASK_UPDATE_ROW
 };
 
 int task_open_db(char *name)
@@ -62,6 +63,13 @@ int task_refresh_tables()
 	SetEvent(event);
 	return TRUE;
 }
+int task_update_record(HWND hlistview,int row,int col,char *val)
+{
+	task=TASK_UPDATE_ROW;
+	_snprintf(taskinfo,sizeof(taskinfo),"HWND=0x%08X;ROW=%i;COL=%i;DATA=%s",hlistview,row,col,val);
+	SetEvent(event);
+	return TRUE;
+}
 int thread(HANDLE event)
 {
 	int id;
@@ -96,6 +104,8 @@ int thread(HANDLE event)
 					if(keep_closed)
 						close_db(db);
 				}
+				break;
+			case TASK_UPDATE_ROW:
 				break;
 			case TASK_EXECUTE_QUERY:
 				{

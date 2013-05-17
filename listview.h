@@ -222,16 +222,22 @@ LRESULT APIENTRY sc_lvedit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		switch(wparam){
 		case VK_RETURN:
 			{
-			TABLE_WINDOW *win=0;
-			if(find_win_by_hlvedit(hwnd,&win))
-				PostMessage(win->hwnd,WM_USER,win,MAKELPARAM(IDC_LV_EDIT,IDOK));
+				TABLE_WINDOW *win=0;
+				if(find_win_by_hlvedit(hwnd,&win)){
+					int index;
+					char text[1024]={0};
+					index=ListView_GetSelectionMark(win->hlistview);
+					GetWindowText(win->hlvedit,text,sizeof(text));
+					task_update_record(win->hlistview,index,win->selected_column,text);
+					PostMessage(win->hwnd,WM_USER,win,MAKELPARAM(IDC_LV_EDIT,IDOK));
+				}
 			}
 			break;
 		case VK_ESCAPE:
 			{
-			TABLE_WINDOW *win=0;
-			if(find_win_by_hlvedit(hwnd,&win))
-				PostMessage(win->hwnd,WM_USER,win,MAKELPARAM(IDC_LV_EDIT,IDCANCEL));
+				TABLE_WINDOW *win=0;
+				if(find_win_by_hlvedit(hwnd,&win))
+					PostMessage(win->hwnd,WM_USER,win,MAKELPARAM(IDC_LV_EDIT,IDCANCEL));
 			}
 		}
 		break;
