@@ -63,10 +63,10 @@ int task_refresh_tables()
 	SetEvent(event);
 	return TRUE;
 }
-int task_update_record(HWND hlistview,int row,int col,char *val)
+int task_update_record(void *win,int row,char *data)
 {
 	task=TASK_UPDATE_ROW;
-	_snprintf(taskinfo,sizeof(taskinfo),"HWND=0x%08X;ROW=%i;COL=%i;DATA=%s",hlistview,row,col,val);
+	_snprintf(taskinfo,sizeof(taskinfo),"WIN=0x%08X;ROW=%i;DATA=%s",win,row,data);
 	SetEvent(event);
 	return TRUE;
 }
@@ -106,6 +106,18 @@ int thread(HANDLE event)
 				}
 				break;
 			case TASK_UPDATE_ROW:
+				{
+					void *win=0;
+					int row=0;
+					sscanf(localinfo,"WIN=0x%08X;ROW=%i",&win,&row);
+					if(win!=0){
+						char *s=strstr(localinfo,"DATA=");
+						if(s!=0){
+							s+=sizeof("DATA=")-1;
+							update_row(win,row,s);
+						}
+					}
+				}
 				break;
 			case TASK_EXECUTE_QUERY:
 				{

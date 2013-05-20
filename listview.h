@@ -24,6 +24,17 @@ int lv_get_column_count(HWND hlistview)
 	}
 	return count;
 }
+int lv_get_col_text(HWND hlistview,int index,char *str,int size)
+{
+	LV_COLUMN col;
+	if(hlistview!=0 && str!=0 && size>0){
+		col.mask = LVCF_TEXT;
+		col.pszText = str;
+		col.cchTextMax = size;
+		return ListView_GetColumn(hlistview,index,&col);
+	}
+	return FALSE;
+}
 int lv_add_column(HWND hlistview,char *str,int index)
 {
 	LV_COLUMN col;
@@ -63,6 +74,7 @@ int lv_insert_data(HWND hlistview,int row,int col,char *str)
 static WNDPROC wporiglistview=0;
 LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
+	if(FALSE)
 	if(msg<=0x1000)
 	if(msg!=WM_NCMOUSEMOVE&&msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY
 		&&msg!=WM_USER)
@@ -197,7 +209,7 @@ int find_win_by_hlvedit(HWND hwnd,TABLE_WINDOW **win)
 static WNDPROC lvorigedit=0;
 LRESULT APIENTRY sc_lvedit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
-	//if(FALSE)
+	if(FALSE)
 	if(msg!=WM_NCMOUSEMOVE&&msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY
 		&&msg!=WM_ERASEBKGND)
 		//if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE)
@@ -228,7 +240,7 @@ LRESULT APIENTRY sc_lvedit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 					char text[1024]={0};
 					index=ListView_GetSelectionMark(win->hlistview);
 					GetWindowText(win->hlvedit,text,sizeof(text));
-					task_update_record(win->hlistview,index,win->selected_column,text);
+					task_update_record(win,index,text);
 					PostMessage(win->hwnd,WM_USER,win,MAKELPARAM(IDC_LV_EDIT,IDOK));
 				}
 			}

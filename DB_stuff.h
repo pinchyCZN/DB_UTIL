@@ -104,7 +104,7 @@ int open_db(DB_TREE *tree)
 							 SQL_DRIVER_COMPLETE);
 			if(result==SQL_SUCCESS || result==SQL_SUCCESS_WITH_INFO){
 				if(result==SQL_SUCCESS_WITH_INFO){
-					SQLCHAR state[6],msg[SQL_MAX_MESSAGE_LENGTH];
+					SQLCHAR state[6],msg[SQL_MAX_MESSAGE_LENGTH]={0};
 					SQLINTEGER  error;
 					SQLSMALLINT msglen;
 					SQLGetDiagRec(SQL_HANDLE_DBC,hDbc,1,state,&error,msg,sizeof(msg),&msglen);
@@ -237,6 +237,54 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 	}
 	return rows;
 }
+int sanitize_value(char *str,char *out,int size)
+{
+	int result=FALSE;
+	if(str!=0 && out!=0 && size>0){
+		char tmp[255]={0};
+		int quote=FALSE;
+		if(strchr(str,' ')!=0)
+			quote=TRUE;
+		if(strchr(str,'-')!=0)
+			quote=TRUE;
+		if(quote){
+			strncpy(tmp,str,sizeof(tmp));
+			tmp[sizeof(tmp)-1]=0;
+			_snprintf(out,size,"'%s'",tmp);
+		}
+		result=TRUE;
+	}
+	return result;
+}
+int update_row(TABLE_WINDOW *win,int row,char *data)
+{
+	if(win!=0 && win->hlistview!=0 && data!=0){
+		char *sql=0;
+		char col_name[80]={0};
+		int i,count,sql_size=0x10000;
+		count=lv_get_column_count(win->hlistview);
+		lv_get_col_text(win->hlistview,win->selected_column,col_name,sizeof(col_name));
+		sql=malloc(sql_size);
+		if(count>0 && sql!=0 && col_name[0]!=0){
+			char cdata[80]={0};
+			sql[0]=0;
+			sanitize_value(data,cdata,sizeof(cdata));
+			_snprintf(sql,sql_size,"UPDATE [table] SET [%s]=%s WHERE ",col_name,cdata);
+			for(i=0;i<count;i++){
+				char tmp[128]={0};
+				col_name[0]=0;
+				lv_get_col_text(win->hlistview,i,col_name,sizeof(col_name));
+				ListView_GetItemText(win->hlistview,row,i,tmp,sizeof(tmp));
+				sanitize_value(tmp,tmp,sizeof(tmp));
+				_snprintf(sql,sql_size,"%s[%s]=%s%s",sql,col_name,tmp[0]==0?"NULL":tmp,i>=count-1?"":" AND\r\n");
+			}
+			printf("%s\n",sql);
+			SetWindowText(win->hedit,sql);
+		}
+		if(sql!=0)
+			free(sql);
+	}
+}
 int execute_sql(TABLE_WINDOW *win,char *sql)
 {
 	int result=FALSE;
@@ -244,23 +292,34 @@ int execute_sql(TABLE_WINDOW *win,char *sql)
 		int retcode;
 		SQLHSTMT hstmt=0;
 		SQLAllocHandle(SQL_HANDLE_STMT,win->hdbc,&hstmt);
-		retcode=SQLExecDirect(hstmt,sql,SQL_NTS);
-		switch(retcode){
-        case SQL_SUCCESS_WITH_INFO:
-        case SQL_SUCCESS:
-			{
-			SQLINTEGER rows=0,cols=0;
-			SQLRowCount(hstmt,&rows);
-			mdi_clear_listview(win);
-			cols=fetch_columns(hstmt,win);
-			fetch_rows(hstmt,win,cols);
-			result=TRUE;
+		if(hstmt!=0){
+			retcode=SQLExecDirect(hstmt,sql,SQL_NTS);
+			switch(retcode){
+			case SQL_SUCCESS_WITH_INFO:
+			case SQL_SUCCESS:
+				{
+				SQLINTEGER rows=0,cols=0;
+				SQLRowCount(hstmt,&rows);
+				mdi_clear_listview(win);
+				cols=fetch_columns(hstmt,win);
+				fetch_rows(hstmt,win,cols);
+				result=TRUE;
+				printf("executed sql sucess\n");
+				}
+				break;
+			case SQL_ERROR:
+				{
+					SQLCHAR state[6],msg[SQL_MAX_MESSAGE_LENGTH]={0};
+					SQLINTEGER  error;
+					SQLSMALLINT msglen;
+					SQLGetDiagRec(SQL_HANDLE_STMT,hstmt,1,state,&error,msg,sizeof(msg),&msglen);
+					printf("msg=%s\n",msg);
+					MessageBox(win->hwnd,msg,"SQL Error",MB_OK);
+				}
+				break;
 			}
-			break;
-        case SQL_ERROR:
-			break;
+			SQLFreeStmt(hstmt,SQL_CLOSE);
 		}
-		SQLFreeStmt(hstmt,SQL_CLOSE);
 	}
 	return result;
 }
