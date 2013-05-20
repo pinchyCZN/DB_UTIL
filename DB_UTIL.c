@@ -208,9 +208,10 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 	init_mdi_stuff();
 
 	LoadLibrary("RICHED20.DLL");
+	LoadLibrary("Msftedit.dll");
 
 	ctrls.dwSize=sizeof(ctrls);
-    ctrls.dwICC = ICC_LISTVIEW_CLASSES|ICC_TREEVIEW_CLASSES;
+    ctrls.dwICC = ICC_LISTVIEW_CLASSES|ICC_TREEVIEW_CLASSES|ICC_BAR_CLASSES;
 	InitCommonControlsEx(&ctrls);
 	
 	InitializeCriticalSection(&mutex);

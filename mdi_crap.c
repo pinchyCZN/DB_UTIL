@@ -405,7 +405,7 @@ int create_mdi_window(HWND hwnd,HINSTANCE hinstance,TABLE_WINDOW *win)
 	if(win==0)
 		return FALSE;
 
-    hedit = CreateWindow("RichEdit20A",
+    hedit = CreateWindow("RichEdit50W", //"RichEdit20A",
                                      "",
                                      WS_TABSTOP|WS_CHILD|WS_CLIPSIBLINGS|WS_VISIBLE|WS_HSCROLL|WS_VSCROLL|ES_AUTOHSCROLL|ES_AUTOVSCROLL|ES_MULTILINE|ES_WANTRETURN,
                                      0,0,

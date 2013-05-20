@@ -252,7 +252,7 @@ int create_lv_edit_selected(TABLE_WINDOW *win)
 		index=ListView_GetSelectionMark(win->hlistview);
 		if(index>=0){
 			RECT rect={0};
-			if(ListView_GetSubItemRect(win->hlistview,index,win->selected_column,LVIR_BOUNDS,&rect)!=0){
+			if(ListView_GetSubItemRect(win->hlistview,index,win->selected_column,LVIR_LABEL,&rect)!=0){
 				char text[255]={0};
 				create_lv_edit(win,&rect);
 				ListView_GetItemText(win->hlistview,index,win->selected_column,text,sizeof(text));
@@ -272,12 +272,13 @@ int create_lv_edit(TABLE_WINDOW *win,RECT *rect)
 	if(win!=0 && rect!=0){
 		if(win->hlvedit!=0)
 			destroy_lv_edit(win);
-		win->hlvedit = CreateWindow("EDIT",
+		win->hlvedit = CreateWindow("RichEdit50W",
 										 "",
-										 WS_TABSTOP|WS_CHILD|WS_CLIPSIBLINGS|WS_VISIBLE|ES_AUTOHSCROLL,
-										 rect->left,rect->top,
-										 rect->right - rect->left,
-										 rect->bottom - rect->top,
+										 WS_TABSTOP|WS_CHILD|WS_CLIPSIBLINGS|WS_VISIBLE|
+										 ES_RIGHT|ES_AUTOHSCROLL,
+										 rect->left-1,rect->top-1,
+										 rect->right - rect->left+2,
+										 rect->bottom - rect->top+2,
 										 win->hlistview,
 										 IDC_LV_EDIT,
 										 ghinstance,
