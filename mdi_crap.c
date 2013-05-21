@@ -11,10 +11,11 @@
 #include "resource.h"
 
 extern HINSTANCE ghinstance;
-extern HWND ghmainframe,ghmdiclient,ghtreeview;
+extern HWND ghmainframe,ghmdiclient,ghtreeview,ghstatusbar;
 
 typedef struct{
 	char name[1024];
+	char table[80];
 	void *hdbc;
 	void *hdbenv;
 	int abort;
@@ -92,7 +93,7 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 		{
 		TABLE_WINDOW *win=0;
 		if(find_win_by_hwnd(hwnd,&win))
-			SetFocus(win->hedit);
+			SetFocus(win->hlistview);
 		}
         break;
 	case WM_CONTEXTMENU:
@@ -564,12 +565,16 @@ int free_window(TABLE_WINDOW *win)
 	}
 	return TRUE;
 }
-int acquire_table_window(TABLE_WINDOW **win)
+int acquire_table_window(TABLE_WINDOW **win,char *tname)
 {
 	int i;
 	for(i=0;i<sizeof(table_windows)/sizeof(TABLE_WINDOW);i++){
 		if(table_windows[i].hwnd==0){
 			*win=&table_windows[i];
+			if(tname!=0)
+				strncpy(table_windows[i].table,tname,sizeof(table_windows[i].table));
+			else
+				table_windows[i].table[0]=0;
 			return TRUE;
 		}
 	}
@@ -745,7 +750,7 @@ int destroy_abort(TABLE_WINDOW *win)
 	int result=FALSE;
 	if(win==0 || win->habort==0)
 		return FALSE;
-	win->abort=FALSE;
+	win->abort=TRUE;
 	result=DestroyWindow(win->habort);
 	win->habort=0;
 	return result;

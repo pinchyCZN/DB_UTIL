@@ -131,7 +131,7 @@ int thread(HANDLE event)
 					s=malloc(size);
 					if(s!=0){
 						mdi_get_edit_text(win,s,size);
-						execute_sql(win,s);
+						execute_sql(win,s,TRUE);
 						free(s);
 					}
 					mdi_destroy_abort(win);
@@ -149,7 +149,7 @@ int thread(HANDLE event)
 				find_selected_tree(&db);
 				if(db!=0){
 					void *win=0;
-					if(acquire_table_window(&win)){
+					if(acquire_table_window(&win,0)){
 						create_table_window(ghmdiclient,win);
 						assign_db_to_table(db,win);
 					}
@@ -174,7 +174,7 @@ int thread(HANDLE event)
 						strncpy(table,p+1,sizeof(table));
 						if(find_db_tree(dbname,&db)){
 							void *win=0;
-							if(acquire_table_window(&win)){
+							if(acquire_table_window(&win,table)){
 								char sql[256]={0};
 								create_table_window(ghmdiclient,win);
 								open_db(db);
@@ -182,7 +182,7 @@ int thread(HANDLE event)
 								_snprintf(sql,sizeof(sql),"SELECT * FROM %s",table);
 								mdi_set_edit_text(win,sql);
 								mdi_create_abort(win);
-								execute_sql(win,sql);
+								execute_sql(win,sql,TRUE);
 								mdi_destroy_abort(win);
 								if(keep_closed)
 									close_db(db);

@@ -7,6 +7,7 @@
 #include <conio.h>
 #include <stdlib.h>
 
+
 struct DataBinding {
    SQLSMALLINT TargetType;
    SQLPOINTER TargetValuePtr;
@@ -213,26 +214,31 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 		while(TRUE){
 			int result=0;
 			int i,len;
+			if(win->abort || win->hwnd==0)
+				break;
 			result=SQLFetch(hstmt);
 			if(!(result==SQL_SUCCESS || result==SQL_SUCCESS_WITH_INFO))
 				break;
 			for(i=0;i<cols;i++){
 				char str[1024]={0};
 				int len=0;
+				if(win->abort || win->hwnd==0)
+					break;
 				result=SQLGetData(hstmt,i+1,SQL_C_CHAR,str,sizeof(str),&len);
 				if(result==SQL_SUCCESS || result==SQL_SUCCESS_WITH_INFO){
-					lv_insert_data(win->hlistview,rows,i,str);
+					char *s=str;
+					if(len==SQL_NULL_DATA)
+						s="(NULL)";
+					if(i==0)
+						lv_insert_data(win->hlistview,rows,i,s);
+					else
+						lv_update_data(win->hlistview,rows,i,str);
 //Sleep(250);
 				}
 				else
 					break;
-				if(win->abort || win->hwnd==0)
-					break;
-
 			}
 			rows++;
-			if(win->abort || win->hwnd==0)
-				break;
 		}
 	}
 	return rows;
@@ -242,15 +248,27 @@ int sanitize_value(char *str,char *out,int size)
 	int result=FALSE;
 	if(str!=0 && out!=0 && size>0){
 		char tmp[255]={0};
-		int quote=FALSE;
-		if(strchr(str,' ')!=0)
-			quote=TRUE;
-		if(strchr(str,'-')!=0)
-			quote=TRUE;
-		if(quote){
-			strncpy(tmp,str,sizeof(tmp));
-			tmp[sizeof(tmp)-1]=0;
-			_snprintf(out,size,"'%s'",tmp);
+		int i,len,quote=FALSE;
+		strncpy(tmp,str,sizeof(tmp));
+		tmp[sizeof(tmp)-1]=0;
+		len=strlen(str);
+		if(stricmp(str,"NULL")==0 || stricmp(str,"(NULL)")==0){
+			_snprintf(out,size,"%s","NULL");
+		}
+		else{
+			for(i=0;i<len;i++){
+				if(isalpha(str[i]))
+					quote=TRUE;
+				else if(ispunct(str[i]))
+					quote=TRUE;
+				else if(str[i]==' ')
+					quote=TRUE;
+			}
+			if(quote){
+				_snprintf(out,size,"'%s'",tmp);
+			}
+			else
+				_snprintf(out,size,"%s",tmp);
 		}
 		result=TRUE;
 	}
@@ -258,7 +276,7 @@ int sanitize_value(char *str,char *out,int size)
 }
 int update_row(TABLE_WINDOW *win,int row,char *data)
 {
-	if(win!=0 && win->hlistview!=0 && data!=0){
+	if(win!=0 && win->hlistview!=0 && win->table[0]!=0 && data!=0){
 		char *sql=0;
 		char col_name[80]={0};
 		int i,count,sql_size=0x10000;
@@ -269,23 +287,39 @@ int update_row(TABLE_WINDOW *win,int row,char *data)
 			char cdata[80]={0};
 			sql[0]=0;
 			sanitize_value(data,cdata,sizeof(cdata));
-			_snprintf(sql,sql_size,"UPDATE [table] SET [%s]=%s WHERE ",col_name,cdata);
+			_snprintf(sql,sql_size,"UPDATE [%s] SET [%s]=%s WHERE ",win->table,col_name,cdata[0]==0?"''":cdata);
 			for(i=0;i<count;i++){
 				char tmp[128]={0};
+				char *v=0,*eq="=";
 				col_name[0]=0;
 				lv_get_col_text(win->hlistview,i,col_name,sizeof(col_name));
 				ListView_GetItemText(win->hlistview,row,i,tmp,sizeof(tmp));
+				if(stricmp(tmp,"(NULL)")==0){
+					v="NULL";
+					eq=" is ";
+				}
+				else if(tmp[0]==0)
+					v="''";
+				else
+					v=tmp;
 				sanitize_value(tmp,tmp,sizeof(tmp));
-				_snprintf(sql,sql_size,"%s[%s]=%s%s",sql,col_name,tmp[0]==0?"NULL":tmp,i>=count-1?"":" AND\r\n");
+				_snprintf(sql,sql_size,"%s[%s]%s%s%s",sql,col_name,eq,v,i>=count-1?"":" AND\r\n");
 			}
 			printf("%s\n",sql);
-			SetWindowText(win->hedit,sql);
+			if(reopen_db(win)){
+				mdi_create_abort(win);
+				if(execute_sql(win,sql,FALSE)){
+					lv_update_data(win->hlistview,row,win->selected_column,data);
+				}
+				mdi_destroy_abort(win);
+			}
+			//SetWindowText(win->hedit,sql);
 		}
 		if(sql!=0)
 			free(sql);
 	}
 }
-int execute_sql(TABLE_WINDOW *win,char *sql)
+int execute_sql(TABLE_WINDOW *win,char *sql,int display_results)
 {
 	int result=FALSE;
 	if(win!=0 && win->hdbc!=0 && win->hdbenv!=0){
@@ -293,17 +327,34 @@ int execute_sql(TABLE_WINDOW *win,char *sql)
 		SQLHSTMT hstmt=0;
 		SQLAllocHandle(SQL_HANDLE_STMT,win->hdbc,&hstmt);
 		if(hstmt!=0){
+			char msg[80];
+			SetWindowText(ghstatusbar,"executing query");
 			retcode=SQLExecDirect(hstmt,sql,SQL_NTS);
 			switch(retcode){
 			case SQL_SUCCESS_WITH_INFO:
 			case SQL_SUCCESS:
 				{
-				SQLINTEGER rows=0,cols=0;
+				SQLINTEGER rows=0,cols=0,total=0;
 				SQLRowCount(hstmt,&rows);
-				mdi_clear_listview(win);
-				cols=fetch_columns(hstmt,win);
-				fetch_rows(hstmt,win,cols);
+				if(display_results){
+					int mark;
+					mark=ListView_GetSelectionMark(win->hlistview);
+					SetWindowText(ghstatusbar,"clearing listview");
+					mdi_clear_listview(win);
+					cols=fetch_columns(hstmt,win);
+					SetWindowText(ghstatusbar,"fetching results");
+					total=fetch_rows(hstmt,win,cols);
+					if(mark>=0){
+						ListView_SetItemState(win->hlistview,mark,LVIS_FOCUSED|LVIS_SELECTED,LVIS_FOCUSED|LVIS_SELECTED);
+						ListView_EnsureVisible(win->hlistview,mark,FALSE);
+					}
+				}
 				result=TRUE;
+				if(total==rows)
+					_snprintf(msg,sizeof(msg),"returned %i rows",rows);
+				else
+					_snprintf(msg,sizeof(msg),"returned %i of %i rows",total,rows);
+				SetWindowText(ghstatusbar,msg);
 				printf("executed sql sucess\n");
 				}
 				break;
@@ -314,8 +365,16 @@ int execute_sql(TABLE_WINDOW *win,char *sql)
 					SQLSMALLINT msglen;
 					SQLGetDiagRec(SQL_HANDLE_STMT,hstmt,1,state,&error,msg,sizeof(msg),&msglen);
 					printf("msg=%s\n",msg);
+					SetWindowText(ghstatusbar,"error occured");
 					MessageBox(win->hwnd,msg,"SQL Error",MB_OK);
 				}
+				break;
+			case SQL_NO_DATA:
+				SetWindowText(ghstatusbar,"no data returned");
+				break;
+			default:
+				_snprintf(msg,sizeof(msg),"unhandled return code %i",retcode);
+				SetWindowText(ghstatusbar,msg);
 				break;
 			}
 			SQLFreeStmt(hstmt,SQL_CLOSE);

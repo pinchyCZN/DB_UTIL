@@ -12,6 +12,10 @@ int get_str_width(HWND hwnd,char *str)
 	}
 	return 0;
 }
+int lv_set_selected(HWND hlistview,int index)
+{
+
+}
 int lv_get_column_count(HWND hlistview)
 {
 	HWND header;
@@ -48,7 +52,19 @@ int lv_add_column(HWND hlistview,char *str,int index)
 		ListView_InsertColumn(hlistview,index,&col);
 	}
 }
-
+int lv_update_data(HWND hlistview,int row,int col,char *str)
+{
+	if(hlistview!=0 && str!=0){
+		LV_ITEM item;
+		memset(&item,0,sizeof(item));
+		item.mask=LVIF_TEXT;
+		item.iItem=row;
+		item.pszText=str;
+		item.iSubItem=col;
+		return ListView_SetItem(hlistview,&item);
+	}
+	return FALSE;
+}
 int lv_insert_data(HWND hlistview,int row,int col,char *str)
 {
 	if(hlistview!=0 && str!=0){
@@ -209,7 +225,7 @@ int find_win_by_hlvedit(HWND hwnd,TABLE_WINDOW **win)
 static WNDPROC lvorigedit=0;
 LRESULT APIENTRY sc_lvedit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
-	if(FALSE)
+	//if(FALSE)
 	if(msg!=WM_NCMOUSEMOVE&&msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY
 		&&msg!=WM_ERASEBKGND)
 		//if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE)
@@ -222,6 +238,9 @@ LRESULT APIENTRY sc_lvedit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		tick=GetTickCount();
 	}
 	switch(msg){
+	case WM_HELP:
+		return TRUE;
+		break;
 	case WM_KILLFOCUS:
 		//if(wparam!=0)
 		{
@@ -268,8 +287,9 @@ int create_lv_edit_selected(TABLE_WINDOW *win)
 				char text[255]={0};
 				create_lv_edit(win,&rect);
 				ListView_GetItemText(win->hlistview,index,win->selected_column,text,sizeof(text));
-				if(text[0]!=0 && win->hlvedit!=0){
-					SetWindowText(win->hlvedit,text);
+				if(win->hlvedit!=0){
+					if(text[0]!=0)
+						SetWindowText(win->hlvedit,text);
 					SetFocus(win->hlvedit);
 					return TRUE;
 				}
@@ -281,6 +301,7 @@ int create_lv_edit_selected(TABLE_WINDOW *win)
 
 int create_lv_edit(TABLE_WINDOW *win,RECT *rect)
 {
+	int result=FALSE;
 	if(win!=0 && rect!=0){
 		if(win->hlvedit!=0)
 			destroy_lv_edit(win);
@@ -295,10 +316,13 @@ int create_lv_edit(TABLE_WINDOW *win,RECT *rect)
 										 IDC_LV_EDIT,
 										 ghinstance,
 										 NULL);
-		if(win->hlvedit!=0)
+		if(win->hlvedit!=0){
 			lvorigedit=SetWindowLong(win->hlvedit,GWL_WNDPROC,(LONG)sc_lvedit);
+			SetWindowText(ghstatusbar,"");
+			result=TRUE;
+		}
 	}
-	return FALSE;
+	return result;
 }
 
 int destroy_lv_edit(TABLE_WINDOW *win)
