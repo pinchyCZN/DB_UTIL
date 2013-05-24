@@ -84,8 +84,6 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 				win->abort;
 		}
 		break;
-	case WM_VKEYTOITEM:
-		break;
 	case WM_SETFOCUS:
 //	case WM_IME_SETCONTEXT:
 //	case WM_NCACTIVATE:
@@ -252,11 +250,35 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 		}
 		break;
 
+	case WM_VKEYTOITEM:
+		switch(LOWORD(wparam)){
+		case VK_RETURN:
+			{
+			TABLE_WINDOW *win=0;
+			if(!find_win_by_hwnd(hwnd,&win))
+				break;
+			SendMessage(win->hedit,WM_KEYFIRST,VK_RETURN,0);
+			}
+			break;
+		}
+		break;
     case WM_COMMAND:
 		//HIWORD(wParam) notification code
 		//LOWORD(wParam) item control
 		//lParam handle of control
 		switch(LOWORD(wparam)){
+		case IDC_INTELLISENSE:
+			switch(HIWORD(wparam)){
+			case LBN_DBLCLK:
+				{
+				TABLE_WINDOW *win=0;
+				if(!find_win_by_hwnd(hwnd,&win))
+					break;
+				SendMessage(win->hedit,WM_KEYFIRST,VK_RETURN,0);
+				}
+				break;
+			}
+			break;
 		case IDC_SQL_ABORT:
 			{
 			TABLE_WINDOW *win=0;
@@ -751,7 +773,7 @@ int destroy_abort(TABLE_WINDOW *win)
 	if(win==0 || win->habort==0)
 		return FALSE;
 	win->abort=TRUE;
-	result=DestroyWindow(win->habort);
+	result=SendMessage(win->habort,WM_CLOSE,0,0);
 	win->habort=0;
 	return result;
 }

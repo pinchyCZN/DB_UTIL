@@ -328,7 +328,7 @@ int create_lv_edit(TABLE_WINDOW *win,RECT *rect)
 int destroy_lv_edit(TABLE_WINDOW *win)
 {
 	if(win!=0 && win->hlvedit!=0){
-		DestroyWindow(win->hlvedit);
+		SendMessage(win->hlvedit,WM_CLOSE,0,0);
 		win->hlvedit=0;
 	}
 	return TRUE;

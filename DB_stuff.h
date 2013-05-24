@@ -232,7 +232,7 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 					if(i==0)
 						lv_insert_data(win->hlistview,rows,i,s);
 					else
-						lv_update_data(win->hlistview,rows,i,str);
+						lv_update_data(win->hlistview,rows,i,s);
 //Sleep(250);
 				}
 				else
