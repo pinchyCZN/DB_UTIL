@@ -1,22 +1,42 @@
 %include {   
-	#include "ex5def.h"
-	#include "example5.h"
-	#include <sys/types.h>
-	#include <sys/stat.h>
-	#include <fcntl.h>
-	#include <stdlib.h>
-	#include "lexglobal.h"
-	#define BUFS 1024
+	#include "sql1.h"
 
 
-
-	void token_destructor(Token t)
-	{
-	  printf("In token_destructor t.value=%f\n",t.value);
-	  printf("In token_destructor t.n=%u\n",t.n);
-	}
 
 
 }  
+%token_type {YYSTYPE}
+%default_type {YYSTYPE}
+%token_destructor { token_destructor($$); }
 
-expr ::= expr.
+%type expr {YYSTYPE}
+   
+%left PLUS MINUS.   
+%left DIVIDE TIMES.  
+   
+%parse_accept {
+  printf("parsing complete!\n\n\n");
+}
+
+   
+%syntax_error {  
+  printf("Syntax error!\n");  
+}   
+   
+/*  This is to terminate with a new line */
+main ::= in.
+in ::= .
+in ::= in state NEWLINE.
+
+
+
+state ::= expr(A).   { 
+                        printf("Result.floatval=%f\n",A.floatval); 
+                        printf("Result.n=%u",A.intval); 
+
+                         }  
+
+
+
+expr(A) ::= expr(B) SELECT  expr(C).   { A.intval = B.intval - C.intval; 
+                                      }  
