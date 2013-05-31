@@ -101,13 +101,11 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 			NMHDR *nmhdr=lparam;
 			TABLE_WINDOW *win=0;
 			if(nmhdr!=0 && nmhdr->idFrom==IDC_MDI_LISTVIEW){
-				int item=-1;
 				LV_HITTESTINFO lvhit={0};
 				switch(nmhdr->code){
 				case NM_DBLCLK:
 					find_win_by_hwnd(hwnd,&win);
 					if(win!=0){
-						RECT rect={0};
 						GetCursorPos(&lvhit.pt);
 						ScreenToClient(nmhdr->hwndFrom,&lvhit.pt);
 						if(ListView_SubItemHitTest(nmhdr->hwndFrom,&lvhit)>=0)
@@ -227,7 +225,6 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 	case WM_MOUSEFIRST:
 		{
 			int y=HIWORD(lparam);
-			int x=LOWORD(lparam);
 			SetCursor(LoadCursor(NULL,IDC_SIZENS));
 			if(split_drag){
 				RECT rect;
@@ -549,7 +546,7 @@ int create_dbview(HWND hwnd,HINSTANCE hinstance)
 
 int create_table_window(HWND hmdiclient,TABLE_WINDOW *win)
 {
-	int maximized=0,style,handle;
+	int style,handle;
 	MDICREATESTRUCT cs;
 	char title[256]={0};
 	style = MDIS_ALLCHILDSTYLES;
@@ -889,7 +886,6 @@ int create_popup_menus()
 int init_mdi_stuff()
 {
 	extern int show_joins,lua_script_enable;
-	int list_width=60;
 	memset(&table_windows,0,sizeof(table_windows));
 	memset(&db_tree,0,sizeof(db_tree));
 	create_popup_menus();

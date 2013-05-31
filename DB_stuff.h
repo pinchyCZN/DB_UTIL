@@ -26,7 +26,6 @@ int get_tables(DB_TREE *tree)
 	HSTMT hStmt;
 	char pcName[256];
 	long lLen;
-	int count=0;
 	
 	SQLAllocStmt(tree->hdbc, &hStmt);
 	if (SQLTables (hStmt, NULL, SQL_NTS, NULL, SQL_NTS, NULL, SQL_NTS, (unsigned char*)"'TABLE'", SQL_NTS) != SQL_ERROR)
@@ -115,7 +114,7 @@ int open_db(DB_TREE *tree)
 					strncpy(tree->connect_str,str,sizeof(tree->connect_str));
 					extract_db_name(tree);
 					printf("connect str=%s\n",str);
-					write_ini_str("DATABASES","1",str);
+					add_connect_str(str);
 				}
 				tree->hdbc=hDbc;
 				tree->hdbenv=hEnv;
@@ -424,4 +423,19 @@ int assign_db_to_table(DB_TREE *db,TABLE_WINDOW *win)
 		return TRUE;
 	}
 	return FALSE;
+}
+
+int get_ini_entry(char *section,int num,char *str,int len)
+{
+	char key[20];
+	_snprintf(key,sizeof(key),"ENTRY%i",num);
+	return get_ini_str(section,key,str,len);
+}
+
+int add_connect_str(char *str)
+{
+	int i;
+	for(i=0;i<100;i++){
+		//get_ini_entry(
+	}
 }

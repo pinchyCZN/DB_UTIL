@@ -1,7 +1,7 @@
 #include <windows.h>
 #include <stdio.h>
 
-extern HWND ghmainframe,ghmdiclient,ghtreeview;
+extern HWND ghmainframe,ghmdiclient,ghtreeview,ghstatusbar;
 HANDLE event;
 int task=0;
 int keep_closed=TRUE;
@@ -92,17 +92,20 @@ int thread(HANDLE event)
 			case TASK_OPEN_DB:
 				{
 				void *db=0;
+				SetWindowText(ghstatusbar,"opening DB");
 				acquire_db_tree(localinfo,&db);
 				if(!mdi_open_db(db,TRUE)){
 					char str[80];
 					mdi_remove_db(db);
 					_snprintf(str,sizeof(str),"Cant open %s",localinfo);
 					MessageBox(ghmainframe,str,"OPEN DB FAIL",MB_OK);
+					SetWindowText(ghstatusbar,"error opening DB");
 				}
 				else
 					reassign_tables(db);
 					if(keep_closed)
 						close_db(db);
+					SetWindowText(ghstatusbar,"ready");
 				}
 				break;
 			case TASK_UPDATE_ROW:
@@ -160,8 +163,13 @@ int thread(HANDLE event)
 			case TASK_REFRESH_TABLES:
 				{
 				void *db=0;
+				SetWindowText(ghstatusbar,"refreshing tables");
 				acquire_db_tree(localinfo,&db);
-				mdi_open_db(db,TRUE);
+				if(!mdi_open_db(db,TRUE)){
+					char str[80];
+					mdi_remove_db(db);
+					SetWindowText(ghstatusbar,"error refreshing tables");
+				}
 				}
 				break;
 			case TASK_OPEN_TABLE:

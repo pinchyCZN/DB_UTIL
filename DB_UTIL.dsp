@@ -133,6 +133,10 @@ SOURCE=.\listview.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\pragma.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\treeview.h
 # End Source File
 # End Group
@@ -148,9 +152,5 @@ SOURCE=.\icon1.ico
 SOURCE=.\resource.rc
 # End Source File
 # End Group
-# Begin Source File
-
-SOURCE=.\123.txt
-# End Source File
 # End Target
 # End Project

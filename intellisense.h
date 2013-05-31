@@ -225,7 +225,7 @@ int testit(TABLE_WINDOW *win)
 		lindex=SendMessage(win->hedit,EM_LINEINDEX,line,0);
 		linestart=start-lindex;
 		if(linestart>=0 && len>0){
-			int i=0,wordstart=linestart,wordend=linestart;
+			int wordstart=linestart;
 			s[len-1]=0;
 			if(find_word_start(s,linestart,&wordstart))
 				printf("wordstart=%s\n",s+wordstart);
@@ -251,7 +251,7 @@ int replace_current_word(TABLE_WINDOW *win,char *str)
 		lindex=SendMessage(win->hedit,EM_LINEINDEX,line,0);
 		linestart=start-lindex;
 		if(linestart>=0 && len>0){
-			int i=0,wordstart=linestart,wordend=linestart;
+			int wordstart=linestart,wordend=linestart;
 			s[len-1]=0;
 			if(find_word_start(s,linestart,&wordstart)){
 				find_word_end(s,linestart,&wordend);

@@ -79,6 +79,31 @@ int save_window_ini(HWND hwnd)
 	}
 	return FALSE;
 }
+int load_recent(HWND hwnd,int list_ctrl)
+{
+	int i;
+	for(i=0;i<100;i++){
+	//	char str[1024]={0};
+
+	}
+}
+LRESULT CALLBACK recent_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
+{
+	switch(msg){
+	case WM_INITDIALOG:
+		load_recent(hwnd,IDC_LIST1);
+		break;
+	case WM_COMMAND:
+		switch(LOWORD(wparam)){
+
+		case IDCANCEL:
+			EndDialog(hwnd,0);
+			break;
+		}
+		break;
+	}
+	return 0;
+}
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
 	static DWORD tick=0;
@@ -148,9 +173,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 	case WM_COMMAND:
 		switch(LOWORD(wparam)){
 		case IDM_OPEN:
+			//task_open_db( //"DSN=OFW Visual FoxPro;UID=;PWD=;SourceDB=C:\\Program Files\\Pinnacle\\Oaswin\\;SourceType=DBF;Exclusive=No;BackgroundFetch=Yes;Collate=Machine;Null=Yes;Deleted=Yes;");
+			//"DSN=Journal");
 			task_open_db( //"DSN=OFW Visual FoxPro;UID=;PWD=;SourceDB=C:\\Program Files\\Pinnacle\\Oaswin\\;SourceType=DBF;Exclusive=No;BackgroundFetch=Yes;Collate=Machine;Null=Yes;Deleted=Yes;");
-				
-			"DSN=Journal");
+			"");
+			break;
+		case IDM_RECENT:
+			DialogBox(ghinstance,MAKEINTRESOURCE(IDD_RECENT),hwnd,recent_proc);
 			break;
 		case IDM_QUERY:
 			task_new_query();

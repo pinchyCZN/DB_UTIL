@@ -6,6 +6,7 @@
 #define IDR_MENU1                       102
 #define IDD_DIALOG1                     103
 #define IDR_ACCELERATOR1                105
+#define IDD_RECENT                      106
 #define IDC_STATUS                      1003
 #define IDC_TABLES                      1004
 #define IDC_MDI_LISTVIEW                1005
@@ -17,19 +18,24 @@
 #define IDC_SQL_ABORT                   1011
 #define IDC_INTELLISENSE                1014
 #define IDC_LV_EDIT                     1016
+#define IDC_LIST1                       1017
+#define IDC_RECENT_EDIT                 1018
+#define IDC_ADD                         1019
+#define IDC_DELETE                      1020
 #define IDM_SETTINGS                    40002
 #define IDM_OPEN                        40006
 #define IDM_CLOSE                       40007
 #define IDM_QUERY                       40008
 #define IDC_EXECUTE_SQL                 40009
+#define IDM_RECENT                      40010
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        106
-#define _APS_NEXT_COMMAND_VALUE         40010
-#define _APS_NEXT_CONTROL_VALUE         1017
+#define _APS_NEXT_RESOURCE_VALUE        107
+#define _APS_NEXT_COMMAND_VALUE         40011
+#define _APS_NEXT_CONTROL_VALUE         1021
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
