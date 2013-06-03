@@ -25,18 +25,17 @@
    
 /*  This is to terminate with a new line */
 main ::= in. {printf("main\n");}
-in ::= . {printf("in .\n");}
-in ::= in state NEWLINE. {printf("newline\n");}
+in ::= in cmd. {printf("in .\n");}
+cmd ::= SELECT NEWLINE. {printf("newline\n");}
 
 
-
-state ::= expr(A).   {  printf("Result.floatval=%f\n",A.floatval); 
-                        printf("Result.n=%u",A.intval); 
+/*
+state ::= SELECT FROM.   { printf("made it\n");
 
                          }  
 
-
-
+*/
+/*
 expr(A) ::= expr(B) DIVIDE  expr(C).   { printf("divide\n");
 					A.intval = B.intval - C.intval; 
                                       }  
@@ -44,3 +43,5 @@ expr(A) ::= expr(B) DIVIDE  expr(C).   { printf("divide\n");
 expr(A) ::= SELECT FROM in. { printf("select from %i\n",A.intval);}
 
 expr ::= SELECT in. { printf("select\n");}
+
+*/
