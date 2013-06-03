@@ -1,8 +1,10 @@
 %include {   
 	#include "sql1.h"
+#define YYNOERRORRECOVERY 1
 
 	void token_destructor(){ printf("destructor\n"); }
-}  
+}
+
 %token_type {YYSTYPE}
 %default_type {YYSTYPE}
 %token_destructor { token_destructor($$); 		}
@@ -22,9 +24,9 @@
 }   
    
 /*  This is to terminate with a new line */
-main ::= in.
-in ::= .
-in ::= in state NEWLINE.
+main ::= in. {printf("main\n");}
+in ::= . {printf("in .\n");}
+in ::= in state NEWLINE. {printf("newline\n");}
 
 
 
@@ -35,8 +37,10 @@ state ::= expr(A).   {  printf("Result.floatval=%f\n",A.floatval);
 
 
 
-expr(A) ::= expr(B) DIVIDE  expr(C).   { 
+expr(A) ::= expr(B) DIVIDE  expr(C).   { printf("divide\n");
 					A.intval = B.intval - C.intval; 
                                       }  
 
-expr(A) ::= SELECT(B). { printf("select\n"); A.intval = B.intval; A.intval = B.intval+1; }
+expr(A) ::= SELECT FROM in. { printf("select from %i\n",A.intval);}
+
+expr ::= SELECT in. { printf("select\n");}

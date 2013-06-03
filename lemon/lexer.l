@@ -57,7 +57,7 @@ FOR		{ return FOR; }
 FOREIGN		{ return FOREIGN; }
 FORTRAN		{ return FORTRAN; }
 FOUND		{ return FOUND; }
-FROM		{ return FROM; }
+FROM		{ printf("from lexer\n"); return FROM; }
 GO[ \t]*TO	{ return GOTO; }
 GRANT		{ return GRANT; }
 GROUP		{ return GROUP; }

@@ -51,12 +51,14 @@ int main(int argc,char** argv)
 
   while ( fgets(buf, BUFS,stdin )!= 0)
     {
+	  printf("\n");
+	  strupr(buf);
       yy_scan_string(buf);
       // on EOF yylex will return 0
       while( (yv=yylex()) != 0)
         { 
           printf(" yylex() %i yylval.dval %i\n",yv,yylval.dval);
-          t0.value=yylval.dval;
+          //t0.value=yylval.dval;
           Parse (pParser, yv, t0);
         }
 
