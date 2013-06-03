@@ -92,7 +92,7 @@ REAL		{ return REAL; }
 REFERENCES	{ return REFERENCES; }
 ROLLBACK	{ return ROLLBACK; }
 SCHEMA		{ return SCHEMA; }
-SELECT		{ return SELECT; }
+SELECT		{ printf("select lexer %i\n",SELECT); return SELECT; }
 SET		{ return SET; }
 SMALLINT	{ return SMALLINT; }
 SOME		{ return SOME; }
