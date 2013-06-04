@@ -46,7 +46,7 @@ int main(int argc,char** argv)
   t0.value=0;
 
   printf("%s %s\n",__TIME__,__DATE__);
-  printf("Enter an expression like 3+5 <return>\n");
+  //printf("Enter an expression like 3+5 <return>\n");
   printf("  Terminate with ^D\n");
 
   while ( fgets(buf, BUFS,stdin )!= 0)

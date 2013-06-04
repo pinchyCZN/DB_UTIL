@@ -1,47 +1,36 @@
-%include {   
-	#include "sql1.h"
-#define YYNOERRORRECOVERY 1
-
-	void token_destructor(){ printf("destructor\n"); }
-}
-
-%token_type {YYSTYPE}
-%default_type {YYSTYPE}
-%token_destructor { token_destructor($$); 		}
-
-%type expr {YYSTYPE}
+%token_type {int}  
    
 %left PLUS MINUS.   
 %left DIVIDE TIMES.  
    
-%parse_accept {
-  printf("parsing complete!\n\n\n");
-}
-
+%include {   
+#include "stdio.h" 
+#include "example5.h"
+}  
    
 %syntax_error {  
   printf("Syntax error!\n");  
 }   
    
-/*  This is to terminate with a new line */
-main ::= in. {printf("main\n");}
-in ::= in cmd. {printf("in .\n");}
-cmd ::= SELECT NEWLINE. {printf("newline\n");}
+main ::= in.
+in ::= .
+in ::= in state NEWLINE.
 
 
-/*
-state ::= SELECT FROM.   { printf("made it\n");
 
-                         }  
+state ::= expr(A).   {  printf("Result=%i\n",A); }  
+   
+expr(A) ::= expr(B) MINUS  expr(C).   { A = B - C; }  
+expr(A) ::= expr(B) PLUS  expr(C).   { printf("plus\n"); A = B + C; }  
+expr(A) ::= expr(B) TIMES  expr(C).   { A = B * C; }  
+expr(A) ::= expr(B) DIVIDE expr(C).  { 
 
-*/
-/*
-expr(A) ::= expr(B) DIVIDE  expr(C).   { printf("divide\n");
-					A.intval = B.intval - C.intval; 
-                                      }  
+         if(C != 0){
+           A = B / C;
+          }else{
+           printf("divide by zero\n");
+           }
+}  /* end of DIVIDE */
 
-expr(A) ::= SELECT FROM in. { printf("select from %i\n",A.intval);}
-
-expr ::= SELECT in. { printf("select\n");}
-
-*/
+expr(A) ::= INTEGER(B). { printf("integer\n"); A = B; } 
+ 
