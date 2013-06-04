@@ -436,6 +436,9 @@ int add_connect_str(char *str)
 {
 	int i;
 	for(i=0;i<100;i++){
-		//get_ini_entry(
+		char str[1024]={0};
+		get_ini_entry("DATABASES",i,str,sizeof(str));
+		if(str[0]==0)
+
 	}
 }
