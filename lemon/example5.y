@@ -12,9 +12,9 @@
   printf("Syntax error!\n");  
 }   
    
-main ::= in.
-in ::= .
-in ::= in state NEWLINE.
+test ::= in. {printf("main\n");}
+in ::= . {printf("in .\n");}
+in ::= in state NEWLINE. {printf("newline\n");}
 
 
 

@@ -54,6 +54,7 @@ int main(int argc,char** argv)
 	  printf("\n");
 	  strupr(buf);
       yy_scan_string(buf);
+	  Parse (pParser, 0, t0);
       // on EOF yylex will return 0
       while( (yv=yylex()) != 0)
         { 
