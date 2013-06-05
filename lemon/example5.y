@@ -23,6 +23,7 @@ state ::= expr(A).   {  printf("Result=%i\n",A); }
 expr(A) ::= expr(B) MINUS  expr(C).   { A = B - C; }  
 expr(A) ::= expr(B) PLUS  expr(C).   { printf("plus\n"); A = B + C; }  
 expr(A) ::= expr(B) TIMES  expr(C).   { A = B * C; }  
+expr ::= INTEGER. {printf("integer\n");}
 expr(A) ::= expr(B) DIVIDE expr(C).  { 
 
          if(C != 0){
@@ -32,5 +33,7 @@ expr(A) ::= expr(B) DIVIDE expr(C).  {
            }
 }  /* end of DIVIDE */
 
-expr(A) ::= INTEGER(B). { printf("integer\n"); A = B; } 
+expr ::= SELECT. { printf("select\n");} 
+expr ::= SELECT FROM. { printf("from\n");} 
+expr ::= SELECT VARIABLE WHERE. { printf("where\n");} 
  

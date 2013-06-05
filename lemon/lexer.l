@@ -16,17 +16,22 @@ int line = 1, col = 1;
                                                 yylval.dval = atof(yytext); 
                                                 return INTEGER; }
 [ \t]   { col += (int) strlen(yytext); }               /* ignore but count white space */
-[A-Za-z][A-Za-z0-9]*                           { /* ignore but needed for variables */
 
-                                                return 0;
-                                               }
+
 
 "+"           {  return PLUS; }
 "-"           {  return MINUS; }
 "*"           {  return TIMES; }
 "/"           {  return DIVIDE; }
 
+"SELECT" {return SELECT;}
+"FROM" {return FROM;}
+"WHERE" {return WHERE;}
 
+[A-Za-z][A-Za-z0-9]*                           { /* ignore but needed for variables */
+
+                                                return VARIABLE;
+                                               }
 
 \n      { col = 0; ++line; return NEWLINE; }
 
