@@ -46,7 +46,7 @@ int main(int argc,char** argv)
   t0.value=0;
 
   printf("%s %s\n",__TIME__,__DATE__);
-  printf("Enter an expression like 3+5 <return>\n");
+  //printf("Enter an expression like 3+5 <return>\n");
   printf("  Terminate with ^D\n");
 
   while ( fgets(buf, BUFS,stdin )!= 0)
@@ -54,6 +54,7 @@ int main(int argc,char** argv)
 	  printf("\n");
 	  strupr(buf);
       yy_scan_string(buf);
+	  Parse (pParser, 0, t0);
       // on EOF yylex will return 0
       while( (yv=yylex()) != 0)
         { 
