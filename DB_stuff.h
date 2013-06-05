@@ -114,7 +114,7 @@ int open_db(DB_TREE *tree)
 					strncpy(tree->connect_str,str,sizeof(tree->connect_str));
 					extract_db_name(tree);
 					printf("connect str=%s\n",str);
-					add_connect_str(str);
+					save_connect_str(str);
 				}
 				tree->hdbc=hDbc;
 				tree->hdbenv=hEnv;
@@ -347,6 +347,7 @@ int execute_sql(TABLE_WINDOW *win,char *sql,int display_results)
 						ListView_SetItemState(win->hlistview,mark,LVIS_FOCUSED|LVIS_SELECTED,LVIS_FOCUSED|LVIS_SELECTED);
 						ListView_EnsureVisible(win->hlistview,mark,FALSE);
 					}
+					win->rows=total;
 				}
 				result=TRUE;
 				if(total==rows)
@@ -431,14 +432,42 @@ int get_ini_entry(char *section,int num,char *str,int len)
 	_snprintf(key,sizeof(key),"ENTRY%i",num);
 	return get_ini_str(section,key,str,len);
 }
-
-int add_connect_str(char *str)
+int set_ini_entry(char *section,int num,char *str)
+{
+	char key[20];
+	_snprintf(key,sizeof(key),"ENTRY%i",num);
+	if(str==NULL)
+		return delete_ini_key(section,key);
+	return write_ini_str(section,key,str);
+}
+int save_connect_str(char *connect_str)
 {
 	int i;
+	int found=-1;
+	const char *section="DATABASES";
+	if(connect_str==0 || connect_str[0]==0)
+		return FALSE;
 	for(i=0;i<100;i++){
 		char str[1024]={0};
-		get_ini_entry("DATABASES",i,str,sizeof(str));
-		if(str[0]==0)
-
+		get_ini_entry(section,i,str,sizeof(str));
+		if(str[0]!=0){
+			if(stricmp(connect_str,str)==0){
+				found=i;
+				if(i>0){
+					set_ini_entry(section,i,NULL);
+				}
+				break;
+			}
+		}
 	}
+	if(found>0){
+		for(i=100-1;i>=0;i--){
+			char str[1024]={0};
+			get_ini_entry(section,i,str,sizeof(str));
+			set_ini_entry(section,i+1,str);
+		}
+	}
+	if(found!=0)
+		set_ini_entry(section,0,connect_str);
+	return TRUE;
 }

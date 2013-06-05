@@ -144,6 +144,8 @@ int thread(HANDLE event)
 						acquire_db_tree_from_win(win,&db);
 						close_db(db);
 					}
+					printf("set focus\n");
+					set_focus_after_result(win);
 				}
 				}
 				break;

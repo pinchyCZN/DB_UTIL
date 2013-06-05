@@ -110,6 +110,17 @@ BEGIN
     PUSHBUTTON      "Delete",IDC_DELETE,55,179,50,14
 END
 
+IDD_SETTINGS DIALOG DISCARDABLE  0, 0, 363, 209
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Settings"
+FONT 8, "MS Sans Serif"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,2,195,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,288,195,50,14
+    CONTROL         "keep connected",IDC_KEEP_CONNECTED,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,2,6,82,19
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -120,6 +131,22 @@ IDR_ACCELERATOR1 ACCELERATORS DISCARDABLE
 BEGIN
     VK_F5,          IDC_EXECUTE_SQL,        VIRTKEY, NOINVERT
 END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO DISCARDABLE 
+BEGIN
+    IDD_SETTINGS, DIALOG
+    BEGIN
+        LEFTMARGIN, 2
+    END
+END
+#endif    // APSTUDIO_INVOKED
 
 #endif    // English (U.S.) resources
 /////////////////////////////////////////////////////////////////////////////

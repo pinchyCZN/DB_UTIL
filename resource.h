@@ -7,6 +7,7 @@
 #define IDD_DIALOG1                     103
 #define IDR_ACCELERATOR1                105
 #define IDD_RECENT                      106
+#define IDD_SETTINGS                    107
 #define IDC_STATUS                      1003
 #define IDC_TABLES                      1004
 #define IDC_MDI_LISTVIEW                1005
@@ -22,6 +23,7 @@
 #define IDC_RECENT_EDIT                 1018
 #define IDC_ADD                         1019
 #define IDC_DELETE                      1020
+#define IDC_KEEP_CONNECTED              1021
 #define IDM_SETTINGS                    40002
 #define IDM_OPEN                        40006
 #define IDM_CLOSE                       40007
@@ -33,9 +35,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        107
+#define _APS_NEXT_RESOURCE_VALUE        108
 #define _APS_NEXT_COMMAND_VALUE         40011
-#define _APS_NEXT_CONTROL_VALUE         1021
+#define _APS_NEXT_CONTROL_VALUE         1022
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

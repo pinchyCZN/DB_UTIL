@@ -22,6 +22,7 @@ typedef struct{
 	void *hdbenv;
 	int abort;
 	int columns;
+	int rows;
 	int selected_column;
 	HWND hwnd,hlistview,hlvedit,hedit,hroot,habort,hintel;
 }TABLE_WINDOW;
@@ -86,14 +87,29 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 				win->abort;
 		}
 		break;
+	case WM_KILLFOCUS:
+		{
+		TABLE_WINDOW *win=0;
+		if(find_win_by_hwnd(hwnd,&win)){
+		}
+		}
+		break;
 	case WM_SETFOCUS:
 //	case WM_IME_SETCONTEXT:
 //	case WM_NCACTIVATE:
 //	case WM_MDIACTIVATE:
 		{
 		TABLE_WINDOW *win=0;
-		if(find_win_by_hwnd(hwnd,&win))
-			SetFocus(win->hlistview);
+		if(find_win_by_hwnd(hwnd,&win)){
+
+			if(win->rows>0){
+				SetFocus(win->hlistview);
+			}
+			else{
+				SetFocus(win->hedit);
+				ShowCaret(win->hedit);
+			}
+		}
 		}
         break;
 	case WM_CONTEXTMENU:
@@ -777,6 +793,12 @@ int destroy_abort(TABLE_WINDOW *win)
 	return result;
 }
 
+int set_focus_after_result(TABLE_WINDOW *win)
+{
+	if(win!=0 && win->hedit!=0 && win->rows>0)
+		SetFocus(win->hedit);
+	return TRUE;
+}
 
 
 int custom_dispatch(MSG *msg)
