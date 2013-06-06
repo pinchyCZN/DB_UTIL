@@ -460,7 +460,7 @@ int save_connect_str(char *connect_str)
 			}
 		}
 	}
-	if(found>0){
+	if(found!=0){
 		for(i=100-1;i>=0;i--){
 			char str[1024]={0};
 			get_ini_entry(section,i,str,sizeof(str));

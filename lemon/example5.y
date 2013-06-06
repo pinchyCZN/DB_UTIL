@@ -4,36 +4,55 @@
 %left DIVIDE TIMES.  
    
 %include {   
-#include "stdio.h" 
+#include <stdio.h>
 #include "example5.h"
+#define TABLE_MODE 1
+#define FIELD_MODE 0
+
+	int select_mode(int table)
+	{
+		if(table)
+			printf("table mode\n");
+		else
+			printf("field mode\n");
+		return table;
+	}
 }  
    
 %syntax_error {  
   printf("Syntax error!\n");  
 }   
    
-test ::= in. {printf("main\n");}
-in ::= . {printf("in .\n");}
-in ::= in state NEWLINE. {printf("newline\n");}
+main ::= in. {printf("main\n");}
+in ::= . {printf("step 2\n");}
+in ::= in state. {printf("step 3\n");}
 
 
 
-state ::= expr(A).   {  printf("Result=%i\n",A); }  
+state ::= SELECT VARIABLE. {printf("select var\n"); select_mode(FIELD_MODE);}
+
+state ::= VARIABLE. {printf("variable state\n");}
+
+
+
+state ::= FROM VARIABLE . {printf("from\n"); select_mode(TABLE_MODE);}
+state ::= WHERE VARIABLE. {printf("where\n"); select_mode(FIELD_MODE);}
+
+state ::= NEWLINE. {printf("newline\n");}
+
+
    
-expr(A) ::= expr(B) MINUS  expr(C).   { A = B - C; }  
-expr(A) ::= expr(B) PLUS  expr(C).   { printf("plus\n"); A = B + C; }  
-expr(A) ::= expr(B) TIMES  expr(C).   { A = B * C; }  
-expr ::= INTEGER. {printf("integer\n");}
-expr(A) ::= expr(B) DIVIDE expr(C).  { 
+state(A) ::= state(B) MINUS  state(C).   { A = B - C; }  
+state(A) ::= state(B) PLUS  state(C).   { printf("plus\n"); A = B + C; }  
+state(A) ::= state(B) TIMES  state(C).   { A = B * C; }  
+state ::= INTEGER. {printf("integer\n");}
+state(A) ::= state(B) DIVIDE state(C).  { 
 
          if(C != 0){
            A = B / C;
           }else{
            printf("divide by zero\n");
            }
-}  /* end of DIVIDE */
+		}
 
-expr ::= SELECT. { printf("select\n");} 
-expr ::= SELECT FROM. { printf("from\n");} 
-expr ::= SELECT VARIABLE WHERE. { printf("where\n");} 
  

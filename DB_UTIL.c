@@ -81,21 +81,109 @@ int save_window_ini(HWND hwnd)
 }
 int load_recent(HWND hwnd,int list_ctrl)
 {
-	int i;
+	int i,count=0;
+	const char *section="DATABASES";
 	for(i=0;i<100;i++){
-	//	char str[1024]={0};
-
+		char str[1024]={0};
+		get_ini_entry(section,i,str,sizeof(str));
+		if(str[0]!=0){
+			str[sizeof(str)-1]=0;
+			SendDlgItemMessage(hwnd,list_ctrl,LB_ADDSTRING,0,str);
+			count++;
+		}
 	}
+	return count;
 }
-LRESULT CALLBACK recent_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
+LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
+	static HWND grippy=0;
 	switch(msg){
 	case WM_INITDIALOG:
-		load_recent(hwnd,IDC_LIST1);
+		{
+			extern int keep_closed;
+			get_ini_value("SETTINGS","KEEP_CLOSED",&keep_closed);
+			if(!keep_closed)
+				CheckDlgButton(hwnd,IDC_KEEP_CONNECTED,BST_CHECKED);
+		}
+		grippy=create_grippy(hwnd);
+		break;
+	case WM_SIZE:
+		grippy_move(hwnd,grippy);
 		break;
 	case WM_COMMAND:
 		switch(LOWORD(wparam)){
+		case IDC_OPEN_INI:
+			open_ini(hwnd,FALSE);
+			break;
+		case IDOK:
+			{
+			extern int keep_closed;
+			if(IsDlgButtonChecked(hwnd,IDC_KEEP_CONNECTED)==BST_CHECKED)
+				keep_closed=FALSE;
+			else
+				keep_closed=TRUE;
+			write_ini_value("SETTINGS","KEEP_CLOSED",keep_closed);
+			}
+		case IDCANCEL:
+			EndDialog(hwnd,0);
+			break;
+		}
+		break;
+	}
+	return 0;
+}
+LRESULT CALLBACK recent_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
+{
+	static HWND grippy=0;
+	//if(msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY)
+	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_MOUSEMOVE&&msg!=WM_NCMOUSEMOVE)
+	{
+		static DWORD tick=0;
+		if((GetTickCount()-tick)>500)
+			printf("--\n");
+		print_msg(msg,lparam,wparam,hwnd);
+		tick=GetTickCount();
+	}
+	switch(msg){
+	case WM_INITDIALOG:
+		if(load_recent(hwnd,IDC_LIST1)>0){
+			SendDlgItemMessage(hwnd,IDC_LIST1,LB_SETCURSEL,0,0);			
+		}
+		else
+			SetFocus(GetDlgItem(hwnd,IDC_RECENT_EDIT));
+		SendDlgItemMessage(hwnd,IDC_RECENT_EDIT,EM_LIMITTEXT,1024,0);
+		grippy=create_grippy(hwnd);
+		break;
+	case WM_VKEYTOITEM:
+		switch(LOWORD(wparam)){
+		case VK_RETURN:
+			break;
+		}
+		return -1;
+		break;
+	case WM_SIZE:
+		grippy_move(hwnd,grippy);
+		break;
+	case WM_COMMAND:
+		switch(LOWORD(wparam)){
+		case IDC_LIST1:
+			if(HIWORD(wparam)!=LBN_DBLCLK)
+				break;
+		case IDOK:
+			{
+				char str[1024]={0};
+				int item;
+				item=SendDlgItemMessage(hwnd,IDC_LIST1,LB_GETCURSEL,0,0);
+				if(item>=0){
+					SendDlgItemMessage(hwnd,IDC_LIST1,LB_GETTEXT,item,str);
+					if(str[0]!=0){
+						task_open_db(str);
+						EndDialog(hwnd,0);
+					}
 
+				}
+			}
+			break;
 		case IDCANCEL:
 			EndDialog(hwnd,0);
 			break;
@@ -106,12 +194,12 @@ LRESULT CALLBACK recent_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 }
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
-	static DWORD tick=0;
 	RECT rect;
 	if(FALSE)
 	//if(msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY)
 	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_MOUSEMOVE&&msg!=WM_NCMOUSEMOVE)
 	{
+		static DWORD tick=0;
 		if((GetTickCount()-tick)>500)
 			printf("--\n");
 		print_msg(msg,lparam,wparam,hwnd);
@@ -124,6 +212,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 	case WM_CREATE:
 		{
 			RECT rect={0};
+			extern int keep_closed;
 			GetClientRect(hwnd,&rect);
 			get_ini_value("SETTINGS","TREE_WIDTH",&tree_width);
 			if(tree_width>rect.right-10 || tree_width<10){
@@ -131,6 +220,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 				if(tree_width<12)
 					tree_width=12;
 			}
+			get_ini_value("SETTINGS","KEEP_CLOSED",&keep_closed);
 		}
 		break;
 	case WM_USER:
@@ -177,6 +267,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 			//"DSN=Journal");
 			//task_open_db( //"DSN=OFW Visual FoxPro;UID=;PWD=;SourceDB=C:\\Program Files\\Pinnacle\\Oaswin\\;SourceType=DBF;Exclusive=No;BackgroundFetch=Yes;Collate=Machine;Null=Yes;Deleted=Yes;");
 			//"");
+			break;
+		case IDM_SETTINGS:
+			DialogBox(ghinstance,MAKEINTRESOURCE(IDD_SETTINGS),hwnd,settings_proc);
 			break;
 		case IDM_RECENT:
 			DialogBox(ghinstance,MAKEINTRESOURCE(IDD_RECENT),hwnd,recent_proc);

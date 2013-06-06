@@ -1,11 +1,11 @@
 %{
 #include "lexglobal.h" 
 #include "example5.h"
+#include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
-#include <math.h>
 
 int line = 1, col = 1;
-
 
 %}
 
@@ -17,6 +17,9 @@ int line = 1, col = 1;
                                                 return INTEGER; }
 [ \t]   { col += (int) strlen(yytext); }               /* ignore but count white space */
 
+"SELECT"	{return SELECT;}
+"FROM"		{return FROM;}
+"WHERE"		{return WHERE;}
 
 
 "+"           {  return PLUS; }
@@ -24,9 +27,6 @@ int line = 1, col = 1;
 "*"           {  return TIMES; }
 "/"           {  return DIVIDE; }
 
-"SELECT" {return SELECT;}
-"FROM" {return FROM;}
-"WHERE" {return WHERE;}
 
 [A-Za-z][A-Za-z0-9]*                           { /* ignore but needed for variables */
 
@@ -36,6 +36,8 @@ int line = 1, col = 1;
 \n      { col = 0; ++line; return NEWLINE; }
 
 .       { col += (int) strlen(yytext); return yytext[0]; }
+
+
 %%
 /**
  * reset the line and column count
@@ -50,12 +52,7 @@ void reset_lexer(void)
 
 }
 
-/**
- * yyerror() is invoked when the lexer or the parser encounter
- * an error. The error message is passed via *s
- *
- *
- */
+
 void yyerror(char *s)
 {
   printf("error: %s at line: %d col: %d\n",s,line,col);
