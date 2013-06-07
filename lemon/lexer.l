@@ -28,10 +28,7 @@ int line = 1, col = 1;
 "/"           {  return DIVIDE; }
 
 
-[A-Za-z][A-Za-z0-9]*                           { /* ignore but needed for variables */
-
-                                                return VARIABLE;
-                                               }
+[A-Za-z\[][A-Za-z0-9]*   {return VARIABLE;}
 
 \n      { col = 0; ++line; return NEWLINE; }
 
