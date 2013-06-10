@@ -83,6 +83,7 @@ int load_recent(HWND hwnd,int list_ctrl)
 {
 	int i,count=0;
 	const char *section="DATABASES";
+	SendDlgItemMessage(hwnd,list_ctrl,LB_RESETCONTENT,0,0); 
 	for(i=0;i<100;i++){
 		char str[1024]={0};
 		get_ini_entry(section,i,str,sizeof(str));
@@ -94,6 +95,39 @@ int load_recent(HWND hwnd,int list_ctrl)
 	}
 	return count;
 }
+int delete_connect_str(char *connect)
+{
+	int i,result=FALSE;
+	const char *section="DATABASES";
+	if(connect!=0 && connect[0]!=0){
+		for(i=0;i<100;i++){
+			char str[1024]={0};
+			get_ini_entry(section,i,str,sizeof(str));
+			if(str[0]!=0 && stricmp(connect,str)==0){
+				set_ini_entry(section,i,"");
+				result=TRUE;
+			}
+		}
+	}
+	return result;
+}
+int add_connect_str(char *connect)
+{
+	int i,result=FALSE;
+	const char *section="DATABASES";
+	if(connect!=0 && connect[0]!=0){
+		for(i=0;i<100;i++){
+			char str[1024]={0};
+			get_ini_entry(section,i,str,sizeof(str));
+			if(str[0]==0 && stricmp(connect,str)==0){
+				set_ini_entry(section,i,"");
+				result=TRUE;
+			}
+		}
+	}
+	return result;
+}
+
 LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
 	static HWND grippy=0;
@@ -156,6 +190,31 @@ LRESULT CALLBACK recent_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		break;
 	case WM_VKEYTOITEM:
 		switch(LOWORD(wparam)){
+		case VK_INSERT:
+			{
+				char str[1024]={0};
+				GetDlgItemText(hwnd,IDC_RECENT_EDIT,str,sizeof(str));
+
+			}
+			break;
+		case VK_DELETE:
+do_delete:
+			{
+				int item;
+				item=SendDlgItemMessage(hwnd,IDC_LIST1,LB_GETCURSEL,0,0);
+				if(item>=0){
+					char str[1024]={0};
+					SendDlgItemMessage(hwnd,IDC_LIST1,LB_GETTEXT,item,str);
+					str[sizeof(str)-1]=0;
+					if(delete_connect_str(str))
+						load_recent(hwnd,IDC_LIST1);
+					item--;
+					if(item<0)
+						item=0;
+					SendDlgItemMessage(hwnd,IDC_LIST1,LB_SETCURSEL,item,0);
+				}
+			}
+			break;
 		case VK_RETURN:
 			break;
 		}
@@ -169,6 +228,12 @@ LRESULT CALLBACK recent_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		case IDC_LIST1:
 			if(HIWORD(wparam)!=LBN_DBLCLK)
 				break;
+		case IDC_ADD:
+
+			break;
+		case IDC_DELETE:
+			goto do_delete;
+			break;
 		case IDOK:
 			{
 				char str[1024]={0};
