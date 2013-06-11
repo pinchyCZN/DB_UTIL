@@ -112,6 +112,10 @@ SOURCE=.\resize.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\sql_reserved_words.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\worker_thread.c
 # End Source File
 # End Group

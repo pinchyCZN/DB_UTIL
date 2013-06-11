@@ -242,6 +242,18 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 	}
 	return rows;
 }
+int is_sql_reserved(const char *sql)
+{
+	extern const char *sql_reserved_words[];
+	int i,result=FALSE;
+	for(i=0;i<1000;i++){
+		if(sql_reserved_words[i]==0)
+			break;
+		if(stricmp(sql_reserved_words[i],sql)==0)
+			return TRUE;
+	}
+	return result;
+}
 int sanitize_value(char *str,char *out,int size)
 {
 	int result=FALSE;
@@ -284,14 +296,24 @@ int update_row(TABLE_WINDOW *win,int row,char *data)
 		sql=malloc(sql_size);
 		if(count>0 && sql!=0 && col_name[0]!=0){
 			char cdata[80]={0};
+			char *lbrack="",*rbrack="";
+			if(is_sql_reserved(col_name) || strchr(col_name,' ')){
+				lbrack="[",rbrack="]";
+			}
 			sql[0]=0;
 			sanitize_value(data,cdata,sizeof(cdata));
-			_snprintf(sql,sql_size,"UPDATE [%s] SET [%s]=%s WHERE ",win->table,col_name,cdata[0]==0?"''":cdata);
+			_snprintf(sql,sql_size,"UPDATE [%s] SET %s%s%s=%s WHERE ",win->table,lbrack,col_name,rbrack,cdata[0]==0?"''":cdata);
 			for(i=0;i<count;i++){
 				char tmp[128]={0};
 				char *v=0,*eq="=";
 				col_name[0]=0;
 				lv_get_col_text(win->hlistview,i,col_name,sizeof(col_name));
+				if(is_sql_reserved(col_name) || strchr(col_name,' ')){
+					lbrack="[",rbrack="]";
+				}
+				else{
+					lbrack="",rbrack="";
+				}
 				ListView_GetItemText(win->hlistview,row,i,tmp,sizeof(tmp));
 				if(stricmp(tmp,"(NULL)")==0){
 					v="NULL";
@@ -302,7 +324,7 @@ int update_row(TABLE_WINDOW *win,int row,char *data)
 				else
 					v=tmp;
 				sanitize_value(tmp,tmp,sizeof(tmp));
-				_snprintf(sql,sql_size,"%s[%s]%s%s%s",sql,col_name,eq,v,i>=count-1?"":" AND\r\n");
+				_snprintf(sql,sql_size,"%s%s%s%s%s%s%s",sql,lbrack,col_name,rbrack,eq,v,i>=count-1?"":" AND\r\n");
 			}
 			printf("%s\n",sql);
 			if(reopen_db(win)){
