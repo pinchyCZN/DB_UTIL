@@ -106,24 +106,79 @@ int delete_connect_str(char *connect)
 			if(str[0]!=0 && stricmp(connect,str)==0){
 				set_ini_entry(section,i,"");
 				result=TRUE;
+				break;
 			}
 		}
 	}
 	return result;
 }
+int remove_ini_gaps(char *section,int max)
+{
+	int i,j;
+	char str[1024];
+	for(i=0,j=1;i<max;i++){
+next:
+		str[0]=0;
+		get_ini_entry(section,i,str,sizeof(str));
+		if(str[0]==0){
+			if(j<i)
+				j=i+1;
+			for(  ;j<max;j++){
+				str[0]=0;
+				get_ini_entry(section,j,str,sizeof(str));
+				if(str[0]!=0){
+					set_ini_entry(section,i,str);
+					set_ini_entry(section,j,"");
+					i++;
+					j++;
+					goto next;
+				}
+			}
+			if(j>=max)
+				break;
+		}
+	}
+	return TRUE;
+}
 int add_connect_str(char *connect)
 {
 	int i,result=FALSE;
+	char str[1024]={0};
 	const char *section="DATABASES";
 	if(connect!=0 && connect[0]!=0){
 		for(i=0;i<100;i++){
-			char str[1024]={0};
+			str[0]=0;
 			get_ini_entry(section,i,str,sizeof(str));
-			if(str[0]==0 && stricmp(connect,str)==0){
-				set_ini_entry(section,i,"");
+			if(str[0]!=0 && stricmp(connect,str)==0){
+				if(i!=0){
+					int j;
+					set_ini_entry(section,i,"");
+					for(j=i-1;j>=0;j--){
+						str[0]=0;
+						if(get_ini_entry(section,j,str,sizeof(str)))
+							set_ini_entry(section,j+1,str);
+					}
+				}
 				result=TRUE;
 			}
 		}
+		if(result)
+			set_ini_entry(section,0,connect);
+		else{
+			str[0]=0;
+			get_ini_entry(section,0,str,sizeof(str));
+			if(str[0]!=0){
+				remove_ini_gaps(section,100);
+				for(i=100-1;i>=0;i--){
+					str[0]=0;
+					get_ini_entry(section,i,str,sizeof(str));
+					set_ini_entry(section,i+1,str);
+				}
+			}
+			set_ini_entry(section,0,connect);
+			result=TRUE;
+		}
+
 	}
 	return result;
 }
@@ -225,19 +280,38 @@ do_delete:
 		break;
 	case WM_COMMAND:
 		switch(LOWORD(wparam)){
-		case IDC_LIST1:
-			if(HIWORD(wparam)!=LBN_DBLCLK)
-				break;
 		case IDC_ADD:
-
+			{
+				char str[1024]={0};
+				GetDlgItemText(hwnd,IDC_RECENT_EDIT,str,sizeof(str));
+				if(str[0]!=0){
+					add_connect_str(str);
+					load_recent(hwnd,IDC_LIST1);
+				}
+			}
 			break;
 		case IDC_DELETE:
 			goto do_delete;
 			break;
+		case IDC_LIST1:
+			if(HIWORD(wparam)==LBN_SELCHANGE){
+				char str[1024]={0};
+				int item;
+				item=SendDlgItemMessage(hwnd,IDC_LIST1,LB_GETCURSEL,0,0);
+				if(item>=0){
+					SendDlgItemMessage(hwnd,IDC_LIST1,LB_GETTEXT,item,str);
+					SetDlgItemText(hwnd,IDC_RECENT_EDIT,str);
+				}
+				break;
+			}
+			if(HIWORD(wparam)!=LBN_DBLCLK)
+				break;
 		case IDOK:
 			{
 				char str[1024]={0};
 				int item;
+				if(GetDlgItem(hwnd,IDC_LIST1)!=GetFocus())
+					break;
 				item=SendDlgItemMessage(hwnd,IDC_LIST1,LB_GETCURSEL,0,0);
 				if(item>=0){
 					SendDlgItemMessage(hwnd,IDC_LIST1,LB_GETTEXT,item,str);
