@@ -267,6 +267,86 @@ int sanitize_value(char *str,char *out,int size)
 			_snprintf(out,size,"%s","NULL");
 		}
 		else{
+			if(strchr(str,'-') || strchr(str,':')){
+				enum{none,d,t,ts};
+				int found=none;
+				for(i=0;i<len;i++){
+					if(i>=0 && i<=3)
+						if(!isdigit(str[i]))
+							break;
+					if(i==4 && str[i]!='-')
+							break;
+					if(i>=5 && i<=6)
+						if(!isdigit(str[i]))
+							break;
+					if(i==7 && str[i]!='-')
+							break;
+					if(i>=8 && i<=9)
+						if(!isdigit(str[i]))
+							break;
+					if(i==9)
+						if(i==len-1){
+							found=d;
+							break;
+						}
+					if(i==10)
+						if(isspace(str[i]))
+							continue;
+					if(i>=11 && i<=12)
+						if(!isdigit(str[i]))
+							break;
+					if(i==13 && str[i]!=':')
+							break;
+					if(i>=14 && i<=15)
+						if(!isdigit(str[i]))
+							break;
+					if(i==16 && str[i]!=':')
+							break;
+					if(i>=17 && i<=18)
+						if(!isdigit(str[i]))
+							break;
+					if(i>=18){
+						found=ts;
+						break;
+					}
+				}
+				if(found==none){
+					for(i=0;i<len;i++){
+						if(i>=0 && i<=1)
+							if(!isdigit(str[i]))
+								break;
+						if(i==2 && str[i]!=':')
+								break;
+						if(i>=3 && i<=4)
+							if(!isdigit(str[i]))
+								break;
+						if(i==5 && str[i]!=':')
+								break;
+						if(i>=6 && i<=7)
+							if(!isdigit(str[i]))
+								break;
+						if(i==7 && (i==len-1)){
+							found=t;
+							break;
+						}
+						if(i==8)
+							if(str[i]=='.'){
+								found=t;
+								break;
+							}
+							else
+								break;
+					}
+				}
+				if(found!=none){
+					_snprintf(out,size,"{%s'%s'}",
+							found==ts?"ts":
+							found==t?"t":"d",
+							tmp);
+					return TRUE;
+				}
+
+			}
 			for(i=0;i<len;i++){
 				if(isalpha(str[i]))
 					quote=TRUE;

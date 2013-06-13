@@ -14,7 +14,29 @@ int get_str_width(HWND hwnd,char *str)
 }
 int lv_set_selected(HWND hlistview,int index)
 {
+#define HDM_SETFOCUSEDITEM (HDM_FIRST + 28)
+	HWND header;
+	int result=FALSE;
+	header=SendMessage(hlistview,LVM_GETHEADER,0,0);
+	if(header!=0){
+		RECT rect={0},rectlv={0};
+		SCROLLINFO si;
+		si.cbSize=sizeof(si);
+		si.fMask=SIF_POS;
+		if(SendMessage(header,HDM_GETITEMRECT,index,&rect) &&
+			GetClientRect(hlistview,&rectlv) &&
+			GetScrollInfo(hlistview,SB_HORZ,&si)){
+			int diff=0;
+			if(rect.right>rectlv.right)
+				diff=rect.right-rectlv.right-si.nPos;
+			else if(rect.left<rectlv.left)
+				diff=si.nPos-(rectlv.left-rect.left);
+			if(diff!=0)
+				ListView_Scroll(hlistview,diff,0);
+		}
 
+	}
+	return result;
 }
 int lv_get_column_count(HWND hlistview)
 {

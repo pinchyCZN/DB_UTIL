@@ -125,6 +125,7 @@ int thread(HANDLE event)
 			case TASK_EXECUTE_QUERY:
 				{
 				void *win=0;
+				int result=FALSE;
 				mdi_get_current_win(&win);
 				if(win!=0){
 					char *s=0;
@@ -135,7 +136,7 @@ int thread(HANDLE event)
 					s=malloc(size);
 					if(s!=0){
 						mdi_get_edit_text(win,s,size);
-						execute_sql(win,s,TRUE);
+						result=execute_sql(win,s,TRUE);
 						free(s);
 					}
 					mdi_destroy_abort(win);
@@ -145,7 +146,7 @@ int thread(HANDLE event)
 						close_db(db);
 					}
 					printf("set focus\n");
-					set_focus_after_result(win);
+					set_focus_after_result(win,result);
 				}
 				}
 				break;

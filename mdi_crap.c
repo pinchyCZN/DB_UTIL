@@ -102,7 +102,9 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 		TABLE_WINDOW *win=0;
 		if(find_win_by_hwnd(hwnd,&win)){
 
-			if(win->rows>0){
+			if(lparam!=0)
+				SetFocus(lparam);
+			else if(win->rows>0){
 				SetFocus(win->hlistview);
 			}
 			else{
@@ -176,6 +178,7 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 								win->selected_column=0;
 							if(win->selected_column>=win->columns)
 								win->selected_column=win->columns-1;
+							lv_set_selected(win->hlistview,win->selected_column);
 						}
 					}
 					break;
@@ -793,10 +796,16 @@ int destroy_abort(TABLE_WINDOW *win)
 	return result;
 }
 
-int set_focus_after_result(TABLE_WINDOW *win)
+int set_focus_after_result(TABLE_WINDOW *win,int result)
 {
-	if(win!=0 && win->hedit!=0 && win->rows>0)
-		SetFocus(win->hedit);
+	if(win!=0 && win->hedit!=0 && win->hlistview!=0){
+		if(result==FALSE)
+			PostMessage(win->hwnd,WM_SETFOCUS,win->hlistview,win->hedit);
+		else if(win->rows>0)
+			PostMessage(win->hwnd,WM_SETFOCUS,win->hedit,win->hlistview);
+		else
+			PostMessage(win->hwnd,WM_SETFOCUS,win->hlistview,win->hedit);
+	}
 	return TRUE;
 }
 
