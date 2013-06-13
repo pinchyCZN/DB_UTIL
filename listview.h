@@ -14,7 +14,6 @@ int get_str_width(HWND hwnd,char *str)
 }
 int lv_set_selected(HWND hlistview,int index)
 {
-#define HDM_SETFOCUSEDITEM (HDM_FIRST + 28)
 	HWND header;
 	int result=FALSE;
 	header=SendMessage(hlistview,LVM_GETHEADER,0,0);
@@ -27,14 +26,13 @@ int lv_set_selected(HWND hlistview,int index)
 			GetClientRect(hlistview,&rectlv) &&
 			GetScrollInfo(hlistview,SB_HORZ,&si)){
 			int diff=0;
-			if(rect.right>rectlv.right)
+			if(rect.right-si.nPos>rectlv.right)
 				diff=rect.right-rectlv.right-si.nPos;
-			else if(rect.left<rectlv.left)
-				diff=si.nPos-(rectlv.left-rect.left);
+			else if(rect.left-si.nPos<rectlv.left)
+				diff=-si.nPos+rect.left;
 			if(diff!=0)
 				ListView_Scroll(hlistview,diff,0);
 		}
-
 	}
 	return result;
 }

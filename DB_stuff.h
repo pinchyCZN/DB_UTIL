@@ -439,6 +439,8 @@ int execute_sql(TABLE_WINDOW *win,char *sql,int display_results)
 				SQLRowCount(hstmt,&rows);
 				if(display_results){
 					int mark;
+					int horz;
+					horz=GetScrollPos(win->hlistview,SB_HORZ);
 					mark=ListView_GetSelectionMark(win->hlistview);
 					SetWindowText(ghstatusbar,"clearing listview");
 					mdi_clear_listview(win);
@@ -448,6 +450,7 @@ int execute_sql(TABLE_WINDOW *win,char *sql,int display_results)
 					if(mark>=0){
 						ListView_SetItemState(win->hlistview,mark,LVIS_FOCUSED|LVIS_SELECTED,LVIS_FOCUSED|LVIS_SELECTED);
 						ListView_EnsureVisible(win->hlistview,mark,FALSE);
+						ListView_Scroll(win->hlistview,horz,0);
 					}
 					win->rows=total;
 				}
