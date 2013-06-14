@@ -36,16 +36,16 @@ int process_anchor_list(HWND hwnd,short *list)
 	int i=0,j,x,y,width,height;
 	HWND dlg_item;
 	HDC	 hdc;
-	RECT crect;
+	RECT crect={0},wrect={0};
 	SIZE text_size;
 	char str[255];
 	double f;
 	int done=FALSE;
 	int last_text=0;
 
-	memset(&crect,0,sizeof(crect));
 	hdc=GetDC(hwnd);
-	GetClientRect(hwnd, &crect);
+	GetClientRect(hwnd,&crect);
+	MapWindowPoints(hwnd,NULL,&wrect,2);
 	do{
 		switch(list[i]){
 		case CONTROL_ID:
@@ -84,8 +84,9 @@ int process_anchor_list(HWND hwnd,short *list)
 			if(item!=0){
 				RECT rect={0};
 				GetWindowRect(item,&rect);
-				x+=rect.right-rect.left;
-				width=crect.right-x;
+				x+=rect.right-wrect.left;
+				if(width==0)
+					width=crect.right-x;
 			}
 			}
 			break;
@@ -95,8 +96,9 @@ int process_anchor_list(HWND hwnd,short *list)
 			if(item!=0){
 				RECT rect={0};
 				GetWindowRect(item,&rect);
-				y+=rect.bottom-rect.top;
-				height=crect.bottom-y;
+				y+=rect.bottom-wrect.top;
+				if(height==0)
+					height=crect.bottom-y;
 			}
 			}
 			break;
@@ -301,13 +303,22 @@ int modify_list(short *list)
 							printf("%s,",word);
 							word[0]=0;
 							get_word(str,i+1,word,sizeof(word));
-							printf("%s\n",word);
 							if(strlen(word)>0){
-								val=atoi(word);
-								list[index++]=val;
+								if(!isalpha(word[0])){
+									val=atoi(word);
+									list[index++]=val;
+									printf("%s\n",word);
+								}
+								else{
+									printf("skipped %s\n",word);
+									index++;
+								}
 							}
-							else
+							else{
+								printf("missing word\n");
+								index++;
 								index=index;
+							}
 						}
 					}
 				}
@@ -394,11 +405,40 @@ short main_dlg_anchors[]={
 	RESIZE_FINISH
 
 };
+short recent_dlg_anchors[]={
+
+	CONTROL_ID,IDC_LIST1,
+		XPOS,0,YPOS,0,
+		SIZE_WIDTH_OFF,0,
+		SIZE_HEIGHT_OFF,-65,
+		CONTROL_FINISH,-1,
+	CONTROL_ID,IDC_RECENT_EDIT,
+		XPOS,0,YPOS,2,
+		HEIGHT,36,HUG_CTRL_Y,IDC_LIST1,
+		SIZE_WIDTH_OFF,0,
+		CONTROL_FINISH,-1,
+	CONTROL_ID,IDC_ADD,
+		WIDTH,75,HEIGHT,23,
+		XPOS,0,YPOS,2,
+		HUG_CTRL_Y,IDC_RECENT_EDIT,
+		CONTROL_FINISH,-1,
+	CONTROL_ID,IDC_DELETE,
+		WIDTH,75,HEIGHT,23,
+		XPOS,4,YPOS,2,
+		HUG_CTRL_X,IDC_ADD,HUG_CTRL_Y,IDC_RECENT_EDIT,
+		CONTROL_FINISH,-1,
+	CONTROL_ID,IDCANCEL,
+		WIDTH,75,HEIGHT,23,
+		XPOS,0,YPOS,2,
+		HUG_R,-120,HUG_CTRL_Y,IDC_RECENT_EDIT,
+		CONTROL_FINISH,-1,
+	RESIZE_FINISH
+
+};
 int reposition_controls(HWND hwnd, short *list)
 {
 	RECT	rect;
 	GetClientRect(hwnd, &rect);
-//modify_list(list);
 	process_anchor_list(hwnd,list);
 	InvalidateRect(hwnd,&rect,TRUE);
 	return TRUE;
@@ -431,7 +471,12 @@ int grippy_move(HWND hwnd,HWND grippy)
 	return 0;
 }
 
-
+int resize_recent_window(HWND hwnd)
+{
+dump_sizes(hwnd,recent_dlg_anchors);
+modify_list(recent_dlg_anchors);
+	return reposition_controls(hwnd,recent_dlg_anchors);
+}
 int resize_main_window(HWND hwnd,int tree_width)
 {
 	int i,found=FALSE;

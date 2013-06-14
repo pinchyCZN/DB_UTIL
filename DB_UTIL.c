@@ -79,6 +79,29 @@ int save_window_ini(HWND hwnd)
 	}
 	return FALSE;
 }
+int create_status_bar_parts(HWND hwnd,HWND hstatus)
+{
+	if(hwnd!=0 && hstatus!=0){
+		int parts[2]={-1,-1};
+		RECT rect={0};
+		GetClientRect(hwnd,&rect);
+		parts[0]=rect.right/2;
+		return SendMessage(hstatus,SB_SETPARTS,2,&parts);
+	}
+	return FALSE;
+}
+int set_status_bar_text(HWND hstatus,int part,char *fmt,...)
+{
+	if(hstatus!=0){
+		char str[80]={0};
+		va_list va;
+		va_start(va,fmt);
+		_vsnprintf(str,sizeof(str),fmt,va);
+		va_end(va);
+		return SendMessage(hstatus,SB_SETTEXT,part,str);
+	}
+	return FALSE;
+}
 int load_recent(HWND hwnd,int list_ctrl)
 {
 	int i,count=0;
@@ -242,6 +265,7 @@ LRESULT CALLBACK recent_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			SetFocus(GetDlgItem(hwnd,IDC_RECENT_EDIT));
 		SendDlgItemMessage(hwnd,IDC_RECENT_EDIT,EM_LIMITTEXT,1024,0);
 		grippy=create_grippy(hwnd);
+		resize_recent_window(hwnd);
 		break;
 	case WM_VKEYTOITEM:
 		switch(LOWORD(wparam)){
@@ -277,6 +301,7 @@ do_delete:
 		break;
 	case WM_SIZE:
 		grippy_move(hwnd,grippy);
+		resize_recent_window(hwnd);
 		break;
 	case WM_COMMAND:
 		switch(LOWORD(wparam)){
@@ -350,6 +375,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 	case WM_CREATE:
 		{
 			RECT rect={0};
+			int parts[2];
 			extern int keep_closed;
 			GetClientRect(hwnd,&rect);
 			get_ini_value("SETTINGS","TREE_WIDTH",&tree_width);
@@ -359,6 +385,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 					tree_width=12;
 			}
 			get_ini_value("SETTINGS","KEEP_CLOSED",&keep_closed);
+			parts[0]=100;parts[1]=-1;
 		}
 		break;
 	case WM_USER:
@@ -429,6 +456,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 		break;
 	case WM_SIZE:
 		resize_main_window(hwnd,tree_width);
+		create_status_bar_parts(ghmainframe,ghstatusbar);
 		return 0;
 		break;
 	case WM_QUERYENDSESSION:
@@ -489,6 +517,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 	ghmdiclient=create_mdiclient(ghmainframe,ghmenu,ghinstance);
 	ghdbview=create_dbview(ghmainframe,ghinstance);
 	ghstatusbar=CreateStatusWindow(WS_CHILD|WS_VISIBLE,"ready",ghmainframe,IDC_STATUS);
+	create_status_bar_parts(ghmainframe,ghstatusbar);
 
 	ShowWindow(ghmainframe,nCmdShow);
 	UpdateWindow(ghmainframe);

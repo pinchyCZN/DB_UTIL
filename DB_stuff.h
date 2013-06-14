@@ -496,7 +496,6 @@ int execute_sql(TABLE_WINDOW *win,char *sql,int display_results)
 		SQLHSTMT hstmt=0;
 		SQLAllocHandle(SQL_HANDLE_STMT,win->hdbc,&hstmt);
 		if(hstmt!=0){
-			char msg[80];
 			SetWindowText(ghstatusbar,"executing query");
 			retcode=SQLExecDirect(hstmt,sql,SQL_NTS);
 			switch(retcode){
@@ -524,10 +523,9 @@ int execute_sql(TABLE_WINDOW *win,char *sql,int display_results)
 				}
 				result=TRUE;
 				if(total==rows)
-					_snprintf(msg,sizeof(msg),"returned %i rows",rows);
+					set_status_bar_text(ghstatusbar,0,"returned %i rows %i cols",win->rows,win->columns);
 				else
-					_snprintf(msg,sizeof(msg),"returned %i of %i rows",total,rows);
-				SetWindowText(ghstatusbar,msg);
+					set_status_bar_text(ghstatusbar,0,"returned %i of %i rows, %i cols",total,rows,win->columns);
 				printf("executed sql sucess\n");
 				}
 				break;
@@ -546,8 +544,7 @@ int execute_sql(TABLE_WINDOW *win,char *sql,int display_results)
 				SetWindowText(ghstatusbar,"no data returned");
 				break;
 			default:
-				_snprintf(msg,sizeof(msg),"unhandled return code %i",retcode);
-				SetWindowText(ghstatusbar,msg);
+				set_status_bar_text(ghstatusbar,0,"unhandled return code %i",retcode);
 				break;
 			}
 			SQLFreeStmt(hstmt,SQL_CLOSE);

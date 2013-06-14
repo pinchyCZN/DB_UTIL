@@ -2,6 +2,9 @@
 #define _WIN32_WINNT 0x400
 #define WINVER 0x500
 #endif
+#if _WIN32_IE<=0x300
+#define _WIN32_IE 0x400
+#endif
 #include <windows.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -156,9 +159,18 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 							ListView_GetItemRect(nmhdr->hwndFrom,lvhit.iItem,&rect,LVIR_BOUNDS);
 							win->selected_column=lvhit.iSubItem;
 							InvalidateRect(nmhdr->hwndFrom,&rect,TRUE);
+							set_status_bar_text(ghstatusbar,1,"row=%3i col=%2i",lvhit.iItem,lvhit.iSubItem);
 						}
 					}
 					printf("item = %i\n",lvhit.iSubItem);
+					break;
+				case LVN_ITEMCHANGED:
+					{
+						find_win_by_hwnd(hwnd,&win);
+						if(win!=0){
+							set_status_bar_text(ghstatusbar,1,"row=%3i col=%2i",ListView_GetSelectionMark(win->hlistview),win->selected_column);
+						}
+					}
 					break;
 				case LVN_KEYDOWN:
 					{
@@ -181,7 +193,7 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 								win->selected_column=0;
 							if(win->selected_column>=win->columns)
 								win->selected_column=win->columns-1;
-							lv_set_selected(win->hlistview,win->selected_column);
+							lv_scroll_column(win->hlistview,win->selected_column);
 						}
 					}
 					break;
@@ -917,13 +929,12 @@ int custom_dispatch(MSG *msg)
 	}
 	return FALSE;
 }
-
 int create_popup_menus()
 {
 	create_treeview_menus();
+	create_lv_menus();
 	return 0;
 }
-
 int init_mdi_stuff()
 {
 	extern int show_joins,lua_script_enable;
