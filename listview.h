@@ -2,6 +2,7 @@ static HMENU lv_menu=0;
 static HMENU lv_col_menu=0;
 enum {
 	CMD_COL_INFO=10000,
+	CMD_TEST,
 };
 int get_str_width(HWND hwnd,char *str)
 {
@@ -128,7 +129,7 @@ int lv_insert_data(HWND hlistview,int row,int col,char *str)
 static WNDPROC wporiglistview=0;
 LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
-	if(FALSE)
+	//if(FALSE)
 	if(msg<=0x1000)
 	if(msg!=WM_NCMOUSEMOVE&&msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY
 		&&msg!=WM_USER)
@@ -141,6 +142,13 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		tick=GetTickCount();
 	}
 	switch(msg){
+	case WM_COMMAND:
+		switch(wparam){
+		case CMD_COL_INFO:
+			DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_COL_INFO),hwnd,col_info_proc,hwnd);
+			break;
+		}
+		break;
 	case WM_CONTEXTMENU:
 		{
 			POINT p={0};
@@ -359,6 +367,7 @@ int create_lv_menus()
 	if(lv_menu!=0)DestroyMenu(lv_menu);
 	if(lv_menu=CreatePopupMenu()){
 		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_COL_INFO,"col info");
+		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_TEST,"test 12");
 	}
 	return TRUE;
 }

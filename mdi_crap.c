@@ -44,6 +44,7 @@ typedef struct{
 static TABLE_WINDOW table_windows[5];
 static DB_TREE db_tree[5];
 
+#include "col_info.h"
 #include "treeview.h"
 #include "listview.h"
 #include "intellisense.h"
@@ -945,5 +946,4 @@ int init_mdi_stuff()
 }
 
 #include "DB_stuff.h"
-#include "col_info.h"
 
