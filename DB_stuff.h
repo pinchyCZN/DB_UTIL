@@ -193,10 +193,6 @@ int fetch_columns(SQLHSTMT hstmt,TABLE_WINDOW *win)
 	SQLSMALLINT i,cols=0; 
 	if(hstmt!=0 && win!=0){
 		SQLNumResultCols(hstmt,&cols);
-		if(win->col_attr!=0){
-			free(win->col_attr);
-			win->col_attr=0;
-		}
 		win->columns=0;
 		for(i=0;i<cols;i++){
 			char str[255]={0};

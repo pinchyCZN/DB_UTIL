@@ -473,8 +473,8 @@ int grippy_move(HWND hwnd,HWND grippy)
 
 int resize_recent_window(HWND hwnd)
 {
-dump_sizes(hwnd,recent_dlg_anchors);
-modify_list(recent_dlg_anchors);
+//dump_sizes(hwnd,recent_dlg_anchors);
+//modify_list(recent_dlg_anchors);
 	return reposition_controls(hwnd,recent_dlg_anchors);
 }
 int resize_main_window(HWND hwnd,int tree_width)

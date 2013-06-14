@@ -945,3 +945,5 @@ int init_mdi_stuff()
 }
 
 #include "DB_stuff.h"
+#include "col_info.h"
+
