@@ -5,7 +5,15 @@ int get_str_width(HWND hwnd,char *str)
 		HDC hdc;
 		hdc=GetDC(hwnd);
 		if(hdc!=0){
-			GetTextExtentPoint32(hdc,str,strlen(str),&size);
+			HFONT hfont;
+			hfont=SendMessage(hwnd,WM_GETFONT,0,0);
+			if(hfont!=0){
+				HGDIOBJ hold=0;
+				hold=SelectObject(hdc,hfont);
+				GetTextExtentPoint32(hdc,str,strlen(str),&size);
+				if(hold!=0)
+					SelectObject(hdc,hold);
+			}
 			ReleaseDC(hwnd,hdc);
 			return size.cx;
 		}
@@ -63,14 +71,19 @@ int lv_add_column(HWND hlistview,char *str,int index)
 {
 	LV_COLUMN col;
 	if(hlistview!=0 && str!=0){
-		int width=get_str_width(hlistview,str);
-		if(width<=0)
+		HWND header;
+		int width=0;
+		header=SendMessage(hlistview,LVM_GETHEADER,0,0);
+		width=get_str_width(header,str);
+		if(width<40)
 			width=40;
 		col.mask = LVCF_WIDTH|LVCF_TEXT;
-		col.cx = width;
+		col.cx = width+14;
 		col.pszText = str;
-		ListView_InsertColumn(hlistview,index,&col);
+		if(ListView_InsertColumn(hlistview,index,&col))
+			return width;
 	}
+	return 0;
 }
 int lv_update_data(HWND hlistview,int row,int col,char *str)
 {
@@ -151,7 +164,6 @@ int draw_item(DRAWITEMSTRUCT *di,TABLE_WINDOW *win)
 		char text[1024]={0};
 		LV_ITEM lvi={0};
 		RECT rect;
-		SIZE size;
 		int width,style;
 
 		width=ListView_GetColumnWidth(di->hwndItem,i);

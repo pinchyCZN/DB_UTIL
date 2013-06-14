@@ -203,16 +203,20 @@ int fetch_columns(SQLHSTMT hstmt,TABLE_WINDOW *win)
 			SQLColAttribute(hstmt,i+1,SQL_DESC_NAME,str,sizeof(str),NULL,NULL);
 			if(str[0]!=0){
 				SQLINTEGER sqltype=0;
-				int *mem=0;
+				int *mem=0,width;
 				win->columns++;
-				lv_add_column(win->hlistview,str,i);
+				width=lv_add_column(win->hlistview,str,i);
+				mem=realloc(win->col_width,(sizeof(int))*win->columns);
+				if(mem!=0){
+					win->col_width=mem;
+					win->col_width[win->columns-1]=width;
+				}
 				SQLColAttribute(hstmt,i+1,SQL_DESC_TYPE,NULL,0,NULL,&sqltype);
 				mem=realloc(win->col_attr,(sizeof(int))*win->columns);
 				if(mem!=0){
 					win->col_attr=mem;
 					win->col_attr[win->columns-1]=sqltype;
 					printf("colattr=%i\n",sqltype);
-					//SQL_C_TYPE_DATE
 				}
 			}
 		}
@@ -226,7 +230,7 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 	if(hstmt!=0){
 		while(TRUE){
 			int result=0;
-			int i,len;
+			int i;
 			if(win->abort || win->hwnd==0)
 				break;
 			result=SQLFetch(hstmt);
@@ -240,18 +244,28 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 				result=SQLGetData(hstmt,i+1,SQL_C_CHAR,str,sizeof(str),&len);
 				if(result==SQL_SUCCESS || result==SQL_SUCCESS_WITH_INFO){
 					char *s=str;
+					int width;
 					if(len==SQL_NULL_DATA)
 						s="(NULL)";
 					if(i==0)
 						lv_insert_data(win->hlistview,rows,i,s);
 					else
 						lv_update_data(win->hlistview,rows,i,s);
+					width=get_str_width(win->hlistview,s);
+					if(win->col_width!=0 && (width>win->col_width[i]))
+						win->col_width[i]=width;
 //Sleep(250);
 				}
 				else
 					break;
 			}
 			rows++;
+		}
+		{
+			int i;
+		for(i=0;i<cols;i++){
+			ListView_SetColumnWidth(win->hlistview,i,LVSCW_AUTOSIZE);
+		}
 		}
 	}
 	return rows;
@@ -278,7 +292,6 @@ int get_column_type(TABLE_WINDOW *win,int col)
 }
 int sanitize_value(char *str,char *out,int size,int type)
 {
-		int k;
 	int result=FALSE;
 	if(str!=0 && out!=0 && size>0){
 		char tmp[255]={0};

@@ -169,7 +169,6 @@ int thread(HANDLE event)
 				SetWindowText(ghstatusbar,"refreshing tables");
 				acquire_db_tree(localinfo,&db);
 				if(!mdi_open_db(db,TRUE)){
-					char str[80];
 					mdi_remove_db(db);
 					SetWindowText(ghstatusbar,"error refreshing tables");
 				}

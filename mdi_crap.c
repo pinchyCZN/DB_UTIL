@@ -23,6 +23,7 @@ typedef struct{
 	int abort;
 	int columns;
 	int *col_attr;
+	int *col_width;
 	int rows;
 	int selected_column;
 	HWND hwnd,hlistview,hlvedit,hedit,hroot,habort,hintel;
@@ -144,6 +145,7 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 						*/
 					}
 					break;
+				case NM_RCLICK:
 				case NM_CLICK:
 					GetCursorPos(&lvhit.pt);
 					ScreenToClient(nmhdr->hwndFrom,&lvhit.pt);
@@ -604,6 +606,8 @@ int free_window(TABLE_WINDOW *win)
 	if(win!=0){
 		if(win->col_attr!=0)
 			free(win->col_attr);
+		if(win->col_width!=0)
+			free(win->col_width);
 		memset(win,0,sizeof(TABLE_WINDOW));
 	}
 	return TRUE;

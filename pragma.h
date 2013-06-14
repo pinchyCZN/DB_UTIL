@@ -7,3 +7,4 @@
 #pragma warning(error:4189) //local variable initialized but not referenced
 #pragma warning(error:4700) //local variable 'x' used without having been initialized
 #pragma warning(error:4020) //too many actual parameters
+#pragma warning(error:4101) //unreferenced local variable
