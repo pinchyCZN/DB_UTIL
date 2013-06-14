@@ -182,7 +182,7 @@ int close_db(DB_TREE *tree)
 {
 	if(tree!=0){
 		release_db(tree);
-		release_tables(tree->hroot,FALSE);
+		release_tables(tree->hroot);
 		return TRUE;
 	}
 	return FALSE;
@@ -193,13 +193,27 @@ int fetch_columns(SQLHSTMT hstmt,TABLE_WINDOW *win)
 	SQLSMALLINT i,cols=0; 
 	if(hstmt!=0 && win!=0){
 		SQLNumResultCols(hstmt,&cols);
+		if(win->col_attr!=0){
+			free(win->col_attr);
+			win->col_attr=0;
+		}
 		win->columns=0;
 		for(i=0;i<cols;i++){
 			char str[255]={0};
 			SQLColAttribute(hstmt,i+1,SQL_DESC_NAME,str,sizeof(str),NULL,NULL);
 			if(str[0]!=0){
+				SQLINTEGER sqltype=0;
+				int *mem=0;
 				win->columns++;
 				lv_add_column(win->hlistview,str,i);
+				SQLColAttribute(hstmt,i+1,SQL_DESC_TYPE,NULL,0,NULL,&sqltype);
+				mem=realloc(win->col_attr,(sizeof(int))*win->columns);
+				if(mem!=0){
+					win->col_attr=mem;
+					win->col_attr[win->columns-1]=sqltype;
+					printf("colattr=%i\n",sqltype);
+					//SQL_C_TYPE_DATE
+				}
 			}
 		}
 		return cols;
@@ -254,19 +268,59 @@ int is_sql_reserved(const char *sql)
 	}
 	return result;
 }
-int sanitize_value(char *str,char *out,int size)
+int get_column_type(TABLE_WINDOW *win,int col)
 {
+	int result=0;
+	if(win!=0 && win->col_attr!=0){
+		result=win->col_attr[col];
+	}
+	return result;
+}
+int sanitize_value(char *str,char *out,int size,int type)
+{
+		int k;
 	int result=FALSE;
 	if(str!=0 && out!=0 && size>0){
 		char tmp[255]={0};
-		int i,len,quote=FALSE;
 		strncpy(tmp,str,sizeof(tmp));
 		tmp[sizeof(tmp)-1]=0;
-		len=strlen(str);
 		if(stricmp(str,"NULL")==0 || stricmp(str,"(NULL)")==0){
 			_snprintf(out,size,"%s","NULL");
 		}
 		else{
+			switch(type){
+			default:
+			case SQL_UNKNOWN_TYPE:
+			case SQL_NUMERIC:
+			case SQL_DECIMAL:
+			case SQL_INTEGER:
+			case SQL_SMALLINT:
+			case SQL_FLOAT:
+			case SQL_REAL:
+			case SQL_DOUBLE:
+				_snprintf(out,size,"%s",tmp);
+				break;
+			case SQL_VARCHAR:
+			case SQL_CHAR:
+				_snprintf(out,size,"'%s'",tmp);
+				break;
+			case SQL_DATETIME:
+			case SQL_TYPE_DATE:
+				if(strchr(tmp,'-')){
+					if(strchr(tmp,':'))
+						_snprintf(out,size,"{ts'%s'}",tmp);
+					else
+						_snprintf(out,size,"{d'%s'}",tmp);
+				}
+				else
+					_snprintf(out,size,"'%s'",tmp);
+
+				break;
+			case SQL_TYPE_TIME:
+				_snprintf(out,size,"{t'%s'}",tmp);
+				break;
+			}
+			/*
 			if(strchr(str,'-') || strchr(str,':')){
 				enum{none,d,t,ts};
 				int found=none;
@@ -360,6 +414,7 @@ int sanitize_value(char *str,char *out,int size)
 			}
 			else
 				_snprintf(out,size,"%s",tmp);
+			*/
 		}
 		result=TRUE;
 	}
@@ -381,7 +436,7 @@ int update_row(TABLE_WINDOW *win,int row,char *data)
 				lbrack="[",rbrack="]";
 			}
 			sql[0]=0;
-			sanitize_value(data,cdata,sizeof(cdata));
+			sanitize_value(data,cdata,sizeof(cdata),get_column_type(win,win->selected_column));
 			_snprintf(sql,sql_size,"UPDATE [%s] SET %s%s%s=%s WHERE ",win->table,lbrack,col_name,rbrack,cdata[0]==0?"''":cdata);
 			for(i=0;i<count;i++){
 				char tmp[128]={0};
@@ -403,7 +458,7 @@ int update_row(TABLE_WINDOW *win,int row,char *data)
 					v="''";
 				else
 					v=tmp;
-				sanitize_value(tmp,tmp,sizeof(tmp));
+				sanitize_value(tmp,tmp,sizeof(tmp),get_column_type(win,i));
 				_snprintf(sql,sql_size,"%s%s%s%s%s%s%s",sql,lbrack,col_name,rbrack,eq,v,i>=count-1?"":" AND\r\n");
 			}
 			printf("%s\n",sql);
@@ -549,7 +604,7 @@ int save_connect_str(char *connect_str)
 {
 	int i;
 	int found=-1;
-	const char *section="DATABASES";
+	char *section="DATABASES";
 	if(connect_str==0 || connect_str[0]==0)
 		return FALSE;
 	for(i=0;i<100;i++){

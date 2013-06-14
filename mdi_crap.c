@@ -22,6 +22,7 @@ typedef struct{
 	void *hdbenv;
 	int abort;
 	int columns;
+	int *col_attr;
 	int rows;
 	int selected_column;
 	HWND hwnd,hlistview,hlvedit,hedit,hroot,habort,hintel;
@@ -601,6 +602,8 @@ int find_win_by_hwnd(HWND hwnd,TABLE_WINDOW **win)
 int free_window(TABLE_WINDOW *win)
 {
 	if(win!=0){
+		if(win->col_attr!=0)
+			free(win->col_attr);
 		memset(win,0,sizeof(TABLE_WINDOW));
 	}
 	return TRUE;
@@ -716,6 +719,7 @@ int mdi_clear_listview(TABLE_WINDOW *win)
 		ListView_DeleteAllItems(win->hlistview);
 		for(i=0;i<win->columns;i++)
 			ListView_DeleteColumn(win->hlistview,0);
+		return TRUE;
 	}
 	else
 		return FALSE;

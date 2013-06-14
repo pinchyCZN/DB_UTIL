@@ -67,10 +67,9 @@ int tree_get_root(char *name,HANDLE *hroot)
 	HTREEITEM h;
 	h=TreeView_GetRoot(ghtreeview);
 	while(h!=0){
-		TV_ITEM tvi;
 		char str[MAX_PATH]={0};
 		if(tree_get_item_text(h,str,sizeof(str))){
-			if(stricmp(tvi.pszText,name)==0){
+			if(stricmp(str,name)==0){
 				*hroot=h;
 				return TRUE;
 			}

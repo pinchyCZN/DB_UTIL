@@ -144,7 +144,7 @@ int add_connect_str(char *connect)
 {
 	int i,result=FALSE;
 	char str[1024]={0};
-	const char *section="DATABASES";
+	char *section="DATABASES";
 	if(connect!=0 && connect[0]!=0){
 		for(i=0;i<100;i++){
 			str[0]=0;
