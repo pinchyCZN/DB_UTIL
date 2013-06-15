@@ -361,8 +361,14 @@ LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			}
 			break;
 		case VK_ESCAPE:
-			destroy_intellisense(win);
-			return 0;
+			if(win->hintel!=0){
+				destroy_intellisense(win);
+				return 0;
+			}
+			else{
+				SendMessage(win->hwnd,WM_USER,0,IDC_MDI_EDIT);
+				SetFocus(win->hlistview);
+			}
 			break;
 		default:
 			break;

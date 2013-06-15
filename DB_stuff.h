@@ -198,20 +198,18 @@ int fetch_columns(SQLHSTMT hstmt,TABLE_WINDOW *win)
 			char str[255]={0};
 			SQLColAttribute(hstmt,i+1,SQL_DESC_NAME,str,sizeof(str),NULL,NULL);
 			if(str[0]!=0){
-				SQLINTEGER sqltype=0;
+				SQLINTEGER sqltype=0,sqllength=0;
 				int *mem=0,width;
 				win->columns++;
 				width=lv_add_column(win->hlistview,str,i);
-				mem=realloc(win->col_width,(sizeof(int))*win->columns);
-				if(mem!=0){
-					win->col_width=mem;
-					win->col_width[win->columns-1]=width;
-				}
 				SQLColAttribute(hstmt,i+1,SQL_DESC_TYPE,NULL,0,NULL,&sqltype);
-				mem=realloc(win->col_attr,(sizeof(int))*win->columns);
+				SQLColAttribute(hstmt,i+1,SQL_DESC_LENGTH,NULL,0,NULL,&sqllength);
+				mem=realloc(win->col_attr,(sizeof(COL_ATTR))*win->columns);
 				if(mem!=0){
 					win->col_attr=mem;
-					win->col_attr[win->columns-1]=sqltype;
+					win->col_attr[win->columns-1].type=sqltype;
+					win->col_attr[win->columns-1].length=sqllength;
+					win->col_attr[win->columns-1].col_width=width;
 					printf("colattr=%i\n",sqltype);
 				}
 			}
@@ -248,8 +246,8 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 					else
 						lv_update_data(win->hlistview,rows,i,s);
 					width=get_str_width(win->hlistview,s)+4;
-					if(win->col_width!=0 && (width>win->col_width[i]))
-						win->col_width[i]=width;
+					if(win->col_attr!=0 && (width>win->col_attr[i].col_width))
+						win->col_attr[i].col_width=width;
 //Sleep(250);
 				}
 				else
@@ -259,8 +257,9 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 		}
 		{
 			int i;
+			if(win->col_attr!=0)
 			for(i=0;i<win->columns;i++){
-				ListView_SetColumnWidth(win->hlistview,i,win->col_width[i]);
+				ListView_SetColumnWidth(win->hlistview,i,win->col_attr[i].col_width);
 			}
 		}
 	}
@@ -282,7 +281,7 @@ int get_column_type(TABLE_WINDOW *win,int col)
 {
 	int result=0;
 	if(win!=0 && win->col_attr!=0){
-		result=win->col_attr[col];
+		result=win->col_attr[col].type;
 	}
 	return result;
 }

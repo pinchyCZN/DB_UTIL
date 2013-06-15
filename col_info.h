@@ -21,7 +21,8 @@ LRESULT CALLBACK col_info_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			int i;
 			for(i=0;i<win->columns;i++){
 				char str[255]={0};
-				_snprintf(str,sizeof(str),"col %i attr %i width%i",i,win->col_attr[i],win->col_width[i]);
+				_snprintf(str,sizeof(str),"col %i attr %i length=%i col_width=%i",
+					i,win->col_attr[i].type,win->col_attr[i].length,win->col_attr[i].col_width);
 				SendDlgItemMessage(hwnd,IDC_LIST1,LB_ADDSTRING,0,str);
 			}
 		}

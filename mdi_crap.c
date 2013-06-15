@@ -19,14 +19,18 @@ extern HINSTANCE ghinstance;
 extern HWND ghmainframe,ghmdiclient,ghtreeview,ghstatusbar;
 
 typedef struct{
+	int type;
+	int length;
+	int col_width;
+}COL_ATTR;
+typedef struct{
 	char name[1024];
 	char table[80];
 	void *hdbc;
 	void *hdbenv;
 	int abort;
 	int columns;
-	int *col_attr;
-	int *col_width;
+	COL_ATTR *col_attr;
 	int rows;
 	int selected_column;
 	HWND hwnd,hlistview,hlvedit,hedit,hroot,habort,hintel;
@@ -160,7 +164,7 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 							ListView_GetItemRect(nmhdr->hwndFrom,lvhit.iItem,&rect,LVIR_BOUNDS);
 							win->selected_column=lvhit.iSubItem;
 							InvalidateRect(nmhdr->hwndFrom,&rect,TRUE);
-							set_status_bar_text(ghstatusbar,1,"row=%3i col=%2i",lvhit.iItem,lvhit.iSubItem);
+							set_status_bar_text(ghstatusbar,1,"row=%3i col=%2i",lvhit.iItem+1,lvhit.iSubItem+1);
 						}
 					}
 					printf("item = %i\n",lvhit.iSubItem);
@@ -169,7 +173,7 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 					{
 						find_win_by_hwnd(hwnd,&win);
 						if(win!=0){
-							set_status_bar_text(ghstatusbar,1,"row=%3i col=%2i",ListView_GetSelectionMark(win->hlistview),win->selected_column);
+							set_status_bar_text(ghstatusbar,1,"row=%3i col=%2i",ListView_GetSelectionMark(win->hlistview)+1,win->selected_column+1);
 						}
 					}
 					break;
@@ -338,6 +342,12 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 				destroy_lv_edit(wparam);
 				break;
 			}
+			break;
+		case IDC_MDI_LISTVIEW:
+			resize_mdi_window(hwnd,mdi_split);
+			break;
+		case IDC_MDI_EDIT:
+			resize_mdi_window(hwnd,2);
 			break;
 		case IDC_SQL_ABORT:
 			if(HIWORD(lparam))
@@ -619,8 +629,6 @@ int free_window(TABLE_WINDOW *win)
 	if(win!=0){
 		if(win->col_attr!=0)
 			free(win->col_attr);
-		if(win->col_width!=0)
-			free(win->col_width);
 		memset(win,0,sizeof(TABLE_WINDOW));
 	}
 	return TRUE;

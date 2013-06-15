@@ -150,6 +150,28 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			break;
 		}
 		break;
+	case WM_KEYFIRST:
+		switch(wparam){
+		case VK_ESCAPE:
+			{
+				TABLE_WINDOW *win=0;
+				if(find_win_by_hlistview(hwnd,&win)){
+					SendMessage(win->hwnd,WM_USER,0,IDC_MDI_LISTVIEW);
+					SetFocus(win->hedit);
+				}
+			}
+			break;
+		case 'C':
+			if(GetKeyState(VK_CONTROL)&0x8000){
+				TABLE_WINDOW *win=0;
+				if(find_win_by_hlistview(hwnd,&win)){
+
+				}
+			printf("c!!!\n");
+			}
+			break;
+		}
+		break;
 	case WM_CONTEXTMENU:
 		{
 			POINT p={0};
@@ -316,6 +338,15 @@ LRESULT APIENTRY sc_lvedit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		break;
 	case WM_KEYFIRST:
 		switch(wparam){
+		case VK_F1:
+			{
+				RECT rect={0};
+				GetClientRect(hwnd,&rect);
+				if(rect.right>5000)
+					break;
+				SetWindowPos(hwnd,NULL,0,0,rect.right*1.75,rect.bottom,SWP_NOOWNERZORDER|SWP_NOMOVE);
+			}
+			break;
 		case VK_RETURN:
 			{
 				TABLE_WINDOW *win=0;
@@ -381,7 +412,7 @@ int create_lv_edit(TABLE_WINDOW *win,RECT *rect)
 		win->hlvedit = CreateWindow("RichEdit50W",
 										 "",
 										 WS_TABSTOP|WS_CHILD|WS_CLIPSIBLINGS|WS_VISIBLE|
-										 ES_RIGHT|ES_AUTOHSCROLL,
+										 ES_LEFT|ES_AUTOHSCROLL,
 										 rect->left-1,rect->top-1,
 										 rect->right - rect->left+2,
 										 rect->bottom - rect->top+2,
