@@ -227,7 +227,7 @@ int fetch_columns(SQLHSTMT hstmt,TABLE_WINDOW *win)
 int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 {
 	SQLINTEGER rows=0;
-	if(hstmt!=0){
+	if(hstmt!=0 && win!=0){
 		while(TRUE){
 			int result=0;
 			int i;
@@ -251,7 +251,7 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 						lv_insert_data(win->hlistview,rows,i,s);
 					else
 						lv_update_data(win->hlistview,rows,i,s);
-					width=get_str_width(win->hlistview,s);
+					width=get_str_width(win->hlistview,s)+4;
 					if(win->col_width!=0 && (width>win->col_width[i]))
 						win->col_width[i]=width;
 //Sleep(250);
@@ -263,9 +263,9 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 		}
 		{
 			int i;
-		for(i=0;i<cols;i++){
-			ListView_SetColumnWidth(win->hlistview,i,LVSCW_AUTOSIZE);
-		}
+			for(i=0;i<win->columns;i++){
+				ListView_SetColumnWidth(win->hlistview,i,win->col_width[i]);
+			}
 		}
 	}
 	return rows;

@@ -75,12 +75,13 @@ int lv_add_column(HWND hlistview,char *str,int index)
 		int width=0;
 		header=SendMessage(hlistview,LVM_GETHEADER,0,0);
 		width=get_str_width(header,str);
+		width+=14;
 		if(width<40)
 			width=40;
 		col.mask = LVCF_WIDTH|LVCF_TEXT;
-		col.cx = width+14;
+		col.cx = width;
 		col.pszText = str;
-		if(ListView_InsertColumn(hlistview,index,&col))
+		if(ListView_InsertColumn(hlistview,index,&col)>=0)
 			return width;
 	}
 	return 0;
