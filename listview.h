@@ -1,3 +1,9 @@
+static HMENU lv_menu=0;
+static HMENU lv_col_menu=0;
+enum {
+	CMD_COL_INFO=10000,
+	CMD_TEST,
+};
 int get_str_width(HWND hwnd,char *str)
 {
 	if(hwnd!=0 && str!=0){
@@ -20,7 +26,7 @@ int get_str_width(HWND hwnd,char *str)
 	}
 	return 0;
 }
-int lv_set_selected(HWND hlistview,int index)
+int lv_scroll_column(HWND hlistview,int index)
 {
 	HWND header;
 	int result=FALSE;
@@ -124,7 +130,7 @@ int lv_insert_data(HWND hlistview,int row,int col,char *str)
 static WNDPROC wporiglistview=0;
 LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
-	if(FALSE)
+	//if(FALSE)
 	if(msg<=0x1000)
 	if(msg!=WM_NCMOUSEMOVE&&msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY
 		&&msg!=WM_USER)
@@ -135,6 +141,32 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		printf("l");
 		print_msg(msg,lparam,wparam,hwnd);
 		tick=GetTickCount();
+	}
+	switch(msg){
+	case WM_COMMAND:
+		switch(wparam){
+		case CMD_COL_INFO:
+			DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_COL_INFO),hwnd,col_info_proc,hwnd);
+			break;
+		}
+		break;
+	case WM_CONTEXTMENU:
+		{
+			POINT p={0};
+			LV_HITTESTINFO ht={0};
+			HMENU hmenu=0;
+			p.x=LOWORD(lparam);
+			p.y=HIWORD(lparam);
+			ScreenToClient(hwnd,&p);
+			ht.pt.x=p.x;
+			ht.pt.y=p.y;
+			ListView_HitTest(hwnd,&ht);
+			printf("hit test %08X %i %i\n",ht.flags,ht.iItem,ht.iSubItem);
+			hmenu=lv_menu;
+			//LVHT_ONITEMLABEL
+			TrackPopupMenu(hmenu,TPM_LEFTALIGN,LOWORD(lparam),HIWORD(lparam),0,hwnd,NULL);
+		}
+		break;
 	}
     return CallWindowProc(wporiglistview,hwnd,msg,wparam,lparam);
 }
@@ -331,7 +363,15 @@ int create_lv_edit_selected(TABLE_WINDOW *win)
 	}
 	return FALSE;
 }
-
+int create_lv_menus()
+{
+	if(lv_menu!=0)DestroyMenu(lv_menu);
+	if(lv_menu=CreatePopupMenu()){
+		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_COL_INFO,"col info");
+		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_TEST,"test 12");
+	}
+	return TRUE;
+}
 int create_lv_edit(TABLE_WINDOW *win,RECT *rect)
 {
 	int result=FALSE;
