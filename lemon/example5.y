@@ -8,19 +8,37 @@
 #include "example5.h"
 #define TABLE_MODE 1
 #define FIELD_MODE 0
+#define NO_MODE -1
 
-	int select_mode(int table)
+int intel_mode=0;
+
+	int get_sql_mode()
 	{
-		if(table)
+		return intel_mode;
+	}
+	int set_sql_mode(int mode)
+	{
+		intel_mode=mode;
+		switch(mode){
+		case TABLE_MODE:
 			printf("table mode\n");
-		else
+			break;
+		case FIELD_MODE:
 			printf("field mode\n");
-		return table;
+			break;
+		case NO_MODE:
+		default:
+			intel_mode=-1;
+			printf("NO mode\n");
+			break;
+		}
+		return mode;
 	}
 }  
    
 %syntax_error {  
-  printf("Syntax error!\n");  
+	printf("Syntax error!\n");
+	set_sql_mode(NO_MODE);
 }   
    
 main ::= in. {printf("main\n");}
@@ -29,30 +47,17 @@ in ::= in state. {printf("step 3\n");}
 
 
 
-state ::= SELECT VARIABLE. {printf("select var\n"); select_mode(FIELD_MODE);}
+state ::= SELECT VARIABLE. {printf("--select\n"); set_sql_mode(FIELD_MODE);}
 
-state ::= VARIABLE. {printf("variable state\n");}
+state ::= VARIABLE. {printf("--variable\n");}
 
+state ::= NUMBER. {printf("--number\n");}
 
-
-state ::= FROM VARIABLE . {printf("from\n"); select_mode(TABLE_MODE);}
-state ::= WHERE VARIABLE. {printf("where\n"); select_mode(FIELD_MODE);}
-
-state ::= NEWLINE. {printf("newline\n");}
+state ::= JUNK. {printf("--junk\n");}
 
 
-   
-state(A) ::= state(B) MINUS  state(C).   { A = B - C; }  
-state(A) ::= state(B) PLUS  state(C).   { printf("plus\n"); A = B + C; }  
-state(A) ::= state(B) TIMES  state(C).   { A = B * C; }  
-state ::= INTEGER. {printf("integer\n");}
-state(A) ::= state(B) DIVIDE state(C).  { 
+state ::= FROM VARIABLE . {printf("--from\n"); set_sql_mode(TABLE_MODE);}
+state ::= WHERE VARIABLE. {printf("--where\n"); set_sql_mode(FIELD_MODE);}
 
-         if(C != 0){
-           A = B / C;
-          }else{
-           printf("divide by zero\n");
-           }
-		}
+state ::= NEWLINE. {printf("--newline\n");}
 
- 

@@ -69,7 +69,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /YX /FD /GZ /c
-# ADD CPP /nologo /MTd /W2 /Gm /GX /ZI /Od /FI"pragma.h" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /FR /FD /GZ /c
+# ADD CPP /nologo /MTd /W2 /Gm /GX /ZI /Od /I ".\\" /FI"pragma.h" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /FR /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
@@ -90,6 +90,60 @@ LINK32=link.exe
 # Begin Group "Source Files"
 
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
+# Begin Group "lemon"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\lemon\example5.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\lemon\example5.y
+
+!IF  "$(CFG)" == "DB_UTIL - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "DB_UTIL - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\lemon\example5.y
+InputName=example5
+
+"example5.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	echo custom build 
+	.\lemon\lemon .\lemon\$(InputName).y 
+	
+# End Custom Build
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\lemon\lex.yy.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\lemon\lexer.l
+
+!IF  "$(CFG)" == "DB_UTIL - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "DB_UTIL - Win32 Debug"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\lemon\lexer.l
+
+".\lemon\lex.yy.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	.\lemon\flex -o.\lemon\lex.yy.c .\lemon\lexer.l
+
+# End Custom Build
+
+!ENDIF 
+
+# End Source File
+# End Group
 # Begin Source File
 
 SOURCE=.\DB_UTIL.c
@@ -109,6 +163,10 @@ SOURCE=.\mdi_crap.c
 # Begin Source File
 
 SOURCE=.\resize.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\settings.c
 # End Source File
 # Begin Source File
 

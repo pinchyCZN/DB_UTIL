@@ -54,13 +54,13 @@ int main(int argc,char** argv)
 	  printf("\n");
 	  strupr(buf);
       yy_scan_string(buf);
-	  Parse (pParser, 0, t0);
+	  Parse (pParser, 0, 0);
       // on EOF yylex will return 0
       while( (yv=yylex()) != 0)
         { 
           printf(" yylex() %i yylval.dval %i\n",yv,yylval.dval);
           //t0.value=yylval.dval;
-          Parse (pParser, yv, t0);
+          Parse (pParser, yv, 0);
         }
 
 

@@ -14,7 +14,7 @@ int line = 1, col = 1;
 
 [0-9]+|[0-9]*\.[0-9]+    {                      col += (int) strlen(yytext); 
                                                 yylval.dval = atof(yytext); 
-                                                return INTEGER; }
+                                                return NUMBER; }
 [ \t]   { col += (int) strlen(yytext); }               /* ignore but count white space */
 
 "SELECT"	{return SELECT;}
@@ -22,17 +22,14 @@ int line = 1, col = 1;
 "WHERE"		{return WHERE;}
 
 
-"+"           {  return PLUS; }
-"-"           {  return MINUS; }
-"*"           {  return TIMES; }
-"/"           {  return DIVIDE; }
 
 
-[A-Za-z\[][A-Za-z0-9]*   {return VARIABLE;}
+[A-Za-z\[\*][A-Za-z0-9\]]*   {return VARIABLE;}
 
 \n      { col = 0; ++line; return NEWLINE; }
 
-.       { col += (int) strlen(yytext); return yytext[0]; }
+[.]+       { col += (int) strlen(yytext); return JUNK;
+			return yytext[0]; }
 
 
 %%

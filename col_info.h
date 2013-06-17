@@ -22,11 +22,14 @@ LRESULT CALLBACK col_info_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			int i;
 			for(i=0;i<win->columns;i++){
 				char str[255]={0};
-				_snprintf(str,sizeof(str),"col %i attr %i length=%i col_width=%i",
-					i,win->col_attr[i].type,win->col_attr[i].length,win->col_attr[i].col_width);
+				char name[80]={0};
+				lv_get_col_text(win->hlistview,i,name,sizeof(name));
+				_snprintf(str,sizeof(str),"%2i-%-10s attr=%2i length=%3i col_width=%3i",
+					i,name,win->col_attr[i].type,win->col_attr[i].length,win->col_attr[i].col_width);
 				SendDlgItemMessage(hwnd,IDC_LIST1,LB_ADDSTRING,0,str);
 			}
 		}
+		SendDlgItemMessage(hwnd,IDC_LIST1,WM_SETFONT,GetStockObject(get_font_setting(IDC_LISTVIEW_FONT)),0);
 		grippy=create_grippy(hwnd);
 		resize_col_info(hwnd);
 		break;

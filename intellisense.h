@@ -24,7 +24,7 @@ int create_intellisense(TABLE_WINDOW *win)
 			if(start!=-1){
 				POINT p={0};
 				SendMessage(win->hedit,EM_POSFROMCHAR,&p,start);
-				SetWindowPos(win->hintel,HWND_TOP,p.x,p.y+20,80,120,SWP_SHOWWINDOW);
+				SetWindowPos(win->hintel,HWND_TOP,p.x,p.y+20,80,120,SW_HIDE);
 				result=TRUE;
 			}
 		}
@@ -40,7 +40,6 @@ int destroy_intellisense(TABLE_WINDOW *win)
 	}
 	return FALSE;
 }
-
 int populate_intel(TABLE_WINDOW *win,char *src)
 {
 	if(win!=0 && src!=0){
@@ -64,44 +63,30 @@ int populate_intel(TABLE_WINDOW *win,char *src)
 			h=TreeView_GetNextSibling(ghtreeview,h);
 		}
 		if(SendMessage(win->hintel,LB_GETCOUNT,0,0)<=0)
-			destroy_intellisense(win);
+			ShowWindow(win->hintel,SW_HIDE);
 		else{
 			SendMessage(win->hintel,LB_SETCURSEL,0,0);
+			ShowWindow(win->hintel,SW_SHOW);
 			return TRUE;
 		}
 	}
 	return FALSE;
 }
 
-int handle_intellisense(TABLE_WINDOW *win,int key)
+int handle_intellisense(TABLE_WINDOW *win,char *str,int pos)
 {
-	printf("key=%02X\n",0xFF&key);
-	if(win!=0){
-		int start=0,end=0,line,lindex;
-		SendMessage(win->hedit,EM_GETSEL,&start,&end);
-		if(end<start)
-			start=end;
-		line=SendMessage(win->hedit,EM_LINEFROMCHAR,start,0);
-		lindex=SendMessage(win->hedit,EM_LINEINDEX,line,0);
-		start-=lindex;
-		if(start>=0){
-			char str[1024]={0};
-			str[sizeof(str)-1]=0;
-			((WORD*)str)[0]=sizeof(str);
-			SendMessage(win->hedit,EM_GETLINE,line,str);
-			tab_word[0]=0;
-			if(get_substr(str,start,tab_word,sizeof(tab_word),&tab_pos)){
-				tab_continue=TRUE;
-				printf("substr=%s\n",tab_word);
-				create_intellisense(win);
-				if(win->hintel!=0){
-					populate_intel(win,tab_word);
-				}
-			}
-			else{
-				destroy_intellisense(win);
-			}
+	char tab_word[80]={0};
+	tab_word[0]=0;
+	if(get_substr(str,pos,tab_word,sizeof(tab_word),&tab_pos)){
+		tab_continue=TRUE;
+		printf("substr=%s\n",tab_word);
+		create_intellisense(win);
+		if(win->hintel!=0){
+			populate_intel(win,tab_word);
 		}
+	}
+	else{
+		destroy_intellisense(win);
 	}
 	return tab_continue;
 }
@@ -322,7 +307,6 @@ LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			break;
 		switch(wparam){
 		case VK_F5:
-			//destroy_intellisense(win);
 			break;
 		}
 		}
@@ -381,7 +365,6 @@ LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		find_win_by_hedit(hwnd,&win);
 		if(win!=0)
 			post_intel_msg(WM_USER,win,wparam);
-			//handle_intellisense(win,wparam);
 		}
 		break;
 	}
@@ -395,8 +378,13 @@ int subclass_edit(HWND hedit)
 	return wporigtedit;
 }
 static int gintellisense_tid=0;
+int assert()
+{
+}
 int intellisense_thread(void)
 {
+	void *pParser=ParseAlloc(malloc);
+
 	while(TRUE){
 		MSG msg;
 		int result;
@@ -405,6 +393,40 @@ int intellisense_thread(void)
 		if(result>0){
 			printf("int");
 			print_msg(msg.message,msg.lParam,msg.wParam,msg.hwnd);
+			switch(msg.message){
+			case WM_USER:
+				{
+				char str[1024]={0};
+				TABLE_WINDOW *win=msg.wParam;
+				//wparam=win lparam=key
+				SendMessage(win->hedit,WM_GETTEXT,sizeof(str),str);
+				if(str[0]!=0){
+					int yv,mode;
+					printf("str=%s\n",str);
+					strupr(str);
+					yy_scan_string(str);
+					Parse(pParser,0,0);
+					while( (yv=yylex()) != 0){
+						Parse(pParser,yv,0);
+					}
+					mode=get_sql_mode();
+					if(mode==0){
+					}
+					else if(mode==1){ //table mode
+						int pos=0;
+						SendMessage(win->hedit,EM_GETSEL,&pos,NULL);
+						handle_intellisense(win,str,pos);
+					}
+				}
+				}
+				break;
+			case WM_USER+1:
+
+				break;
+			default:
+				DispatchMessage(&msg);
+				break;
+			}
 		}
 		else if(result==0){
 			printf("received wm_quit\n");
@@ -412,6 +434,7 @@ int intellisense_thread(void)
 		else
 			printf("get message %i\n",result);
 	}
+	ParseFree(pParser,free);
 	_endthreadex(0);
 	return 0;
 }
