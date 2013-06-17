@@ -365,9 +365,12 @@ LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 										 IDC_TABLES,
 										 (HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE),
 										 NULL);
-			if(ghtreeview!=0)
+			if(ghtreeview!=0){
 				wporigtreeview=SetWindowLong(ghtreeview,GWL_WNDPROC,(LONG)sc_treeview);
+				SendMessage(ghtreeview,WM_SETFONT,GetStockObject(get_font_setting(IDC_TREEVIEW_FONT)),0);
+			}
 			create_tree=TRUE;
+
 		}
 		break;
 	case WM_SIZE:

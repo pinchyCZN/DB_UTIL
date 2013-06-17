@@ -1,5 +1,5 @@
 
-
+HANDLE intellisense_event;
 char tab_word[20]={0};
 int tab_continue=FALSE,tab_pos=0;
 
@@ -40,10 +40,7 @@ int destroy_intellisense(TABLE_WINDOW *win)
 	}
 	return FALSE;
 }
-int get_intel_count(HWND hroot,char *src,int table)
-{
 
-}
 int populate_intel(TABLE_WINDOW *win,char *src)
 {
 	if(win!=0 && src!=0){
@@ -383,7 +380,8 @@ LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		TABLE_WINDOW *win=0;
 		find_win_by_hedit(hwnd,&win);
 		if(win!=0)
-			handle_intellisense(win,wparam);
+			post_intel_msg(WM_USER,win,wparam);
+			//handle_intellisense(win,wparam);
 		}
 		break;
 	}
@@ -394,4 +392,39 @@ int subclass_edit(HWND hedit)
 {
 	wporigtedit=SetWindowLong(hedit,GWL_WNDPROC,(LONG)sc_edit);
 	printf("subclass=%08X\n",wporigtedit);
+	return wporigtedit;
+}
+static int gintellisense_tid=0;
+int intellisense_thread(void)
+{
+	while(TRUE){
+		MSG msg;
+		int result;
+		printf("intellisense_thread waiting for msg\n");
+		result=GetMessage(&msg,NULL,0,0);
+		if(result>0){
+			printf("int");
+			print_msg(msg.message,msg.lParam,msg.wParam,msg.hwnd);
+		}
+		else if(result==0){
+			printf("received wm_quit\n");
+		}
+		else
+			printf("get message %i\n",result);
+	}
+	_endthreadex(0);
+	return 0;
+}
+int start_intellisense_thread()
+{
+	_beginthreadex(NULL,0,intellisense_thread,NULL,0,&gintellisense_tid);
+	return gintellisense_tid;
+}
+
+int post_intel_msg(int msg,WPARAM wparam,LPARAM lparam)
+{
+	if(gintellisense_tid!=0)
+		return PostThreadMessage(gintellisense_tid,msg,wparam,lparam);
+	else
+		return 0;
 }

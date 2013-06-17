@@ -435,6 +435,19 @@ short recent_dlg_anchors[]={
 	RESIZE_FINISH
 
 };
+short col_info_anchors[]={
+	CONTROL_ID,IDC_LIST1,
+		XPOS,0,YPOS,0,
+		SIZE_WIDTH_OFF,0,
+		SIZE_HEIGHT_OFF,-27,
+		CONTROL_FINISH,-1,
+	CONTROL_ID,IDCANCEL,
+		WIDTH,75,HEIGHT,23,
+		XPOS,0,YPOS,2,
+		HUG_R,-120,HUG_CTRL_Y,IDC_LIST1,
+		CONTROL_FINISH,-1,
+	RESIZE_FINISH
+};
 int reposition_controls(HWND hwnd, short *list)
 {
 	RECT	rect;
@@ -476,6 +489,10 @@ int resize_recent_window(HWND hwnd)
 //dump_sizes(hwnd,recent_dlg_anchors);
 //modify_list(recent_dlg_anchors);
 	return reposition_controls(hwnd,recent_dlg_anchors);
+}
+int resize_col_info(HWND hwnd)
+{
+	return reposition_controls(hwnd,col_info_anchors);
 }
 int resize_main_window(HWND hwnd,int tree_width)
 {

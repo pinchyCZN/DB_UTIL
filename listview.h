@@ -133,7 +133,7 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 	//if(FALSE)
 	if(msg<=0x1000)
 	if(msg!=WM_NCMOUSEMOVE&&msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY
-		&&msg!=WM_USER)
+		&&msg!=WM_USER&&msg!=WM_GETFONT)
 	{
 		static DWORD tick=0;
 		if((GetTickCount()-tick)>500)
@@ -165,9 +165,8 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			if(GetKeyState(VK_CONTROL)&0x8000){
 				TABLE_WINDOW *win=0;
 				if(find_win_by_hlistview(hwnd,&win)){
-
+					printf("c!!!\n"); //implement ctrl-c 
 				}
-			printf("c!!!\n");
 			}
 			break;
 		}
@@ -196,6 +195,7 @@ int subclass_listview(HWND hlistview)
 {
 	wporiglistview=SetWindowLong(hlistview,GWL_WNDPROC,(LONG)sc_listview);
 	printf("subclass=%08X\n",wporiglistview);
+	return wporiglistview;
 }
 
 

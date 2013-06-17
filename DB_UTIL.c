@@ -15,6 +15,7 @@ static int lmb_down=FALSE;
 static int main_drag=FALSE;
 int tree_width=20;
 CRITICAL_SECTION mutex;
+LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam);
 
 
 int load_icon(HWND hwnd)
@@ -206,44 +207,7 @@ int add_connect_str(char *connect)
 	return result;
 }
 
-LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
-{
-	static HWND grippy=0;
-	switch(msg){
-	case WM_INITDIALOG:
-		{
-			extern int keep_closed;
-			get_ini_value("SETTINGS","KEEP_CLOSED",&keep_closed);
-			if(!keep_closed)
-				CheckDlgButton(hwnd,IDC_KEEP_CONNECTED,BST_CHECKED);
-		}
-		grippy=create_grippy(hwnd);
-		break;
-	case WM_SIZE:
-		grippy_move(hwnd,grippy);
-		break;
-	case WM_COMMAND:
-		switch(LOWORD(wparam)){
-		case IDC_OPEN_INI:
-			open_ini(hwnd,FALSE);
-			break;
-		case IDOK:
-			{
-			extern int keep_closed;
-			if(IsDlgButtonChecked(hwnd,IDC_KEEP_CONNECTED)==BST_CHECKED)
-				keep_closed=FALSE;
-			else
-				keep_closed=TRUE;
-			write_ini_value("SETTINGS","KEEP_CLOSED",keep_closed);
-			}
-		case IDCANCEL:
-			EndDialog(hwnd,0);
-			break;
-		}
-		break;
-	}
-	return 0;
-}
+
 LRESULT CALLBACK recent_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
 	static HWND grippy=0;
@@ -508,6 +472,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 	InitializeCriticalSection(&mutex);
 
 	start_worker_thread();
+	start_intellisense_thread();
 
 	setup_mdi_classes(ghinstance);
 	

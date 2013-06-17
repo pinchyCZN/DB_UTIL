@@ -26,6 +26,7 @@ int get_tables(DB_TREE *tree)
 	HSTMT hStmt;
 	char pcName[256];
 	long lLen;
+	int count=0;
 	
 	SQLAllocStmt(tree->hdbc, &hStmt);
 	if (SQLTables (hStmt, NULL, SQL_NTS, NULL, SQL_NTS, NULL, SQL_NTS, (unsigned char*)"'TABLE'", SQL_NTS) != SQL_ERROR)
@@ -37,10 +38,12 @@ int get_tables(DB_TREE *tree)
 				//printf("%s\n",pcName);
 				insert_item(pcName,tree->hroot,IDC_TABLE_ITEM);
 				SQLFetch(hStmt);
+				count++;
 			}
 		}
 	}
 	SQLFreeStmt (hStmt, SQL_CLOSE);
+	return count;
 }
 
 int extract_db_name(DB_TREE *tree)
@@ -430,6 +433,7 @@ int sanitize_value(char *str,char *out,int size,int type)
 }
 int update_row(TABLE_WINDOW *win,int row,char *data)
 {
+	int result=FALSE;
 	if(win!=0 && win->hlistview!=0 && win->table[0]!=0 && data!=0){
 		char *sql=0;
 		char col_name[80]={0};
@@ -474,6 +478,7 @@ int update_row(TABLE_WINDOW *win,int row,char *data)
 				mdi_create_abort(win);
 				if(execute_sql(win,sql,FALSE)){
 					lv_update_data(win->hlistview,row,win->selected_column,data);
+					result=TRUE;
 				}
 				mdi_destroy_abort(win);
 			}
@@ -482,6 +487,7 @@ int update_row(TABLE_WINDOW *win,int row,char *data)
 		if(sql!=0)
 			free(sql);
 	}
+	return result;
 }
 int execute_sql(TABLE_WINDOW *win,char *sql,int display_results)
 {

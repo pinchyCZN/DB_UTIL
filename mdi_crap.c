@@ -81,6 +81,9 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 			win->hwnd=hwnd;
 		}
 		create_mdi_window(hwnd,ghinstance,win);
+
+		SendDlgItemMessage(hwnd,IDC_MDI_EDIT,WM_SETFONT,GetStockObject(get_font_setting(IDC_SQL_FONT)),0);
+		SendDlgItemMessage(hwnd,IDC_MDI_LISTVIEW,WM_SETFONT,GetStockObject(get_font_setting(IDC_LISTVIEW_FONT)),0);
 		load_mdi_size(hwnd);
 		}
         break;
@@ -606,7 +609,29 @@ int create_table_window(HWND hmdiclient,TABLE_WINDOW *win)
 	handle=SendMessage(hmdiclient,WM_MDICREATE,0,&cs);
 	return handle;
 }
-
+int get_max_table_windows()
+{
+	return sizeof(table_windows)/sizeof(TABLE_WINDOW);
+}
+int get_win_hwnds(int i,HWND *hwnd,HWND *hedit,HWND *hlistview)
+{
+	int result=FALSE;
+	if(i>sizeof(table_windows)/sizeof(TABLE_WINDOW))
+		return FALSE;
+	if(hwnd!=0 && table_windows[i].hwnd!=0){
+		*hwnd=table_windows[i].hwnd;
+		result=TRUE;
+	}
+	if(hedit!=0 && table_windows[i].hedit!=0){
+		*hedit=table_windows[i].hedit;
+		result=TRUE;
+	}
+	if(hlistview!=0 && table_windows[i].hlistview!=0){
+		*hlistview=table_windows[i].hlistview;
+		result=TRUE;
+	}
+	return result;
+}
 int find_win_by_hwnd(HWND hwnd,TABLE_WINDOW **win)
 {
 	int i;

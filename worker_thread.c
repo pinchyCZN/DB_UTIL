@@ -76,7 +76,7 @@ int thread(HANDLE event)
 	if(event==0)
 		return 0;
 	while(TRUE){
-		printf("waiting for object\n");
+		printf("worker thread waiting for object\n");
 		id=WaitForSingleObject(event,INFINITE);
 		if(id==WAIT_OBJECT_0){
 			strncpy(localinfo,taskinfo,sizeof(localinfo));

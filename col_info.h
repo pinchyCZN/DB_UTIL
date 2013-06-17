@@ -14,6 +14,7 @@ int find_win_by_hlistview(HWND hwnd,TABLE_WINDOW **win)
 LRESULT CALLBACK col_info_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
 	static TABLE_WINDOW *win=0;
+	static HWND grippy=0;
 	switch(msg){
 	case WM_INITDIALOG:
 		win=0;
@@ -26,6 +27,12 @@ LRESULT CALLBACK col_info_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				SendDlgItemMessage(hwnd,IDC_LIST1,LB_ADDSTRING,0,str);
 			}
 		}
+		grippy=create_grippy(hwnd);
+		resize_col_info(hwnd);
+		break;
+	case WM_SIZE:
+		resize_col_info(hwnd);
+		grippy_move(hwnd,grippy);
 		break;
 	case WM_COMMAND:
 		switch(LOWORD(wparam)){
