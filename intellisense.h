@@ -374,6 +374,7 @@ int intellisense_thread(void)
 					while( (yv=yylex()) != 0){
 						Parse(pParser,yv,0);
 					}
+					Parse(pParser,yv,0);
 					mode=get_sql_mode();
 					if(mode==0){
 					}

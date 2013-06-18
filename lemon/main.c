@@ -51,8 +51,12 @@ int main(int argc,char** argv)
 
   while ( fgets(buf, BUFS,stdin )!= 0)
     {
+	  char *s;
 	  printf("\n");
 	  strupr(buf);
+	  s=strchr(buf,'\n');
+	  //if(s!=0)
+		//  s[0]=0;
       yy_scan_string(buf);
 	  Parse (pParser, 0, 0);
       // on EOF yylex will return 0
@@ -62,6 +66,7 @@ int main(int argc,char** argv)
           //t0.value=yylval.dval;
           Parse (pParser, yv, 0);
         }
+        Parse (pParser, yv, 0);
 
 
     }
