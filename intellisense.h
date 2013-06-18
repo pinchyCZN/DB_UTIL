@@ -3,43 +3,7 @@ HANDLE intellisense_event;
 char tab_word[20]={0};
 int tab_continue=FALSE,tab_pos=0;
 
-int create_intellisense(TABLE_WINDOW *win)
-{
-	int result=FALSE;
-	if(win!=0 && win->hintel==0){
-		win->hintel = CreateWindowEx(WS_EX_CLIENTEDGE,"LISTBOX",
-										 "",
-										 WS_TABSTOP|WS_CHILD|WS_CLIPSIBLINGS|WS_VISIBLE|LBS_HASSTRINGS|LBS_SORT|LBS_STANDARD|LBS_WANTKEYBOARDINPUT,
-										 0,0,
-										 0,0,
-										 win->hwnd,
-										 IDC_INTELLISENSE,
-										 ghinstance,
-										 NULL);
-		if(win->hintel!=0){
-			int start=-1,end=-1;
-			SendMessage(win->hedit,EM_GETSEL,&start,&end);
-			if(end<start)
-				start=end;
-			if(start!=-1){
-				POINT p={0};
-				SendMessage(win->hedit,EM_POSFROMCHAR,&p,start);
-				SetWindowPos(win->hintel,HWND_TOP,p.x,p.y+20,80,120,SW_HIDE);
-				result=TRUE;
-			}
-		}
-	}
-	return result;
-}
-int destroy_intellisense(TABLE_WINDOW *win)
-{
-	if(win!=0 && win->hintel!=0){
-		SendMessage(win->hintel,WM_CLOSE,0,0);
-		win->hintel=0;
-		return TRUE;
-	}
-	return FALSE;
-}
+
 int populate_intel(TABLE_WINDOW *win,char *src)
 {
 	if(win!=0 && src!=0){
@@ -66,7 +30,6 @@ int populate_intel(TABLE_WINDOW *win,char *src)
 			ShowWindow(win->hintel,SW_HIDE);
 		else{
 			SendMessage(win->hintel,LB_SETCURSEL,0,0);
-			ShowWindow(win->hintel,SW_SHOW);
 			return TRUE;
 		}
 	}
@@ -80,13 +43,15 @@ int handle_intellisense(TABLE_WINDOW *win,char *str,int pos)
 	if(get_substr(str,pos,tab_word,sizeof(tab_word),&tab_pos)){
 		tab_continue=TRUE;
 		printf("substr=%s\n",tab_word);
-		create_intellisense(win);
-		if(win->hintel!=0){
-			populate_intel(win,tab_word);
-		}
+		if(win->hintel!=0)
+			if(populate_intel(win,tab_word)){
+				POINT p={0};
+				SendMessage(win->hedit,EM_POSFROMCHAR,&p,pos);
+				SetWindowPos(win->hintel,HWND_TOP,p.x,p.y+16,80,200,SWP_SHOWWINDOW);
+			}
 	}
 	else{
-		destroy_intellisense(win);
+		ShowWindow(win->hintel,SW_HIDE);
 	}
 	return tab_continue;
 }
@@ -333,7 +298,7 @@ LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		case VK_RETURN:
 			{
 				int result=insert_selection(win);
-				destroy_intellisense(win);
+				ShowWindow(win->hintel,SW_HIDE);
 				if(result){
 					last_insert=TRUE;
 					return TRUE;
@@ -343,7 +308,7 @@ LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			break;
 		case VK_ESCAPE:
 			if(win->hintel!=0){
-				destroy_intellisense(win);
+				ShowWindow(win->hintel,SW_HIDE);
 				return 0;
 			}
 			else{

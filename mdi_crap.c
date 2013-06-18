@@ -471,7 +471,7 @@ void hide_console()
 
 int create_mdi_window(HWND hwnd,HINSTANCE hinstance,TABLE_WINDOW *win)
 {
-	HWND hedit,hlistview=0;
+	HWND hedit,hlistview,hintel;
 	if(win==0)
 		return FALSE;
 
@@ -493,14 +493,26 @@ int create_mdi_window(HWND hwnd,HINSTANCE hinstance,TABLE_WINDOW *win)
                                      IDC_MDI_LISTVIEW,
                                      hinstance,
                                      NULL);
+	hintel = CreateWindowEx(WS_EX_CLIENTEDGE,"LISTBOX",
+										 "",
+									 WS_TABSTOP|WS_CHILD|WS_CLIPSIBLINGS|WS_VISIBLE|LBS_HASSTRINGS|LBS_SORT|LBS_STANDARD|LBS_WANTKEYBOARDINPUT,
+									 0,0,
+									 0,0,
+									 hwnd,
+									 IDC_INTELLISENSE,
+									 ghinstance,
+									 NULL);
 	win->hlistview=hlistview;
 	win->hedit=hedit;
+	win->hintel=hintel;
 	if(hlistview!=0){
 		ListView_SetExtendedListViewStyle(hlistview,ListView_GetExtendedListViewStyle(hlistview)|LVS_EX_FULLROWSELECT);
 		subclass_listview(hlistview);
 	}
 	if(hedit!=0)
 		subclass_edit(hedit);
+	if(hintel!=0)
+		ShowWindow(hintel,SW_HIDE);
 	return TRUE;
 }
 
@@ -789,6 +801,8 @@ int mdi_create_abort(TABLE_WINDOW *win)
 {
 	if(win==0 || win->hwnd==0)
 		return FALSE;
+	if(win->hintel!=0)
+		ShowWindow(win->hintel,SW_HIDE);
 	//PostMessage(ghmdiclient,WM_USER,win,MAKELPARAM(TRUE,IDC_SQL_ABORT));
 	return PostMessage(win->hwnd,WM_USER,win,MAKELPARAM(IDC_SQL_ABORT,TRUE));
 }

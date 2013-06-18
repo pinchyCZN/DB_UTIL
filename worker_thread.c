@@ -132,7 +132,6 @@ int thread(HANDLE event)
 					int size=0x10000;
 					reopen_db(win);
 					mdi_create_abort(win);
-					destroy_intellisense(win);
 					s=malloc(size);
 					if(s!=0){
 						mdi_get_edit_text(win,s,size);
