@@ -103,6 +103,17 @@ SOURCE=.\lemon\example5.y
 
 !IF  "$(CFG)" == "DB_UTIL - Win32 Release"
 
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\lemon\example5.y
+InputName=example5
+
+"example5.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	echo custom build 
+	.\lemon\lemon .\lemon\$(InputName).y 
+	
+# End Custom Build
+
 !ELSEIF  "$(CFG)" == "DB_UTIL - Win32 Debug"
 
 # PROP Ignore_Default_Tool 1
@@ -128,6 +139,15 @@ SOURCE=.\lemon\lex.yy.c
 SOURCE=.\lemon\lexer.l
 
 !IF  "$(CFG)" == "DB_UTIL - Win32 Release"
+
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\lemon\lexer.l
+
+".\lemon\lex.yy.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	.\lemon\flex -o.\lemon\lex.yy.c .\lemon\lexer.l
+
+# End Custom Build
 
 !ELSEIF  "$(CFG)" == "DB_UTIL - Win32 Debug"
 

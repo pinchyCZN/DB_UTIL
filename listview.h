@@ -242,6 +242,8 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			TrackPopupMenu(hmenu,TPM_LEFTALIGN,LOWORD(lparam),HIWORD(lparam),0,hwnd,NULL);
 		}
 		break;
+	case WM_DESTROY:
+		break; //return 0; //CallWindowProc(wporiglistview,hwnd,msg,wparam,lparam);
 	}
     return CallWindowProc(wporiglistview,hwnd,msg,wparam,lparam);
 }

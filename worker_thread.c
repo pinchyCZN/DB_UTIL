@@ -57,8 +57,9 @@ int task_execute_query()
 	SetEvent(event);
 	return TRUE;
 }
-int task_refresh_tables()
+int task_refresh_tables(char *str)
 {
+	_snprintf(taskinfo,sizeof(taskinfo),"%s",str);
 	task=TASK_REFRESH_TABLES;
 	SetEvent(event);
 	return TRUE;

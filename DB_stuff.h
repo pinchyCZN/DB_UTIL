@@ -23,26 +23,37 @@ int MySQLSuccess(SQLRETURN rc) {
 }
 int get_tables(DB_TREE *tree)
 {
-	HSTMT hStmt;
-	char pcName[256];
-	long lLen;
+	HSTMT hstmt;
+	char table[256];
+	long len;
 	int count=0;
 	
-	SQLAllocStmt(tree->hdbc, &hStmt);
-	if (SQLTables (hStmt, NULL, SQL_NTS, NULL, SQL_NTS, NULL, SQL_NTS, (unsigned char*)"'TABLE'", SQL_NTS) != SQL_ERROR)
-	{
-		if (SQLFetch (hStmt) != SQL_NO_DATA_FOUND)
-		{
-			while (!SQLGetData (hStmt, 3, SQL_C_CHAR, pcName, 256, &lLen))
+	SQLAllocStmt(tree->hdbc, &hstmt);
+	if(SQLTables(hstmt,NULL,SQL_NTS,NULL,SQL_NTS,NULL,SQL_NTS,"'TABLE'",SQL_NTS)!=SQL_ERROR){
+		if(SQLFetch(hstmt)!=SQL_NO_DATA_FOUND){
+			HSTMT hpriv=0;
+			SQLAllocStmt(tree->hdbc,&hpriv);
+			while(!SQLGetData(hstmt,3,SQL_C_CHAR,table,sizeof(table),&len))
 			{
-				//printf("%s\n",pcName);
-				insert_item(pcName,tree->hroot,IDC_TABLE_ITEM);
-				SQLFetch(hStmt);
+				table[sizeof(table)-1]=0;
+				/*
+				if(SQLTablePrivileges(hpriv,"",SQL_NTS,"",SQL_NTS,table,SQL_NTS)==SQL_SUCCESS)
+				{
+					char str[256]={0};
+					SQLFetch(hpriv);
+					SQLGetData(hpriv,6,SQL_C_CHAR,str,sizeof(str),&len);
+					SQLCloseCursor(hpriv);
+					printf("name=%s | %s\n",table,str);
+				}
+				*/
+				insert_item(table,tree->hroot,IDC_TABLE_ITEM);
+				SQLFetch(hstmt);
 				count++;
 			}
+			SQLFreeStmt(hpriv,SQL_CLOSE);
 		}
 	}
-	SQLFreeStmt (hStmt, SQL_CLOSE);
+	SQLFreeStmt(hstmt,SQL_CLOSE);
 	return count;
 }
 
