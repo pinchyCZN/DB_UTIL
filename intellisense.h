@@ -2,41 +2,70 @@
 HANDLE intellisense_event;
 char tab_word[20]={0};
 int tab_continue=FALSE,tab_pos=0;
+#define TABLE_MODE 1
+#define FIELD_MODE 0
 
-
-int populate_intel(TABLE_WINDOW *win,char *src)
+int populate_intel(TABLE_WINDOW *win,char *src,int mode)
 {
 	if(win!=0 && src!=0){
-		HTREEITEM h;
-		h=TreeView_GetChild(ghtreeview,win->hroot);
+		SendMessage(win->hintel,LB_RESETCONTENT,0,0);
+		if(mode==TABLE_MODE){
+			HTREEITEM h;
+			h=TreeView_GetChild(ghtreeview,win->hroot);
 
-		while(h!=0){
-			int index;
-			char str[80]={0};
-			tree_get_info(h,str,sizeof(str),0);
-			if(strnicmp(str,src,strlen(src))==0){
-				index=SendMessage(win->hintel,LB_FINDSTRINGEXACT,-1,str);
-				if(index==LB_ERR)
-					SendMessage(win->hintel,LB_ADDSTRING,0,str);
+			while(h!=0){
+				int index;
+				char str[80]={0};
+				tree_get_info(h,str,sizeof(str),0);
+				if(strnicmp(str,src,strlen(src))==0){
+					index=SendMessage(win->hintel,LB_FINDSTRINGEXACT,-1,str);
+					if(index==LB_ERR)
+						SendMessage(win->hintel,LB_ADDSTRING,0,str);
+				}
+				else{
+					index=SendMessage(win->hintel,LB_FINDSTRINGEXACT,-1,str);
+					if(index!=LB_ERR)
+						SendMessage(win->hintel,LB_DELETESTRING,index,0);
+				}
+				h=TreeView_GetNextSibling(ghtreeview,h);
 			}
-			else{
-				index=SendMessage(win->hintel,LB_FINDSTRINGEXACT,-1,str);
-				if(index!=LB_ERR)
-					SendMessage(win->hintel,LB_DELETESTRING,index,0);
+		}
+		else{
+			int i,count;
+			count=lv_get_column_count(win->hlistview);
+			for(i=0;i<count;i++){
+				char str[80]={0};
+				lv_get_col_text(win->hlistview,i,str,sizeof(str));
+				if(str[0]!=0){
+					int index;
+					if(strnicmp(str,src,strlen(src))==0){
+						index=SendMessage(win->hintel,LB_FINDSTRINGEXACT,-1,str);
+						if(index==LB_ERR)
+							SendMessage(win->hintel,LB_ADDSTRING,0,str);
+					}
+					else{
+						index=SendMessage(win->hintel,LB_FINDSTRINGEXACT,-1,str);
+						if(index!=LB_ERR)
+							SendMessage(win->hintel,LB_DELETESTRING,index,0);
+					}
+				}
+
 			}
-			h=TreeView_GetNextSibling(ghtreeview,h);
 		}
 		if(SendMessage(win->hintel,LB_GETCOUNT,0,0)<=0)
 			ShowWindow(win->hintel,SW_HIDE);
 		else{
-			SendMessage(win->hintel,LB_SETCURSEL,0,0);
+			int index=SendMessage(win->hintel,LB_FINDSTRING,-1,src);
+			if(index<0)
+				index=0;
+			SendMessage(win->hintel,LB_SETCURSEL,index,0);
 			return TRUE;
 		}
 	}
 	return FALSE;
 }
 
-int handle_intellisense(TABLE_WINDOW *win,char *str,int pos)
+int handle_intellisense(TABLE_WINDOW *win,char *str,int pos,int mode)
 {
 	char tab_word[80]={0};
 	tab_word[0]=0;
@@ -44,7 +73,7 @@ int handle_intellisense(TABLE_WINDOW *win,char *str,int pos)
 		tab_continue=TRUE;
 		printf("substr=%s\n",tab_word);
 		if(win->hintel!=0)
-			if(populate_intel(win,tab_word)){
+			if(populate_intel(win,tab_word,mode)){
 				POINT p={0};
 				SendMessage(win->hedit,EM_POSFROMCHAR,&p,pos);
 				SetWindowPos(win->hintel,HWND_TOP,p.x,p.y+16,80,200,SWP_SHOWWINDOW);
@@ -282,7 +311,6 @@ LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		find_win_by_hedit(hwnd,&win);
 		if(win==0)
 			break;
-		testit(win);
 		switch(wparam){
 		case VK_HOME:
 		case VK_END:
@@ -290,7 +318,7 @@ LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		case VK_NEXT:
 		case VK_UP:
 		case VK_DOWN:
-			if(win->hintel!=0){
+			if(IsWindowVisible(win->hintel)){
 				SendMessage(win->hintel,msg,wparam,lparam);
 				return 0;
 			}
@@ -307,7 +335,7 @@ LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			}
 			break;
 		case VK_ESCAPE:
-			if(win->hintel!=0){
+			if(IsWindowVisible(win->hintel)){
 				ShowWindow(win->hintel,SW_HIDE);
 				return 0;
 			}
@@ -362,9 +390,13 @@ int intellisense_thread(void)
 			case WM_USER:
 				{
 				char str[1024]={0};
+				int pos=0;
 				TABLE_WINDOW *win=msg.wParam;
 				//wparam=win lparam=key
 				SendMessage(win->hedit,WM_GETTEXT,sizeof(str),str);
+				SendMessage(win->hedit,EM_GETSEL,&pos,NULL);
+				if(pos<sizeof(str))
+					str[pos]=0;
 				if(str[0]!=0){
 					int yv,mode;
 					printf("str=%s\n",str);
@@ -377,11 +409,10 @@ int intellisense_thread(void)
 					Parse(pParser,yv,0);
 					mode=get_sql_mode();
 					if(mode==0){
+						handle_intellisense(win,str,pos,mode);
 					}
 					else if(mode==1){ //table mode
-						int pos=0;
-						SendMessage(win->hedit,EM_GETSEL,&pos,NULL);
-						handle_intellisense(win,str,pos);
+						handle_intellisense(win,str,pos,mode);
 					}
 				}
 				}

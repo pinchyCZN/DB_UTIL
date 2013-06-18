@@ -495,7 +495,7 @@ int create_mdi_window(HWND hwnd,HINSTANCE hinstance,TABLE_WINDOW *win)
                                      NULL);
 	hintel = CreateWindowEx(WS_EX_CLIENTEDGE,"LISTBOX",
 										 "",
-									 WS_TABSTOP|WS_CHILD|WS_CLIPSIBLINGS|WS_VISIBLE|LBS_HASSTRINGS|LBS_SORT|LBS_STANDARD|LBS_WANTKEYBOARDINPUT,
+									 WS_TABSTOP|WS_CHILD|WS_CLIPSIBLINGS|LBS_HASSTRINGS|LBS_SORT|LBS_STANDARD|LBS_WANTKEYBOARDINPUT,
 									 0,0,
 									 0,0,
 									 hwnd,
@@ -511,8 +511,6 @@ int create_mdi_window(HWND hwnd,HINSTANCE hinstance,TABLE_WINDOW *win)
 	}
 	if(hedit!=0)
 		subclass_edit(hedit);
-	if(hintel!=0)
-		ShowWindow(hintel,SW_HIDE);
 	return TRUE;
 }
 

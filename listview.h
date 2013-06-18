@@ -2,7 +2,8 @@ static HMENU lv_menu=0;
 static HMENU lv_col_menu=0;
 enum {
 	CMD_COL_INFO=10000,
-	CMD_TEST,
+	CMD_COL_WIDTH_HEADER,
+	CMD_COL_WIDTH_DATA,
 };
 int get_str_width(HWND hwnd,char *str)
 {
@@ -130,6 +131,7 @@ int lv_insert_data(HWND hlistview,int row,int col,char *str)
 static WNDPROC wporiglistview=0;
 LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
+	static int xscroll=-1,yscroll=-1;
 	//if(FALSE)
 	if(msg<=0x1000)
 	if(msg!=WM_NCMOUSEMOVE&&msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY
@@ -148,6 +150,58 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		case CMD_COL_INFO:
 			DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_COL_INFO),hwnd,col_info_proc,hwnd);
 			break;
+		case CMD_COL_WIDTH_HEADER:
+			{
+				TABLE_WINDOW *win=0;
+				if(find_win_by_hlistview(hwnd,&win)){
+					char str[80]={0};
+					lv_get_col_text(win->hlistview,win->selected_column,str,sizeof(str));
+					if(str[0]!=0){
+						int width;
+						width=get_str_width(win->hlistview,str);
+						if(width>0)
+							ListView_SetColumnWidth(win->hlistview,win->selected_column,width+14);
+
+					}
+				}
+			}
+			break;
+		}
+		break;
+	case WM_VSCROLL:
+		break;
+	case WM_HSCROLL:
+		{
+			TABLE_WINDOW *win=0;
+			if(find_win_by_hlistview(hwnd,&win)){
+				switch(LOWORD(wparam)){
+				case SB_THUMBTRACK:
+					if(win->hlvedit!=0){
+						RECT rect={0};
+						int pos=HIWORD(wparam);
+						if(xscroll<0)
+							xscroll=pos;
+
+						GetWindowRect(win->hlvedit,&rect);
+						MapWindowPoints(NULL,win->hlistview,&rect,2);
+						if(SetWindowPos(win->hlvedit,HWND_TOP,rect.left-(pos-xscroll),rect.top,0,0,SWP_NOSIZE)){
+							int item;
+							item=ListView_GetSelectionMark(win->hlistview);
+							ListView_GetItemRect(win->hlistview,item,&rect,LVIR_BOUNDS);
+							InvalidateRect(win->hlistview,&rect,TRUE);
+							InvalidateRect(win->hlvedit,NULL,TRUE);
+							printf("pos=%i xscroll=%i item=%i\n",pos,xscroll,item);
+						}
+						xscroll=pos;
+					}
+					break;
+				case SB_ENDSCROLL:
+					xscroll=-1;
+					yscroll=-1;
+					break;
+
+				}
+			}
 		}
 		break;
 	case WM_KEYFIRST:
@@ -399,7 +453,8 @@ int create_lv_menus()
 	if(lv_menu!=0)DestroyMenu(lv_menu);
 	if(lv_menu=CreatePopupMenu()){
 		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_COL_INFO,"col info");
-		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_TEST,"test 12");
+		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_COL_WIDTH_HEADER,"col width from header");
+		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_COL_WIDTH_DATA,"col width from data");
 	}
 	return TRUE;
 }
@@ -412,7 +467,7 @@ int create_lv_edit(TABLE_WINDOW *win,RECT *rect)
 		win->hlvedit = CreateWindow("RichEdit50W",
 										 "",
 										 WS_TABSTOP|WS_CHILD|WS_CLIPSIBLINGS|WS_VISIBLE|
-										 ES_LEFT|ES_AUTOHSCROLL,
+										 ES_LEFT|ES_AUTOHSCROLL|ES_MULTILINE|ES_AUTOVSCROLL,
 										 rect->left-1,rect->top-1,
 										 rect->right - rect->left+2,
 										 rect->bottom - rect->top+2,

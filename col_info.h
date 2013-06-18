@@ -2,12 +2,19 @@
 int find_win_by_hlistview(HWND hwnd,TABLE_WINDOW **win)
 {
 	int i;
+	static TABLE_WINDOW *old_win=0;
+	if(old_win!=0 && old_win->hlistview==hwnd){
+		*win=old_win;
+		return TRUE;
+	}
 	for(i=0;i<sizeof(table_windows)/sizeof(TABLE_WINDOW);i++){
 		if(table_windows[i].hlistview==hwnd){
 			*win=&table_windows[i];
+			old_win=*win;
 			return TRUE;
 		}
 	}
+	old_win=0;
 	return FALSE;
 }
 
