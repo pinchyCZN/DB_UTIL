@@ -188,8 +188,8 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 							int item;
 							item=ListView_GetSelectionMark(win->hlistview);
 							ListView_GetItemRect(win->hlistview,item,&rect,LVIR_BOUNDS);
-							InvalidateRect(win->hlistview,&rect,TRUE);
-							InvalidateRect(win->hlvedit,NULL,TRUE);
+							InvalidateRect(win->hlistview,&rect,FALSE);
+							InvalidateRect(win->hlvedit,NULL,FALSE);
 							printf("pos=%i xscroll=%i item=%i\n",pos,xscroll,item);
 						}
 						xscroll=pos;

@@ -243,7 +243,7 @@ int replace_current_word(TABLE_WINDOW *win,char *str)
 }
 int insert_selection(TABLE_WINDOW *win)
 {
-	if(win!=0 && win->hintel!=0){
+	if(win!=0 && IsWindowVisible(win->hintel)){
 		int sel=SendMessage(win->hintel,LB_GETCURSEL,0,0);
 		if(sel>=0){
 			int len;
