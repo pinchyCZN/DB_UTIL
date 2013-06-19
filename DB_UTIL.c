@@ -400,6 +400,21 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 			//task_open_db( //"DSN=OFW Visual FoxPro;UID=;PWD=;SourceDB=C:\\Program Files\\Pinnacle\\Oaswin\\;SourceType=DBF;Exclusive=No;BackgroundFetch=Yes;Collate=Machine;Null=Yes;Deleted=Yes;");
 			//"");
 			break;
+		case IDM_CLOSE:
+			{
+			HANDLE hroot=0;
+			if(tree_find_focused_root(&hroot)){
+				char str[MAX_PATH]={0};
+				tree_get_db_table(hroot,str,sizeof(str),0,0,0);
+				if(str[0]!=0){
+					set_status_bar_text(ghstatusbar,0,"closing %s",str);
+					task_close_db(str);
+				}
+			}
+			else
+				set_status_bar_text(ghstatusbar,0,"select a DB");
+			}
+			break;
 		case IDM_SETTINGS:
 			DialogBox(ghinstance,MAKEINTRESOURCE(IDD_SETTINGS),hwnd,settings_proc);
 			break;

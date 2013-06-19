@@ -20,6 +20,8 @@ int line = 1, col = 1;
 "SELECT"	{return SELECT;}
 "FROM"		{return FROM;}
 "WHERE"		{return WHERE;}
+"ORDER"		{return ORDER;}
+"BY"		{return BY;}
 
 
 

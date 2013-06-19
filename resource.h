@@ -18,6 +18,7 @@
 #define IDC_DB_ITEM                     1009
 #define IDC_TABLE_ITEM                  1010
 #define IDC_SQL_ABORT                   1011
+#define IDC_COL_ITEM                    1012
 #define IDC_INTELLISENSE                1014
 #define IDC_LV_EDIT                     1016
 #define IDC_LIST1                       1017

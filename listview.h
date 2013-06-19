@@ -4,6 +4,7 @@ enum {
 	CMD_COL_INFO=10000,
 	CMD_COL_WIDTH_HEADER,
 	CMD_COL_WIDTH_DATA,
+	CMD_SQL_UPDATE,
 };
 int get_str_width(HWND hwnd,char *str)
 {
@@ -227,19 +228,45 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		break;
 	case WM_CONTEXTMENU:
 		{
-			POINT p={0};
-			LV_HITTESTINFO ht={0};
+			RECT rect={0};
+			HANDLE header;
+			int x=0,y=0;
 			HMENU hmenu=0;
-			p.x=LOWORD(lparam);
-			p.y=HIWORD(lparam);
-			ScreenToClient(hwnd,&p);
-			ht.pt.x=p.x;
-			ht.pt.y=p.y;
-			ListView_HitTest(hwnd,&ht);
-			printf("hit test %08X %i %i\n",ht.flags,ht.iItem,ht.iSubItem);
-			hmenu=lv_menu;
-			//LVHT_ONITEMLABEL
-			TrackPopupMenu(hmenu,TPM_LEFTALIGN,LOWORD(lparam),HIWORD(lparam),0,hwnd,NULL);
+			header=SendMessage(hwnd,LVM_GETHEADER,0,0);
+			if(header!=0)
+				GetWindowRect(header,&rect);
+			x=LOWORD(lparam);
+			y=HIWORD(lparam);
+
+			if(y<=rect.bottom){
+				LV_HITTESTINFO ht={0};
+				ht.pt.x=x;
+				ht.pt.y=rect.bottom+2;
+				ScreenToClient(hwnd,&ht.pt);
+				if(ListView_SubItemHitTest(hwnd,&ht)>=0){
+					TABLE_WINDOW *win=0;
+					if(find_win_by_hlistview(hwnd,&win)){
+						win->selected_column=ht.iSubItem;
+						InvalidateRect(hwnd,NULL
+							,FALSE);
+					}
+					printf("hit test %08X %i %i\n",ht.flags,ht.iItem,ht.iSubItem);
+				}
+				
+				hmenu=lv_col_menu;
+			}
+			else{
+				LV_HITTESTINFO ht={0};
+				ht.pt.x=x;
+				ht.pt.y=y;
+				ScreenToClient(hwnd,&ht.pt);
+				ListView_SubItemHitTest(hwnd,&ht);
+				printf("hit test %08X %i %i\n",ht.flags,ht.iItem,ht.iSubItem);
+				hmenu=lv_menu;
+				//LVHT_ONITEMLABEL
+			}
+			if(hmenu!=0)
+				TrackPopupMenu(hmenu,TPM_LEFTALIGN,x,y,0,hwnd,NULL);
 		}
 		break;
 	case WM_DESTROY:
@@ -452,11 +479,16 @@ int create_lv_edit_selected(TABLE_WINDOW *win)
 }
 int create_lv_menus()
 {
+	if(lv_col_menu!=0)DestroyMenu(lv_col_menu);
+	if(lv_col_menu=CreatePopupMenu()){
+		InsertMenu(lv_col_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_COL_WIDTH_HEADER,"col width from header");
+		InsertMenu(lv_col_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_COL_WIDTH_DATA,"col width from data");
+		InsertMenu(lv_col_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_COL_INFO,"col info");
+	}
 	if(lv_menu!=0)DestroyMenu(lv_menu);
 	if(lv_menu=CreatePopupMenu()){
 		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_COL_INFO,"col info");
-		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_COL_WIDTH_HEADER,"col width from header");
-		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_COL_WIDTH_DATA,"col width from data");
+		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SQL_UPDATE,"create update SQL statement");
 	}
 	return TRUE;
 }

@@ -85,25 +85,29 @@ int thread(HANDLE event)
 			switch(task){
 			case TASK_CLOSE_DB:
 				{
-				void *db=0;
-				if(find_db_tree(localinfo,&db))
-					mdi_remove_db(db);
+					void *db=0;
+					if(find_db_tree(localinfo,&db)){
+						mdi_remove_db(db);
+						set_status_bar_text(ghstatusbar,0,"closed %s",localinfo);
+					}
+					else
+						set_status_bar_text(ghstatusbar,0,"cant find %s",localinfo);
 				}
 				break;
 			case TASK_OPEN_DB:
 				{
-				void *db=0;
-				SetWindowText(ghstatusbar,"opening DB");
-				acquire_db_tree(localinfo,&db);
-				if(!mdi_open_db(db,TRUE)){
-					char str[80];
-					mdi_remove_db(db);
-					_snprintf(str,sizeof(str),"Cant open %s",localinfo);
-					MessageBox(ghmainframe,str,"OPEN DB FAIL",MB_OK);
-					SetWindowText(ghstatusbar,"error opening DB");
-				}
-				else
-					reassign_tables(db);
+					void *db=0;
+					SetWindowText(ghstatusbar,"opening DB");
+					acquire_db_tree(localinfo,&db);
+					if(!mdi_open_db(db,TRUE)){
+						char str[80];
+						mdi_remove_db(db);
+						_snprintf(str,sizeof(str),"Cant open %s",localinfo);
+						MessageBox(ghmainframe,str,"OPEN DB FAIL",MB_OK);
+						SetWindowText(ghstatusbar,"error opening DB");
+					}
+					else
+						reassign_tables(db);
 					if(keep_closed)
 						close_db(db);
 					SetWindowText(ghstatusbar,"ready");
@@ -125,53 +129,54 @@ int thread(HANDLE event)
 				break;
 			case TASK_EXECUTE_QUERY:
 				{
-				void *win=0;
-				int result=FALSE;
-				mdi_get_current_win(&win);
-				if(win!=0){
-					char *s=0;
-					int size=0x10000;
-					reopen_db(win);
-					mdi_create_abort(win);
-					s=malloc(size);
-					if(s!=0){
-						mdi_get_edit_text(win,s,size);
-						result=execute_sql(win,s,TRUE);
-						free(s);
+					void *win=0;
+					int result=FALSE;
+					mdi_get_current_win(&win);
+					if(win!=0){
+						char *s=0;
+						int size=0x10000;
+						reopen_db(win);
+						mdi_create_abort(win);
+						s=malloc(size);
+						if(s!=0){
+							mdi_get_edit_text(win,s,size);
+							result=execute_sql(win,s,TRUE);
+							free(s);
+						}
+						mdi_destroy_abort(win);
+						if(keep_closed){
+							void *db=0;
+							acquire_db_tree_from_win(win,&db);
+							close_db(db);
+						}
+						printf("set focus\n");
+						set_focus_after_result(win,result);
 					}
-					mdi_destroy_abort(win);
-					if(keep_closed){
-						void *db=0;
-						acquire_db_tree_from_win(win,&db);
-						close_db(db);
-					}
-					printf("set focus\n");
-					set_focus_after_result(win,result);
-				}
 				}
 				break;
 			case TASK_NEW_QUERY:
 				{
-				void *db=0;
-				find_selected_tree(&db);
-				if(db!=0){
-					void *win=0;
-					if(acquire_table_window(&win,0)){
-						create_table_window(ghmdiclient,win);
-						assign_db_to_table(db,win);
+					void *db=0;
+					find_selected_tree(&db);
+					if(db!=0){
+						void *win=0;
+						if(acquire_table_window(&win,0)){
+							create_table_window(ghmdiclient,win);
+							assign_db_to_table(db,win);
+						}
 					}
-				}
 				}
 				break;
 			case TASK_REFRESH_TABLES:
 				{
-				void *db=0;
-				SetWindowText(ghstatusbar,"refreshing tables");
-				acquire_db_tree(localinfo,&db);
-				if(!mdi_open_db(db,TRUE)){
-					mdi_remove_db(db);
-					SetWindowText(ghstatusbar,"error refreshing tables");
-				}
+					void *db=0;
+					SetWindowText(ghstatusbar,"refreshing tables");
+					acquire_db_tree(localinfo,&db);
+					if(!mdi_open_db(db,TRUE)){
+						mdi_remove_db(db);
+						SetWindowText(ghstatusbar,"error refreshing tables");
+					}
+					SetWindowText(ghstatusbar,"done");
 				}
 				break;
 			case TASK_OPEN_TABLE:

@@ -49,6 +49,8 @@ in ::= in state. {printf("step 3\n");}
 
 state ::= SELECT VARIABLE. {printf("--select\n"); set_sql_mode(FIELD_MODE);}
 
+state ::= ORDER BY VARIABLE. {printf("--order by\n"); set_sql_mode(FIELD_MODE);}
+
 state ::= VARIABLE. {printf("--variable\n");}
 
 state ::= NUMBER. {printf("--number\n");}

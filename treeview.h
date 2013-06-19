@@ -217,7 +217,7 @@ int open_selected_table(HWND htreeview)
 	HTREEITEM hitem=0;
 	hitem=TreeView_GetSelection(htreeview);
 	if(hitem!=0){
-		char db[80]={0},table[80]={0};
+		char db[256*2]={0},table[80]={0};
 		int type=0;
 		tree_get_db_table(hitem,db,sizeof(db),table,sizeof(table),&type);
 		if(type==IDC_TABLE_ITEM){
@@ -265,9 +265,9 @@ LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
 	static int create_tree=FALSE;
 	static DWORD tick=0;
-	if(FALSE)
+	//if(FALSE)
 	//if(msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY)
-	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_MOUSEMOVE) //&&msg!=WM_NOTIFY)
+	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_MOUSEMOVE&&msg!=WM_NOTIFY)
 	{
 		if((GetTickCount()-tick)>500)
 			printf("--\n");
@@ -311,6 +311,9 @@ LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 				{
 				TV_KEYDOWN *tvn=lparam;
 				switch(tvn->wVKey){
+				case VK_DELETE:
+					PostMessage(hwnd,WM_COMMAND,CMD_CLOSEDB,0);
+					break;
 				case VK_RETURN:
 					open_selected_table(ghtreeview);
 					printf("%08x %08X %08X\n",nm->code,nm->hwndFrom,nm->idFrom);

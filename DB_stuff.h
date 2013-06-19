@@ -7,19 +7,40 @@
 #include <conio.h>
 #include <stdlib.h>
 
-
-struct DataBinding {
-   SQLSMALLINT TargetType;
-   SQLPOINTER TargetValuePtr;
-   SQLINTEGER BufferLength;
-   SQLINTEGER StrLen_or_Ind;
-};
-void printCatalog(const struct DataBinding* catalogResult) {
-   if (catalogResult[0].StrLen_or_Ind != SQL_NULL_DATA) 
-      printf("Catalog Name = %s\n", (char *)catalogResult[0].TargetValuePtr);
+int get_error_msg(SQLHANDLE handle,int handle_type,char *err,int len)
+{
+	SQLCHAR state[6]={0},msg[SQL_MAX_MESSAGE_LENGTH]={0};
+	SQLINTEGER  error;
+	SQLSMALLINT msglen;
+	SQLGetDiagRec(handle_type,handle,1,state,&error,msg,sizeof(msg),&msglen);
+	_snprintf(err,len,"%s %s",msg,state);
+	return TRUE;
 }
-int MySQLSuccess(SQLRETURN rc) {
-   return (rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO);
+
+int get_columns(DB_TREE *tree,char *table,HTREEITEM hitem)
+{
+	HSTMT hstmt;
+	int count=0;
+	if(SQLAllocStmt(tree->hdbc, &hstmt)!=SQL_SUCCESS)
+		return count;
+//	printf("table=%s\n",table);
+	if(SQLColumns(hstmt,NULL,SQL_NTS,NULL,SQL_NTS,table,SQL_NTS,NULL,SQL_NTS)==SQL_SUCCESS){
+		if(SQLFetch(hstmt)!=SQL_NO_DATA_FOUND){
+			char name[256]={0};
+			int len=0;
+			while(!SQLGetData(hstmt,4,SQL_C_CHAR,name,sizeof(name),&len)){
+//				printf("cole %i = %s\n",count,name);
+				
+				insert_item(name,hitem,IDC_COL_ITEM);
+				SQLFetch(hstmt);
+				count++;
+				name[0]=0;
+				len=0;
+			}
+		}
+	}
+	SQLFreeStmt(hstmt,SQL_CLOSE);
+	return count;
 }
 int get_tables(DB_TREE *tree)
 {
@@ -28,13 +49,15 @@ int get_tables(DB_TREE *tree)
 	long len;
 	int count=0;
 	
-	SQLAllocStmt(tree->hdbc, &hstmt);
+	if(SQLAllocStmt(tree->hdbc, &hstmt)!=SQL_SUCCESS)
+		return count;
 	if(SQLTables(hstmt,NULL,SQL_NTS,NULL,SQL_NTS,NULL,SQL_NTS,"'TABLE'",SQL_NTS)!=SQL_ERROR){
 		if(SQLFetch(hstmt)!=SQL_NO_DATA_FOUND){
 			HSTMT hpriv=0;
 			SQLAllocStmt(tree->hdbc,&hpriv);
 			while(!SQLGetData(hstmt,3,SQL_C_CHAR,table,sizeof(table),&len))
 			{
+				HTREEITEM hitem;
 				table[sizeof(table)-1]=0;
 				/*
 				if(SQLTablePrivileges(hpriv,"",SQL_NTS,"",SQL_NTS,table,SQL_NTS)==SQL_SUCCESS)
@@ -46,7 +69,10 @@ int get_tables(DB_TREE *tree)
 					printf("name=%s | %s\n",table,str);
 				}
 				*/
-				insert_item(table,tree->hroot,IDC_TABLE_ITEM);
+				hitem=insert_item(table,tree->hroot,IDC_TABLE_ITEM);
+				if(hitem!=0)
+					get_columns(tree,table,hitem);
+
 				SQLFetch(hstmt);
 				count++;
 			}
@@ -107,7 +133,10 @@ int open_db(DB_TREE *tree)
 			char str[1024]={0};
 			char obdc_str[1024]={0};
 			int result=0;
-			_snprintf(obdc_str,sizeof(obdc_str),"%s",tree->name);
+			if(tree->connect_str[0]!=0)
+				_snprintf(obdc_str,sizeof(obdc_str),"%s",tree->connect_str);
+			else
+				_snprintf(obdc_str,sizeof(obdc_str),"%s",tree->name);
 			result=SQLDriverConnect(hDbc,
 							 GetDesktopWindow(),
 							 (SQLCHAR*)obdc_str, //"ODBC;",
@@ -217,6 +246,13 @@ int fetch_columns(SQLHSTMT hstmt,TABLE_WINDOW *win)
 				win->columns++;
 				width=lv_add_column(win->hlistview,str,i);
 				SQLColAttribute(hstmt,i+1,SQL_DESC_TYPE,NULL,0,NULL,&sqltype);
+
+				{
+					char err[256]={0};
+					char str[256]={0};
+				SQLColAttribute(hstmt,i+1,2,str,sizeof(str),NULL,&sqltype);
+				get_error_msg(hstmt,SQL_HANDLE_STMT,err,sizeof(err));
+				}
 				SQLColAttribute(hstmt,i+1,SQL_DESC_LENGTH,NULL,0,NULL,&sqllength);
 				mem=realloc(win->col_attr,(sizeof(COL_ATTR))*win->columns);
 				if(mem!=0){

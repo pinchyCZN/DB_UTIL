@@ -692,6 +692,10 @@ int find_db_tree(char *name,DB_TREE **tree)
 				*tree=&db_tree[i];
 				return TRUE;
 			}
+			else if(stricmp(name,db_tree[i].connect_str)==0){
+				*tree=&db_tree[i];
+				return TRUE;
+			}
 	}
 	return FALSE;
 }
