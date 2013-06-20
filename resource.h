@@ -9,6 +9,7 @@
 #define IDD_RECENT                      106
 #define IDD_SETTINGS                    107
 #define IDD_COL_INFO                    108
+#define IDD_FILENAME                    109
 #define IDC_STATUS                      1003
 #define IDC_TABLES                      1004
 #define IDC_MDI_LISTVIEW                1005
@@ -30,6 +31,7 @@
 #define IDC_SQL_FONT                    1023
 #define IDC_LISTVIEW_FONT               1024
 #define IDC_TREEVIEW_FONT               1026
+#define IDC_EDIT1                       1027
 #define IDM_SETTINGS                    40002
 #define IDM_OPEN                        40006
 #define IDM_CLOSE                       40007
@@ -41,9 +43,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        109
+#define _APS_NEXT_RESOURCE_VALUE        110
 #define _APS_NEXT_COMMAND_VALUE         40011
-#define _APS_NEXT_CONTROL_VALUE         1027
+#define _APS_NEXT_CONTROL_VALUE         1028
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

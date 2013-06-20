@@ -147,10 +147,8 @@ int open_db(DB_TREE *tree)
 							 SQL_DRIVER_COMPLETE);
 			if(result==SQL_SUCCESS || result==SQL_SUCCESS_WITH_INFO){
 				if(result==SQL_SUCCESS_WITH_INFO){
-					SQLCHAR state[6],msg[SQL_MAX_MESSAGE_LENGTH]={0};
-					SQLINTEGER  error;
-					SQLSMALLINT msglen;
-					SQLGetDiagRec(SQL_HANDLE_DBC,hDbc,1,state,&error,msg,sizeof(msg),&msglen);
+					char msg[SQL_MAX_MESSAGE_LENGTH]={0};
+					get_error_msg(hDbc,SQL_HANDLE_DBC,msg,sizeof(msg));
 					printf("msg=%s\n",msg);
 				}
 				if(str[0]!=0){
@@ -579,10 +577,8 @@ int execute_sql(TABLE_WINDOW *win,char *sql,int display_results)
 				break;
 			case SQL_ERROR:
 				{
-					SQLCHAR state[6],msg[SQL_MAX_MESSAGE_LENGTH]={0};
-					SQLINTEGER  error;
-					SQLSMALLINT msglen;
-					SQLGetDiagRec(SQL_HANDLE_STMT,hstmt,1,state,&error,msg,sizeof(msg),&msglen);
+					char msg[SQL_MAX_MESSAGE_LENGTH]={0};
+					get_error_msg(hstmt,SQL_HANDLE_STMT,msg,sizeof(msg));
 					printf("msg=%s\n",msg);
 					SetWindowText(ghstatusbar,"error occured");
 					MessageBox(win->hwnd,msg,"SQL Error",MB_OK);

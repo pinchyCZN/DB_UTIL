@@ -17,7 +17,33 @@ int tree_width=20;
 CRITICAL_SECTION mutex;
 LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam);
 
-
+int copy_str_clipboard(char *str)
+{
+	int len,result=FALSE;
+	HGLOBAL hmem;
+	char *lock;
+	len=strlen(str);
+	if(len==0)
+		return result;
+	len++;
+	hmem=GlobalAlloc(GMEM_MOVEABLE|GMEM_DDESHARE,len);
+	if(hmem!=0){
+		lock=GlobalLock(hmem);
+		if(lock!=0){
+			memcpy(lock,str,len);
+			GlobalUnlock(hmem);
+			if(OpenClipboard(NULL)!=0){
+				EmptyClipboard();
+				SetClipboardData(CF_TEXT,hmem);
+				CloseClipboard();
+				result=TRUE;
+			}
+		}
+		if(!result)
+			GlobalFree(hmem);
+	}
+	return result;
+}
 int load_icon(HWND hwnd)
 {
 	HICON hIcon = LoadIcon(ghinstance,MAKEINTRESOURCE(IDI_ICON));
@@ -241,7 +267,6 @@ LRESULT CALLBACK recent_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			}
 			break;
 		case VK_DELETE:
-do_delete:
 			{
 				int item;
 				item=SendDlgItemMessage(hwnd,IDC_LIST1,LB_GETCURSEL,0,0);
@@ -280,7 +305,7 @@ do_delete:
 			}
 			break;
 		case IDC_DELETE:
-			goto do_delete;
+			SendMessage(hwnd,WM_VKEYTOITEM,VK_DELETE,0);
 			break;
 		case IDC_LIST1:
 			if(HIWORD(wparam)==LBN_SELCHANGE){
@@ -299,7 +324,12 @@ do_delete:
 			{
 				char str[1024]={0};
 				int item;
-				if(GetDlgItem(hwnd,IDC_LIST1)!=GetFocus())
+				HWND focus=GetFocus();
+				if(GetDlgItem(hwnd,IDC_RECENT_EDIT)==focus){
+					SendMessage(hwnd,WM_COMMAND,IDC_ADD,0);
+					break;
+				}
+				if(GetDlgItem(hwnd,IDC_LIST1)!=focus)
 					break;
 				item=SendDlgItemMessage(hwnd,IDC_LIST1,LB_GETCURSEL,0,0);
 				if(item>=0){

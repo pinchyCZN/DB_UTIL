@@ -129,26 +129,50 @@ int tree_get_db_table(HTREEITEM hitem,char *db,int db_size,char *table,int table
 		int type=0;
 		if(tree_get_info(hitem,str,sizeof(str),&type)){
 			if(type==IDC_TABLE_ITEM){
-				HTREEITEM hparent;
 				if(table!=0 && table_size>0)
 					strncpy(table,str,table_size);
 				if(item_type!=0)
 					*item_type=type;
-				hparent=TreeView_GetParent(ghtreeview,hitem);
-				result=TRUE;
-				if(hparent!=0 && db!=0 && db_size>0){
-					str[0]=0;
-					if(tree_get_info(hparent,str,sizeof(str),&type))
-						if(type==IDC_DB_ITEM)
-							strncpy(db,str,db_size);
+				if(db!=0 && db_size>0){
+					HTREEITEM hparent;
+					hparent=TreeView_GetParent(ghtreeview,hitem);
+					if(hparent!=0){
+						str[0]=0;
+						if(tree_get_info(hparent,str,sizeof(str),&type))
+							if(type==IDC_DB_ITEM){
+								strncpy(db,str,db_size);
+								result=TRUE;
+							}
+					}
 				}
-
 			}
-			else if(type==IDC_DB_ITEM && db!=0 && db_size>0){
-				strncpy(db,str,db_size);
+			else if(type==IDC_DB_ITEM){
+				if(db!=0 && db_size>0)
+					strncpy(db,str,db_size);
 				if(item_type!=0)
 					*item_type=type;
 				result=TRUE;
+			}
+			else if(type==IDC_COL_ITEM){
+				if(item_type!=0)
+					*item_type=type;
+				if(db!=0 && db_size>0){
+					HTREEITEM hparent;
+					hparent=TreeView_GetParent(ghtreeview,hitem);
+					if(hparent!=0){
+						hparent=TreeView_GetParent(ghtreeview,hparent);
+						if(hparent!=0){
+							str[0]=0;
+							if(tree_get_info(hparent,str,sizeof(str),&type))
+								if(type==IDC_DB_ITEM){
+									strncpy(db,str,db_size);
+									result=TRUE;
+								}
+						}
+					}
+				}
+
+
 			}
 		}
 	}

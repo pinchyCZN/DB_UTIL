@@ -5,6 +5,7 @@ enum {
 	CMD_COL_WIDTH_HEADER,
 	CMD_COL_WIDTH_DATA,
 	CMD_SQL_UPDATE,
+	CMD_EXPORT_DATA,
 };
 int get_str_width(HWND hwnd,char *str)
 {
@@ -129,6 +130,49 @@ int lv_insert_data(HWND hlistview,int row,int col,char *str)
 	}
 	return FALSE;
 }
+LRESULT CALLBACK filename_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
+{
+	static char *fname=0;
+	switch(msg){
+	case WM_INITDIALOG:
+		{
+			if(lparam==0)
+				EndDialog(hwnd,FALSE);
+			else{
+				char *s=lparam;
+				fname=lparam;
+				if(fname[0]==0){
+					char str[MAX_PATH]={0};
+					GetCurrentDirectory(sizeof(str),str);
+					s=str;
+				}
+				SendDlgItemMessage(hwnd,IDC_EDIT1,WM_SETTEXT,0,s);
+			}
+			SendDlgItemMessage(hwnd,IDC_EDIT1,EM_SETLIMITTEXT,MAX_PATH,0);
+			SetFocus(GetDlgItem(hwnd,IDC_EDIT1));
+		}
+		break;
+	case WM_SIZE:
+		break;
+	case WM_COMMAND:
+		switch(LOWORD(wparam)){
+		case IDOK:
+			{
+				char str[MAX_PATH]={0};
+				SendDlgItemMessage(hwnd,IDC_EDIT1,WM_GETTEXT,sizeof(str),str);
+				_snprintf(fname,MAX_PATH,"%s",str);
+				EndDialog(hwnd,TRUE);
+			}
+			break;
+		case IDCANCEL:
+			EndDialog(hwnd,FALSE);
+			break;
+		}
+		break;
+	}
+	return 0;
+}
+
 static WNDPROC wporiglistview=0;
 LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
@@ -150,6 +194,39 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		switch(wparam){
 		case CMD_COL_INFO:
 			DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_COL_INFO),hwnd,col_info_proc,hwnd);
+			break;
+		case CMD_EXPORT_DATA:
+			{
+				static char fname[MAX_PATH]={0};
+				if(DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_FILENAME),hwnd,filename_proc,fname)==TRUE){
+					FILE *f;
+					f=fopen(fname,"wb");
+					if(f!=0){
+						int i,j,item_count,col_count;
+						item_count=ListView_GetItemCount(hwnd);
+						col_count=lv_get_column_count(hwnd);
+						set_status_bar_text(ghstatusbar,0,"exporting data to %s",fname);
+						for(i=0;i<col_count;i++){
+							char str[255]={0};
+							lv_get_col_text(hwnd,i,str,sizeof(str));
+							fprintf(f,"%s%s",str,i==col_count-1?"\n":",");
+						}
+						for(i=0;i<item_count;i++){
+							for(j=0;j<col_count;j++){
+								char str[255]={0};
+								ListView_GetItemText(hwnd,i,j,str,sizeof(str));
+								fprintf(f,"%s%s",str,j==col_count-1?"\n":",");
+							}
+						}
+						fclose(f);
+						set_status_bar_text(ghstatusbar,0,"finished export to %s",fname);
+					}else{
+						set_status_bar_text(ghstatusbar,0,"cant open %s",fname);
+						fname[0]=0;
+					}
+				}
+
+			}
 			break;
 		case CMD_COL_WIDTH_HEADER:
 			{
@@ -489,6 +566,7 @@ int create_lv_menus()
 	if(lv_menu=CreatePopupMenu()){
 		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_COL_INFO,"col info");
 		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SQL_UPDATE,"create update SQL statement");
+		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_EXPORT_DATA,"export data");
 	}
 	return TRUE;
 }
