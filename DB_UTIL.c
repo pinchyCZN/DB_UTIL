@@ -463,10 +463,16 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 	MSG msg;
     INITCOMMONCONTROLSEX ctrls;
 	HACCEL haccel;
+	static char *class_name="DB_UTIL_CLASS";
+	int first_instance=TRUE;
 	int debug=0;
 #ifdef _DEBUG
 	debug=1;
 #endif
+	SetLastError(NO_ERROR);
+	CreateMutex(NULL,FALSE,"DB_UTIL Instance");
+	if(GetLastError()==ERROR_ALREADY_EXISTS)
+		first_instance=FALSE;
 
 	ghinstance=hInstance;
 	init_ini_file();
@@ -474,6 +480,13 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 	if(debug!=0){
 		open_console();
 		move_console();
+	}
+	{
+		int val=0;
+		get_ini_value("SETTINGS","SINGLE_INSTANCE",&val);
+		if(val && (!first_instance)){
+
+		}
 	}
 	init_mdi_stuff();
 
@@ -492,7 +505,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 	setup_mdi_classes(ghinstance);
 	
 	ghmenu=LoadMenu(hInstance, MAKEINTRESOURCE(IDR_MENU1));
-	ghmainframe=create_mainwindow(&WndProc,ghmenu,hInstance);
+	ghmainframe=create_mainwindow(&WndProc,ghmenu,hInstance,class_name,"DB_UTIL");
 
 	ghmdiclient=create_mdiclient(ghmainframe,ghmenu,ghinstance);
 	ghdbview=create_dbview(ghmainframe,ghinstance);

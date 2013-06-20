@@ -530,14 +530,6 @@ int setup_mdi_classes(HINSTANCE hinstance)
 
     if(!RegisterClass(&wc))
 		result=FALSE;
-	/*
-    wc.lpszClassName = "privmsgwindow";
-    if(!RegisterClass(&wc))
-		result=FALSE;
-    wc.lpszClassName = "serverwindow";
-    if(!RegisterClass(&wc))
-		result=FALSE;
-	*/
 	return result;
 }
 int create_mdiclient(HWND hwnd,HMENU hmenu,HINSTANCE hinstance)
@@ -556,7 +548,7 @@ int create_mdiclient(HWND hwnd,HMENU hmenu,HINSTANCE hinstance)
 	return hmdiclient;
 }
 
-int create_mainwindow(void *wndproc,HMENU hmenu,HINSTANCE hinstance)
+int create_mainwindow(void *wndproc,HMENU hmenu,HINSTANCE hinstance,char *class_name,char *title)
 {
 	WNDCLASS wndclass;
 	HWND hframe=0;
@@ -567,10 +559,10 @@ int create_mainwindow(void *wndproc,HMENU hmenu,HINSTANCE hinstance)
 	wndclass.hCursor=LoadCursor(NULL, IDC_ARROW);
 	wndclass.hInstance=hinstance;
 	wndclass.hbrBackground=COLOR_BTNFACE+1;
-	wndclass.lpszClassName="mdiframe";
+	wndclass.lpszClassName=class_name;
 
 	if(RegisterClass(&wndclass)!=0){
-		hframe = CreateWindow("mdiframe","DB_UTIL",
+		hframe = CreateWindow(class_name,title,
 			WS_CLIPSIBLINGS|WS_CLIPCHILDREN|WS_OVERLAPPEDWINDOW, //0x6CF0000
 			0,0,
 			400,300,
@@ -592,7 +584,7 @@ int create_dbview(HWND hwnd,HINSTANCE hinstance)
 	wndclass.lpszClassName="dbview";
 	wndclass.style=CS_HREDRAW|CS_VREDRAW;
 	if(RegisterClass(&wndclass)!=0){
-		hswitch=CreateWindow("dbview","dbview",
+		hswitch=CreateWindow("dbview","dbview_window",
 			WS_CHILD|WS_CLIPCHILDREN|WS_CLIPSIBLINGS|WS_VISIBLE|WS_BORDER,
 			0,0,
 			0,0,
