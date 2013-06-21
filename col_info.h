@@ -44,9 +44,39 @@ static int find_sql_type_str(int type,char **str)
 	}
 	return FALSE;
 }
+int populate_col_info(HWND hwnd,HWND hlistview,LPARAM lparam)
+{
+	int i;
+	static TABLE_WINDOW *win=0;
+	char *cols[]={"field name","type","type #","size"};
+	for(i=0;i<sizeof(cols)/sizeof(char *);i++)
+		lv_add_column(hlistview,cols[i],i);
+
+	win=0;
+	if(find_win_by_hlistview(lparam,&win)){
+		for(i=0;i<win->columns;i++){
+			char str[10]={0};
+			char name[80]={0};
+			char *sql_name="";
+			lv_get_col_text(win->hlistview,i,name,sizeof(name));
+			lv_insert_data(hlistview,i,0,name);
+			find_sql_type_str(win->col_attr[i].type,&sql_name);
+			lv_insert_data(hlistview,i,1,sql_name);
+			_snprintf(str,sizeof(str),"%i",win->col_attr[i].type);
+			lv_insert_data(hlistview,i,2,str);
+			_snprintf(str,sizeof(str),"%i",win->col_attr[i].length);
+			lv_insert_data(hlistview,i,3,str);
+		}
+		if(win->table[0]!=0)
+			SetWindowText(hwnd,win->table);
+	}
+	for(i=0;i<sizeof(cols)/sizeof(char *);i++)
+		ListView_SetColumnWidth(hlistview,i,LVSCW_AUTOSIZE);
+
+}
 LRESULT CALLBACK col_info_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
-	static HWND grippy=0;
+	static HWND grippy=0,hlistview=0;
 	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_MOUSEMOVE&&msg!=WM_NCMOUSEMOVE)
 	{
 		static DWORD tick=0;
@@ -58,27 +88,17 @@ LRESULT CALLBACK col_info_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 	}
 	switch(msg){
 	case WM_INITDIALOG:
-		{
-			static TABLE_WINDOW *win=0;
-			win=0;
-			if(find_win_by_hlistview(lparam,&win)){
-				int i;
-				for(i=0;i<win->columns;i++){
-					char str[255]={0};
-					char name[80]={0};
-					char *sql_name="";
-					lv_get_col_text(win->hlistview,i,name,sizeof(name));
-					find_sql_type_str(win->col_attr[i].type,&sql_name);
-					_snprintf(str,sizeof(str),"%2i-%-10s attr=%2i (%s) length=%3i col_width=%3i",
-						i,name,win->col_attr[i].type,sql_name,win->col_attr[i].length,win->col_attr[i].col_width);
-					SendDlgItemMessage(hwnd,IDC_LIST1,LB_ADDSTRING,0,str);
-				}
-				if(win->table[0]!=0)
-					SetWindowText(hwnd,win->table);
-			}
-		}
-		SetFocus(GetDlgItem(hwnd,IDC_LIST1));
-		SendDlgItemMessage(hwnd,IDC_LIST1,WM_SETFONT,GetStockObject(get_font_setting(IDC_LISTVIEW_FONT)),0);
+		hlistview=CreateWindow(WC_LISTVIEW,"",WS_TABSTOP|WS_CHILD|WS_CLIPSIBLINGS|WS_VISIBLE|LVS_REPORT|LVS_SHOWSELALWAYS,
+                                     0,0,
+                                     0,0,
+                                     hwnd,
+                                     IDC_LIST1,
+                                     ghinstance,
+                                     NULL);
+		ListView_SetExtendedListViewStyle(hlistview,LVS_EX_FULLROWSELECT);
+		SendMessage(hlistview,WM_SETFONT,GetStockObject(get_font_setting(IDC_LISTVIEW_FONT)),0);
+		populate_col_info(hwnd,hlistview,lparam);
+		SetFocus(hlistview);
 		grippy=create_grippy(hwnd);
 		resize_col_info(hwnd);
 		break;
@@ -86,48 +106,58 @@ LRESULT CALLBACK col_info_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		resize_col_info(hwnd);
 		grippy_move(hwnd,grippy);
 		break;
-	case WM_VKEYTOITEM:
-		switch(LOWORD(wparam)){
-		case 'A':
-			if(GetKeyState(VK_CONTROL)&0x8000){
-				SendDlgItemMessage(hwnd,IDC_LIST1,LB_SELITEMRANGE,TRUE,MAKELPARAM(0,-1));
-			}
-			break;
-		case 'C':
-			{
-				int i,count,buf_size=0x10000;
-				char *buf;
-				if(!(GetKeyState(VK_CONTROL)&0x8000))
+	case WM_NOTIFY:
+		if(LOWORD(wparam)==IDC_LIST1){
+			NMHDR *nmhdr=lparam;
+			if(lparam==0)
+				break;
+			if(nmhdr->code==LVN_KEYDOWN){
+				LV_KEYDOWN *lvk=lparam;
+				switch(lvk->wVKey){
+				case 'A':
+					if(GetKeyState(VK_CONTROL)&0x8000){
+						int i,count;
+						count=ListView_GetItemCount(hlistview);
+						for(i=0;i<count;i++)
+							ListView_SetItemState(hlistview,i,LVIS_FOCUSED|LVIS_SELECTED,LVIS_FOCUSED|LVIS_SELECTED);
+					}
 					break;
-				count=SendDlgItemMessage(hwnd,IDC_LIST1,LB_GETCOUNT,0,0);
-				buf=malloc(buf_size);
-				if(buf!=0){
-					int len=0;
-					char *s=buf;
-					memset(buf,0,buf_size);
-					for(i=0;i<count;i++){
-						if(SendDlgItemMessage(hwnd,IDC_LIST1,LB_GETSEL,i,0)>0){
-							int read;
-							read=SendDlgItemMessage(hwnd,IDC_LIST1,LB_GETTEXTLEN,i,0);
-							if((len+read)>=(buf_size-1))
-								break;
-							read=SendDlgItemMessage(hwnd,IDC_LIST1,LB_GETTEXT,i,s);
-							if(read>0){
-								len+=read;
-								if(len>=(buf_size-1))
-									break;
-								buf[len++]='\n';
-								s=buf+len;
+				case 'C':
+					{
+						int count,buf_size=0x10000;
+						char *buf;
+						if(!(GetKeyState(VK_CONTROL)&0x8000))
+							break;
+						count=ListView_GetItemCount(hlistview);
+						buf=malloc(buf_size);
+						if(buf!=0){
+							int i;
+							memset(buf,0,buf_size);
+							for(i=0;i<count;i++){
+								int cols,j;
+								cols=lv_get_column_count(hlistview);
+								for(j=0;j<cols;j++){
+									int len=0;
+									len=strlen(buf);
+									if(len<(buf_size-2)){
+										ListView_GetItemText(hlistview,i,j,buf+len,buf_size-len-2);
+										if(j==(cols-1))
+											strcat(buf,"\n");
+										else
+											strcat(buf,",");
+									}
+									else
+										break;
+								}
 							}
+							copy_str_clipboard(buf);
+							free(buf);
 						}
 					}
-					copy_str_clipboard(buf);
-					free(buf);
+					break;
 				}
 			}
-			break;
 		}
-		return -2;
 		break;
 	case WM_COMMAND:
 		switch(LOWORD(wparam)){
