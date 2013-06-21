@@ -14,7 +14,8 @@ enum{
 	TASK_CLOSE_DB,
 	TASK_NEW_QUERY,
 	TASK_EXECUTE_QUERY,
-	TASK_UPDATE_ROW
+	TASK_UPDATE_ROW,
+	TASK_GET_COL_INFO
 };
 
 int task_open_db(char *name)
@@ -71,6 +72,14 @@ int task_update_record(void *win,int row,char *data)
 	SetEvent(event);
 	return TRUE;
 }
+int	task_get_col_info(void *db,char *table)
+{
+	task=TASK_GET_COL_INFO;
+	_snprintf(taskinfo,sizeof(taskinfo),"DB=0x%08X;TABLE=%s",db,table);
+	SetEvent(event);
+	return TRUE;
+}
+
 int thread(HANDLE event)
 {
 	int id;
@@ -111,6 +120,18 @@ int thread(HANDLE event)
 					if(keep_closed)
 						close_db(db);
 					SetWindowText(ghstatusbar,"ready");
+				}
+				break;
+			case TASK_GET_COL_INFO:
+				{
+					void *db=0;
+					char table[80]={0};
+					sscanf(localinfo,"DB=0x%08X;TABLE=%79s",&db,table);
+					if(db!=0){
+						get_col_info(db,table);
+						if(keep_closed)
+							close_db(db);
+					}
 				}
 				break;
 			case TASK_UPDATE_ROW:

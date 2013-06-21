@@ -374,7 +374,18 @@ LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 		case CMD_DB_INFO:
 		case CMD_SELECTTOP:
 		case CMD_SELECTALL:
+			break;
 		case CMD_TABLE_STRUCT:
+			{
+				DB_TREE *db=0;
+				if(find_selected_tree(&db)){
+					char str[80]={0};
+					int type=0;
+					tree_get_info(TreeView_GetSelection(ghtreeview),str,sizeof(str),&type);
+					if(type==IDC_TABLE_ITEM)
+						task_get_col_info(db,str);
+				}
+			}
 			break;
 		}
 		break;
