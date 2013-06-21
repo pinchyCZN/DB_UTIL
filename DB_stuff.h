@@ -269,6 +269,8 @@ int fetch_columns(SQLHSTMT hstmt,TABLE_WINDOW *win)
 int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 {
 	SQLINTEGER rows=0;
+	FILE *f=0;
+	//f=fopen("c:\\temp\\sql_data.txt","wb");
 	if(hstmt!=0 && win!=0){
 		while(TRUE){
 			int result=0;
@@ -279,11 +281,13 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 			if(!(result==SQL_SUCCESS || result==SQL_SUCCESS_WITH_INFO))
 				break;
 			for(i=0;i<cols;i++){
-				char str[1024]={0};
+				static char str[0x10000]={0};
 				int len=0;
 				if(win->abort || win->hwnd==0)
 					break;
 				result=SQLGetData(hstmt,i+1,SQL_C_CHAR,str,sizeof(str),&len);
+				if(f!=0)
+					fprintf(f,"%s%s",str,i==cols-1?"\n----------------------------------------------------\n":",@@@@\n");
 				if(result==SQL_SUCCESS || result==SQL_SUCCESS_WITH_INFO){
 					char *s=str;
 					int width;
@@ -311,6 +315,8 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 			}
 		}
 	}
+	if(f!=0)
+		fclose(f);
 	return rows;
 }
 int is_sql_reserved(const char *sql)
@@ -525,12 +531,30 @@ int reopen_db(TABLE_WINDOW *win)
 	}
 	return FALSE;
 }
-int get_col_info(DB_TREE *db)
+int get_col_info(DB_TREE *tree,char *table)
 {
-	if(db==0)
+	if(tree==0)
 		return FALSE;
-	if(open_db(db)){
-		
+	if(open_db(tree)){
+		HSTMT hstmt;
+		int count=0;
+		if(SQLAllocStmt(tree->hdbc, &hstmt)==SQL_SUCCESS){
+			if(SQLColumns(hstmt,NULL,SQL_NTS,NULL,SQL_NTS,table,SQL_NTS,NULL,SQL_NTS)==SQL_SUCCESS){
+				if(SQLFetch(hstmt)!=SQL_NO_DATA_FOUND){
+					char name[256]={0};
+					int len=0;
+					while(!SQLGetData(hstmt,4,SQL_C_CHAR,name,sizeof(name),&len)){
+		//				printf("cole %i = %s\n",count,name);
+						
+						SQLFetch(hstmt);
+						count++;
+						name[0]=0;
+						len=0;
+					}
+				}
+			}
+		}
+		SQLFreeStmt(hstmt,SQL_CLOSE);	
 	}
 	return 0;
 }
