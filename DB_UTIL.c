@@ -351,11 +351,46 @@ LRESULT CALLBACK recent_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 	}
 	return 0;
 }
+int strstri(const char *s1,const char *s2)
+{
+	int i,j,k;
+	for(i=0;s1[i];i++)
+		for(j=i,k=0;tolower(s1[j])==tolower(s2[k]);j++,k++)
+			if(!s2[k+1])
+				return (s1+i);
+	return NULL;
+}
 int process_cmd_line(char *cmd)
 {
 	if(cmd==0)
 		return FALSE;
 	if(strlen(cmd)>0){
+		char *opt=0;
+		char table[8]={0};
+		opt=strstr(cmd,"/TABLE ");
+		if(opt!=0){
+			opt+=sizeof("/TABLE ")-1;
+			sscanf(opt,"%79s",table);
+			table[sizeof(table)-1]=0;
+		}
+		opt=strstri(cmd,".DBF");
+		if(opt!=0){
+			int i,index=0,len=strlen(cmd);
+			for(i=0;i<len;i++){
+				if(index>=sizeof(table)-1)
+					break;
+				if((cmd+i)==opt)
+					break;
+				table[index++]=cmd[i];
+			}
+			table[index]=0;
+		}
+		if(table[0]!=0){
+			char str[MAX_PATH];
+			_snprintf(str,sizeof(str),"blah blah ;TABLE=%s",table);
+			//task_open_db_and_table(str);
+		}
+		else
 			task_open_db_and_table("UID=dba;PWD=sql;DSN=Journal;TABLE=PATIENT");
 	}
 }
