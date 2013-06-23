@@ -514,7 +514,7 @@ void print_msg(int msg,int lparam,int wparam,int hwnd)
 		if(wm_names[i].name==0)
 			break;
 		if(wm_names[i].val==msg){
-			printf("%-20s lparam=%08X wparam=%08X %08X x=%3i y=%3i\n",wm_names[i].name,lparam,wparam,hwnd,LOWORD(lparam),HIWORD(lparam));
+			printf("%-20s lp=%08X wp=%08X %08X x=%3i y=%3i\n",wm_names[i].name,lparam,wparam,hwnd,LOWORD(lparam),HIWORD(lparam));
 			return;
 		}
 	}

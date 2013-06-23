@@ -70,8 +70,12 @@ int populate_col_info(HWND hwnd,HWND hlistview,LPARAM lparam)
 		if(win->table[0]!=0)
 			SetWindowText(hwnd,win->table);
 	}
-	for(i=0;i<sizeof(cols)/sizeof(char *);i++)
-		ListView_SetColumnWidth(hlistview,i,LVSCW_AUTOSIZE);
+	for(i=0;i<sizeof(cols)/sizeof(char *);i++){
+		int method=LVSCW_AUTOSIZE;
+		if(i>=2)
+			method=LVSCW_AUTOSIZE_USEHEADER;
+		ListView_SetColumnWidth(hlistview,i,method);
+	}
 
 }
 LRESULT CALLBACK col_info_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
@@ -140,11 +144,13 @@ LRESULT CALLBACK col_info_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 									int len=0;
 									len=strlen(buf);
 									if(len<(buf_size-2)){
-										ListView_GetItemText(hlistview,i,j,buf+len,buf_size-len-2);
-										if(j==(cols-1))
-											strcat(buf,"\n");
-										else
-											strcat(buf,",");
+										if(ListView_GetItemState(hlistview,i,LVIS_SELECTED)==LVIS_SELECTED){
+											ListView_GetItemText(hlistview,i,j,buf+len,buf_size-len-2);
+											if(j==(cols-1))
+												strcat(buf,"\n");
+											else
+												strcat(buf,",");
+										}
 									}
 									else
 										break;

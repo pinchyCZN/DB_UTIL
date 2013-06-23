@@ -33,7 +33,7 @@ typedef struct{
 	COL_ATTR *col_attr;
 	int rows;
 	int selected_column;
-	HWND hwnd,hlistview,hlvedit,hedit,hroot,habort,hintel;
+	HWND hwnd,hlistview,hlvedit,hedit,hroot,habort,hintel,hlastfocus;
 }TABLE_WINDOW;
 
 typedef struct{
@@ -57,7 +57,7 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 {
 	static int split_drag=FALSE,mdi_split=60;
 	static HWND last_focus=0;
-	if(FALSE)
+	//if(FALSE)
 	if(msg!=WM_NCMOUSEMOVE&&msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY
 		&&msg!=WM_ERASEBKGND&&msg!=WM_DRAWITEM) 
 		//if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE)
@@ -87,12 +87,6 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 		load_mdi_size(hwnd);
 		}
         break;
-	case WM_MOUSEACTIVATE:
-		if(LOWORD(lparam)==HTCLIENT){
-			//SetFocus(GetDlgItem(hwnd,MDI_EDIT));
-			//return MA_NOACTIVATE;
-		}
-		break;
 	case WM_CHAR:
 		if(GetFocus()==GetDlgItem(hwnd,IDC_SQL_ABORT)){
 			TABLE_WINDOW *win=0;
@@ -101,30 +95,38 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 		}
 		break;
 	case WM_KILLFOCUS:
-		{
-		TABLE_WINDOW *win=0;
-		if(find_win_by_hwnd(hwnd,&win)){
-		}
-		}
 		break;
 	case WM_SETFOCUS:
-//	case WM_IME_SETCONTEXT:
-//	case WM_NCACTIVATE:
-//	case WM_MDIACTIVATE:
+		break;
+	case WM_NCACTIVATE:
+		break;
+	case WM_MDIACTIVATE:
 		{
-		TABLE_WINDOW *win=0;
-		if(find_win_by_hwnd(hwnd,&win)){
-
-			if(lparam!=0)
-				SetFocus(lparam);
-			else if(win->rows>0){
-				SetFocus(win->hlistview);
-			}
+			if(lparam==0) //nothing gaining focus so move to tree
+				PostMessage(ghmainframe,WM_USER,IDC_TREEVIEW,ghtreeview);
 			else{
-				SetFocus(win->hedit);
-				ShowCaret(win->hedit);
+				TABLE_WINDOW *win=0;
+				if(find_win_by_hwnd(hwnd,&win)){
+					if(wparam==hwnd){ //losing focus
+						HANDLE hfocus=GetFocus();
+						if(hfocus==win->hlistview || hfocus==win->hedit)
+							win->hlastfocus=hfocus;
+						else if(hfocus==win->hlvedit)
+							win->hlastfocus=win->hlistview;
+						else
+							win->hlastfocus=win->hlistview;
+						printf("last focus=%08X\n",win->hlastfocus);
+						if(win->hlastfocus==win->hlistview)
+							printf("using listview\n");
+						if(win->hlastfocus==win->hedit)
+							printf("using edit\n");
+					}
+					else{
+						PostMessage(hwnd,WM_USER,win->hlastfocus,IDC_MDI_CLIENT);
+						printf("sending user %08X\n",win->hlastfocus);
+					}
+				}
 			}
-		}
 		}
         break;
 	case WM_CONTEXTMENU:
@@ -143,17 +145,6 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 						ScreenToClient(nmhdr->hwndFrom,&lvhit.pt);
 						if(ListView_SubItemHitTest(nmhdr->hwndFrom,&lvhit)>=0)
 							create_lv_edit_selected(win);
-						/*
-							if(ListView_GetSubItemRect(nmhdr->hwndFrom,lvhit.iItem,lvhit.iSubItem,LVIR_BOUNDS,&rect)!=0){
-								char text[255]={0};
-								create_lv_edit(win,&rect);
-								ListView_GetItemText(nmhdr->hwndFrom,lvhit.iItem,lvhit.iSubItem,text,sizeof(text));
-								if(text[0]!=0 && win->hlvedit!=0){
-									SetWindowText(win->hlvedit,text);
-									SetFocus(win->hlvedit);
-								}
-							}
-						*/
 					}
 					break;
 				case NM_RCLICK:
@@ -337,6 +328,9 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 		break;
 	case WM_USER:
 		switch(LOWORD(lparam)){
+		case IDC_TREEVIEW:
+			SetFocus(ghtreeview);
+			break;
 		case IDC_LV_EDIT:
 			switch(HIWORD(lparam)){
 			case IDOK:
@@ -345,6 +339,22 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 				destroy_lv_edit(wparam);
 				break;
 			}
+			break;
+		case IDC_MDI_CLIENT:
+			if(wparam!=0){
+				printf("setting focus %08X\n",wparam);
+				if(wparam==hwnd){
+					TABLE_WINDOW *win=0;
+					if(find_win_by_hwnd(hwnd,&win))
+						if(win->hlastfocus!=0)
+							SetFocus(win->hlastfocus);
+						else
+							SetFocus(win->hlistview);
+				}
+				else
+					SetFocus(wparam);
+			}
+			return 0;
 			break;
 		case IDC_MDI_LISTVIEW:
 			resize_mdi_window(hwnd,mdi_split);
@@ -860,13 +870,13 @@ int destroy_abort(TABLE_WINDOW *win)
 
 int set_focus_after_result(TABLE_WINDOW *win,int result)
 {
-	if(win!=0 && win->hedit!=0 && win->hlistview!=0){
+	if(win!=0){
 		if(result==FALSE)
-			PostMessage(win->hwnd,WM_SETFOCUS,win->hlistview,win->hedit);
+			PostMessage(win->hwnd,WM_USER,win->hedit,IDC_MDI_CLIENT);
 		else if(win->rows>0)
-			PostMessage(win->hwnd,WM_SETFOCUS,win->hedit,win->hlistview);
+			PostMessage(win->hwnd,WM_USER,win->hlistview,IDC_MDI_CLIENT);
 		else
-			PostMessage(win->hwnd,WM_SETFOCUS,win->hlistview,win->hedit);
+			PostMessage(win->hwnd,WM_USER,win->hedit,IDC_MDI_CLIENT);
 	}
 	return TRUE;
 }
@@ -881,35 +891,42 @@ int custom_dispatch(MSG *msg)
 	hwnd=WindowFromPoint(msg->pt);
 
 	for(i=0;i<sizeof(table_windows)/sizeof(TABLE_WINDOW);i++){
-		if(table_windows[i].hlistview==msg->hwnd){
-			win=&table_windows[i];
-			type=IDC_MDI_LISTVIEW;
-		}
-		else if(table_windows[i].hedit==msg->hwnd){
-			win=&table_windows[i];
-			type=IDC_MDI_EDIT;
-		}
-		else if(table_windows[i].hwnd==msg->hwnd){
-			win=&table_windows[i];
-			type=IDC_MDI_CLIENT;
-		}
-		else if(table_windows[i].habort==msg->hwnd){
-			win=&table_windows[i];
-			type=IDC_SQL_ABORT;
-		}
-		else if(msg->message==WM_MOUSEWHEEL && hwnd!=0){
+		if(msg->message==WM_MOUSEWHEEL && hwnd!=0){
 			if(table_windows[i].hlistview==hwnd){
 				win=&table_windows[i];
 				type=IDC_MDI_LISTVIEW;
+				break;
 			}
 			else if(table_windows[i].hedit==hwnd){
 				win=&table_windows[i];
 				type=IDC_MDI_EDIT;
+				break;
 			}
 			else if(table_windows[i].hwnd==hwnd){
 				win=&table_windows[i];
 				type=IDC_MDI_CLIENT;
+				break;
 			}
+		}
+		else if(table_windows[i].hlistview==msg->hwnd){
+			win=&table_windows[i];
+			type=IDC_MDI_LISTVIEW;
+			break;
+		}
+		else if(table_windows[i].hedit==msg->hwnd){
+			win=&table_windows[i];
+			type=IDC_MDI_EDIT;
+			break;
+		}
+		else if(table_windows[i].hwnd==msg->hwnd){
+			win=&table_windows[i];
+			type=IDC_MDI_CLIENT;
+			break;
+		}
+		else if(table_windows[i].habort==msg->hwnd){
+			win=&table_windows[i];
+			type=IDC_SQL_ABORT;
+			break;
 		}
 	}
 	if(win!=0){
@@ -941,8 +958,10 @@ int custom_dispatch(MSG *msg)
 		case WM_KEYFIRST:
 			switch(msg->wParam){
 			case VK_TAB:
-				if(type==IDC_MDI_LISTVIEW || type==IDC_MDI_CLIENT)
-					SetFocus(win->hedit);
+				if(type==IDC_MDI_LISTVIEW || type==IDC_MDI_CLIENT){
+					if(!(GetKeyState(VK_CONTROL)&0x8000 || GetKeyState(VK_SHIFT)&0x8000))
+						SetFocus(win->hedit);
+				}
 				else if(type==IDC_MDI_EDIT){
 					if(GetKeyState(VK_CONTROL)&0x8000 && GetKeyState(VK_SHIFT)&0x8000){
 						SetFocus(win->hlistview);
@@ -959,12 +978,6 @@ int custom_dispatch(MSG *msg)
 				if(GetKeyState(VK_CONTROL)&0x8000)
 					if(win->hwnd!=0)
 						PostMessage(win->hwnd,WM_CLOSE,0,0);
-			default:
-				if(type==IDC_MDI_CLIENT){
-					msg->hwnd=win->hedit;
-					SetFocus(win->hedit);
-				}
-				break;
 			}
 			break;
 		}

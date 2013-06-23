@@ -237,6 +237,7 @@ int add_connect_str(char *connect)
 LRESULT CALLBACK recent_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
 	static HWND grippy=0;
+	if(FALSE)
 	//if(msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY)
 	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_MOUSEMOVE&&msg!=WM_NCMOUSEMOVE)
 	{
@@ -352,6 +353,7 @@ LRESULT CALLBACK recent_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 }
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
+	static HWND last_focus=0;
 	//if(FALSE)
 	//if(msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY)
 	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_MOUSEMOVE&&msg!=WM_NCMOUSEMOVE)
@@ -383,14 +385,34 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 		}
 		break;
 	case WM_USER:
+		switch(wparam){
+		case IDC_TREEVIEW:
+			if(lparam!=0)
+				SetFocus(lparam);
+			break;
+		}
 		break;
 	case WM_USER+1:
 		break;
 	case WM_USER+2:
+			if(last_focus!=0)
+				SetFocus(last_focus);
+		break;
+	case WM_NCACTIVATE:
+		if(wparam==0){
+			last_focus=GetFocus();
+			printf("main saving focus %08X\n",last_focus);
+		}
+		else{
+			PostMessage(hwnd,WM_USER+2,0,0);
+			printf("main ncactivating focus %08X\n",last_focus);
+		}
 		break;
 	case WM_ACTIVATEAPP: //close any tooltip on app switch
-		break;
-	case WM_ACTIVATE:
+		if(wparam){
+			PostMessage(hwnd,WM_USER+2,0,0);
+			printf("main psoting focus %08X\n",last_focus);
+		}
 		break;
 	case WM_RBUTTONDOWN:
 	case WM_LBUTTONUP:
@@ -458,10 +480,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 			task_execute_query();
 			break;
 		}
-		break;
-	case WM_KILLFOCUS:
-		break;
-	case WM_NCCALCSIZE:
 		break;
 	case WM_SIZE:
 		resize_main_window(hwnd,tree_width);
@@ -550,6 +568,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
     while(GetMessage(&msg,NULL,0,0)){
 		if(!custom_dispatch(&msg))
 		if(!TranslateMDISysAccel(ghmdiclient, &msg) && !TranslateAccelerator(ghmainframe,haccel,&msg)){
+			TranslateMessage(&msg);
 			//if(msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY)
 			if(FALSE)
 			if(msg.message!=0x118&&msg.message!=WM_NCHITTEST&&msg.message!=WM_SETCURSOR&&msg.message!=WM_ENTERIDLE&&msg.message!=WM_NCMOUSEMOVE&&msg.message!=WM_MOUSEFIRST)
@@ -561,7 +580,6 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 				print_msg(msg.message,msg.lParam,msg.wParam,msg.hwnd);
 				tick=GetTickCount();
 			}
-			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}
     }

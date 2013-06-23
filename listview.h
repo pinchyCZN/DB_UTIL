@@ -177,7 +177,7 @@ static WNDPROC wporiglistview=0;
 LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
 	static int xscroll=-1,yscroll=-1;
-	//if(FALSE)
+	if(FALSE)
 	if(msg<=0x1000)
 	if(msg!=WM_NCMOUSEMOVE&&msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY
 		&&msg!=WM_USER&&msg!=WM_GETFONT)
@@ -297,7 +297,12 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			if(GetKeyState(VK_CONTROL)&0x8000){
 				TABLE_WINDOW *win=0;
 				if(find_win_by_hlistview(hwnd,&win)){
-					printf("c!!!\n"); //implement ctrl-c 
+					int sel=ListView_GetSelectionMark(win->hlistview);
+					if(sel>=0){
+						char str[255]={0};
+						ListView_GetItemText(win->hlistview,sel,win->selected_column,str,sizeof(str))
+						copy_str_clipboard(str);
+					}
 				}
 			}
 			break;
@@ -472,7 +477,7 @@ int find_win_by_hlvedit(HWND hwnd,TABLE_WINDOW **win)
 static WNDPROC lvorigedit=0;
 LRESULT APIENTRY sc_lvedit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
-	//if(FALSE)
+	if(FALSE)
 	if(msg!=WM_NCMOUSEMOVE&&msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY
 		&&msg!=WM_ERASEBKGND)
 		//if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE)

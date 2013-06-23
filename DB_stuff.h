@@ -258,7 +258,6 @@ int fetch_columns(SQLHSTMT hstmt,TABLE_WINDOW *win)
 					win->col_attr[win->columns-1].type=sqltype;
 					win->col_attr[win->columns-1].length=sqllength;
 					win->col_attr[win->columns-1].col_width=width;
-					printf("colattr=%i\n",sqltype);
 				}
 			}
 		}
@@ -544,7 +543,7 @@ int get_col_info(DB_TREE *tree,char *table)
 					char name[256]={0};
 					int len=0;
 					while(!SQLGetData(hstmt,4,SQL_C_CHAR,name,sizeof(name),&len)){
-		//				printf("cole %i = %s\n",count,name);
+						printf("cole %i = %s\n",count,name);
 						
 						SQLFetch(hstmt);
 						count++;

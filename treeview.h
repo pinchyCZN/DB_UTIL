@@ -267,6 +267,21 @@ LRESULT APIENTRY sc_treeview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		tick=GetTickCount();
 	}
 	switch(msg){
+	case WM_CHAR:
+		if(wparam==VK_TAB){
+			HANDLE hmdi=SendMessage(ghmdiclient,WM_MDIGETACTIVE,0,0);
+			if(hmdi!=0){
+				TABLE_WINDOW *win=0;
+				if(find_win_by_hwnd(hmdi,&win)){
+//					if(win->hlastfocus==hwnd)
+//						win->hlastfocus=win->hlistview;
+				}
+				printf("sending user to %08X %08X\n",ghmdiclient,hmdi);
+				//SetFocus(hmdi);
+				PostMessage(hmdi,WM_USER,hmdi,IDC_MDI_CLIENT);
+			}
+		}
+		break;
 	case WM_RBUTTONDOWN:
 		{
 			TV_HITTESTINFO ht={0};
@@ -289,7 +304,7 @@ LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
 	static int create_tree=FALSE;
 	static DWORD tick=0;
-	//if(FALSE)
+	if(FALSE)
 	//if(msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY)
 	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_MOUSEMOVE&&msg!=WM_NOTIFY)
 	{
@@ -384,6 +399,16 @@ LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 					tree_get_info(TreeView_GetSelection(ghtreeview),str,sizeof(str),&type);
 					if(type==IDC_TABLE_ITEM)
 						task_get_col_info(db,str);
+					else if(type==IDC_COL_ITEM){
+						HTREEITEM hitem=TreeView_GetParent(ghtreeview,TreeView_GetSelection(ghtreeview));
+						if(hitem!=0){
+							type=0;str[0]=0;
+							if(tree_get_info(hitem,str,sizeof(str),&type)){
+								if(type==IDC_TABLE_ITEM)
+									task_get_col_info(db,str);
+							}
+						}
+					}
 				}
 			}
 			break;

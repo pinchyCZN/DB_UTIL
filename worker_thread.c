@@ -213,14 +213,16 @@ int thread(HANDLE event)
 							void *win=0;
 							if(acquire_table_window(&win,table)){
 								char sql[256]={0};
+								int result;
 								create_table_window(ghmdiclient,win);
 								open_db(db);
 								assign_db_to_table(db,win);
 								_snprintf(sql,sizeof(sql),"SELECT * FROM %s",table);
 								mdi_set_edit_text(win,sql);
 								mdi_create_abort(win);
-								execute_sql(win,sql,TRUE);
+								result=execute_sql(win,sql,TRUE);
 								mdi_destroy_abort(win);
+								set_focus_after_result(win,result);
 								if(keep_closed)
 									close_db(db);
 
