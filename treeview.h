@@ -392,7 +392,9 @@ LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 			}
 			break;
 		case CMD_DB_INFO:
+			break;
 		case CMD_SELECTTOP:
+			break;
 		case CMD_SELECTALL:
 			open_selected_table(ghtreeview);
 			break;
