@@ -128,9 +128,10 @@ int thread(HANDLE event)
 						_snprintf(str,sizeof(str),"Cant open %s",localinfo);
 						MessageBox(ghmainframe,str,"OPEN DB FAIL",MB_OK);
 						SetWindowText(ghstatusbar,"error opening DB");
+						set_focus_after_open(db);
 					}
 					else{
-						set_focus_after_open(db,TRUE);
+						set_focus_after_open(db);
 						reassign_tables(db);
 						if(task==TASK_OPEN_DB_AND_TABLE){
 							char *s=0;
