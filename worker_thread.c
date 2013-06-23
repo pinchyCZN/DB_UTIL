@@ -1,7 +1,7 @@
 #include <windows.h>
 #include <stdio.h>
 
-extern HWND ghmainframe,ghmdiclient,ghtreeview,ghstatusbar;
+extern HWND ghmainframe,ghmdiclient,ghtreeview,ghdbview,ghstatusbar;
 HANDLE event;
 int task=0;
 int keep_closed=TRUE;
@@ -135,7 +135,8 @@ int thread(HANDLE event)
 							char *s=0;
 							s=strstr(localinfo,";TABLE=");
 							if(s!=0){
-								select_table(db,s+sizeof(";TABLE=")-1);
+								s+=sizeof(";TABLE=")-1;
+								select_all_table(db,s);
 							}
 						}
 						else{
@@ -265,8 +266,6 @@ int thread(HANDLE event)
 			}
 		}
 		ResetEvent(event);
-		if(task==TASK_OPEN_DB_AND_TABLE)
-			PostMessage(ghtreeview,WM_LBUTTONDBLCLK,0,0);
 	}
 	CloseHandle(event);
 }

@@ -16,7 +16,7 @@
 #include "resource.h"
 
 extern HINSTANCE ghinstance;
-extern HWND ghmainframe,ghmdiclient,ghtreeview,ghstatusbar;
+extern HWND ghmainframe,ghmdiclient,ghtreeview,ghdbview,ghstatusbar;
 
 typedef struct{
 	int type;

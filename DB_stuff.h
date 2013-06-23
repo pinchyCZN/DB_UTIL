@@ -228,7 +228,7 @@ int close_db(DB_TREE *tree)
 	}
 	return FALSE;
 }
-int select_table(DB_TREE *tree,char *table)
+int select_all_table(DB_TREE *tree,char *table)
 {
 	int result=FALSE;
 	if(tree!=0 && tree->htree!=0 && tree->hroot!=0){
@@ -238,6 +238,7 @@ int select_table(DB_TREE *tree,char *table)
 			tree_get_item_text(hchild,str,sizeof(str));
 			if(stricmp(str,table)==0){
 				result=TreeView_SelectItem(tree->htree,hchild);
+				PostMessage(ghdbview,WM_USER,IDC_TABLE_ITEM,0);
 				break;
 			}
 			hchild=TreeView_GetNextSibling(tree->htree,hchild);

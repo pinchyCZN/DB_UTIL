@@ -290,7 +290,7 @@ LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
 	static int create_tree=FALSE;
 	static DWORD tick=0;
-	if(FALSE)
+	//if(FALSE)
 	//if(msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY)
 	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_MOUSEMOVE&&msg!=WM_NOTIFY)
 	{
@@ -302,7 +302,7 @@ LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 	}
 	switch(msg){
 	case WM_CREATE:
-		PostMessage(hwnd,WM_USER,0,0);
+		PostMessage(hwnd,WM_USER,IDC_TABLES,0);
 		break;
 	case WM_CONTEXTMENU:
 		{
@@ -344,7 +344,7 @@ LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 					PostMessage(hwnd,WM_COMMAND,CMD_CLOSEDB,0);
 					break;
 				case VK_RETURN:
-					open_selected_table(ghtreeview);
+					PostMessage(hwnd,WM_COMMAND,CMD_SELECTALL,0);
 					printf("%08x %08X %08X\n",nm->code,nm->hwndFrom,nm->idFrom);
 					break;
 				case VK_TAB:
@@ -394,6 +394,7 @@ LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 		case CMD_DB_INFO:
 		case CMD_SELECTTOP:
 		case CMD_SELECTALL:
+			open_selected_table(ghtreeview);
 			break;
 		case CMD_TABLE_STRUCT:
 			{
@@ -420,25 +421,32 @@ LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 		}
 		break;
 	case WM_USER:
-		if(create_tree==FALSE){
-			RECT rect;
-			GetClientRect(hwnd,&rect);
-			ghtreeview=CreateWindow(WC_TREEVIEW, 
-										 "dbtreeview",
-										 WS_TABSTOP|WS_CHILD|WS_VISIBLE|TVS_LINESATROOT|TVS_HASLINES|TVS_HASBUTTONS|TVS_SHOWSELALWAYS,
-										 0, 0,
-										 rect.right,
-										 rect.bottom,
-										 hwnd,
-										 IDC_TABLES,
-										 (HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE),
-										 NULL);
-			if(ghtreeview!=0){
-				wporigtreeview=SetWindowLong(ghtreeview,GWL_WNDPROC,(LONG)sc_treeview);
-				SendMessage(ghtreeview,WM_SETFONT,GetStockObject(get_font_setting(IDC_TREEVIEW_FONT)),0);
-			}
-			create_tree=TRUE;
+		switch(wparam){
+		case IDC_TABLES:
+			if(create_tree==FALSE){
+				RECT rect;
+				GetClientRect(hwnd,&rect);
+				ghtreeview=CreateWindow(WC_TREEVIEW, 
+											 "dbtreeview",
+											 WS_TABSTOP|WS_CHILD|WS_VISIBLE|TVS_LINESATROOT|TVS_HASLINES|TVS_HASBUTTONS|TVS_SHOWSELALWAYS,
+											 0, 0,
+											 rect.right,
+											 rect.bottom,
+											 hwnd,
+											 IDC_TABLES,
+											 (HINSTANCE)GetWindowLong(hwnd,GWL_HINSTANCE),
+											 NULL);
+				if(ghtreeview!=0){
+					wporigtreeview=SetWindowLong(ghtreeview,GWL_WNDPROC,(LONG)sc_treeview);
+					SendMessage(ghtreeview,WM_SETFONT,GetStockObject(get_font_setting(IDC_TREEVIEW_FONT)),0);
+				}
+				create_tree=TRUE;
 
+			}
+			break;
+		case IDC_TABLE_ITEM:
+			PostMessage(hwnd,WM_COMMAND,CMD_SELECTALL,0);
+			break;
 		}
 		break;
 	case WM_SIZE:
