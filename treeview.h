@@ -252,6 +252,7 @@ int open_selected_table(HWND htreeview)
 	}
 	return FALSE;
 }
+
 static WNDPROC wporigtreeview=0;
 LRESULT APIENTRY sc_treeview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
@@ -451,3 +452,14 @@ LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 	return DefWindowProc(hwnd,msg,wparam,lparam);
 }
 
+int wait_for_treeview()
+{
+	int timeout=0;
+	while(ghtreeview==0){
+		Sleep(1);
+		timeout++;
+		if(timeout>800)
+			break;
+	}
+	return ghtreeview!=0;
+}

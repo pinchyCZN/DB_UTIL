@@ -11,6 +11,7 @@ enum{
 	TASK_OPEN_TABLE,
 	TASK_REFRESH_TABLES,
 	TASK_OPEN_DB,
+	TASK_OPEN_DB_AND_TABLE,
 	TASK_CLOSE_DB,
 	TASK_NEW_QUERY,
 	TASK_EXECUTE_QUERY,
@@ -21,6 +22,14 @@ enum{
 int task_open_db(char *name)
 {
 	task=TASK_OPEN_DB;
+	strncpy(taskinfo,name,sizeof(taskinfo));
+	taskinfo[sizeof(taskinfo)-1]=0;
+	SetEvent(event);
+	return TRUE;
+}
+int task_open_db_and_table(char *name)
+{
+	task=TASK_OPEN_DB_AND_TABLE;
 	strncpy(taskinfo,name,sizeof(taskinfo));
 	taskinfo[sizeof(taskinfo)-1]=0;
 	SetEvent(event);
@@ -103,10 +112,15 @@ int thread(HANDLE event)
 						set_status_bar_text(ghstatusbar,0,"cant find %s",localinfo);
 				}
 				break;
+			case TASK_OPEN_DB_AND_TABLE:
 			case TASK_OPEN_DB:
 				{
 					void *db=0;
 					SetWindowText(ghstatusbar,"opening DB");
+					if(!wait_for_treeview()){
+						SetWindowText(ghstatusbar,"treeview error");
+						break;
+					}
 					acquire_db_tree(localinfo,&db);
 					if(!mdi_open_db(db,TRUE)){
 						char str[80];
@@ -115,11 +129,21 @@ int thread(HANDLE event)
 						MessageBox(ghmainframe,str,"OPEN DB FAIL",MB_OK);
 						SetWindowText(ghstatusbar,"error opening DB");
 					}
-					else
+					else{
 						reassign_tables(db);
-					if(keep_closed)
-						close_db(db);
-					SetWindowText(ghstatusbar,"ready");
+						if(task==TASK_OPEN_DB_AND_TABLE){
+							char *s=0;
+							s=strstr(localinfo,";TABLE=");
+							if(s!=0){
+								select_table(db,s+sizeof(";TABLE=")-1);
+							}
+						}
+						else{
+							if(keep_closed)
+								close_db(db);
+							SetWindowText(ghstatusbar,"ready");
+						}
+					}
 				}
 				break;
 			case TASK_GET_COL_INFO:
@@ -127,6 +151,7 @@ int thread(HANDLE event)
 					void *db=0;
 					char table[80]={0};
 					sscanf(localinfo,"DB=0x%08X;TABLE=%79s",&db,table);
+					table[sizeof(table)-1]=0;
 					if(db!=0){
 						get_col_info(db,table);
 						if(keep_closed)
@@ -240,6 +265,8 @@ int thread(HANDLE event)
 			}
 		}
 		ResetEvent(event);
+		if(task==TASK_OPEN_DB_AND_TABLE)
+			PostMessage(ghtreeview,WM_LBUTTONDBLCLK,0,0);
 	}
 	CloseHandle(event);
 }

@@ -351,6 +351,15 @@ LRESULT CALLBACK recent_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 	}
 	return 0;
 }
+int process_cmd_line(char *cmd)
+{
+	if(cmd==0)
+		return FALSE;
+	if(strlen(cmd)>0){
+			task_open_db_and_table("UID=dba;PWD=sql;DSN=Journal;TABLE=PATIENT");
+	}
+}
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
 	static HWND last_focus=0;
@@ -564,6 +573,8 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 	UpdateWindow(ghmainframe);
 	load_window_ini(ghmainframe);
 	haccel=LoadAccelerators(ghinstance,MAKEINTRESOURCE(IDR_ACCELERATOR1));
+
+	process_cmd_line(lpCmdLine);
 
     while(GetMessage(&msg,NULL,0,0)){
 		if(!custom_dispatch(&msg))
