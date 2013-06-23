@@ -880,7 +880,16 @@ int set_focus_after_result(TABLE_WINDOW *win,int result)
 	}
 	return TRUE;
 }
-
+int set_focus_after_open(DB_TREE *tree,int result)
+{
+	if(tree!=0 && tree->htree!=0 && tree->hroot!=0){
+		if(result){
+			PostMessage(ghdbview,WM_USER,IDC_TREEVIEW,tree->htree);
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
 
 int custom_dispatch(MSG *msg)
 {

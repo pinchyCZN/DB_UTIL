@@ -424,6 +424,10 @@ LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 		break;
 	case WM_USER:
 		switch(wparam){
+		case IDC_TREEVIEW:
+			if(lparam!=0)
+				SetFocus(lparam);
+			break;
 		case IDC_TABLES:
 			if(create_tree==FALSE){
 				RECT rect;

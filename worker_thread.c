@@ -130,6 +130,7 @@ int thread(HANDLE event)
 						SetWindowText(ghstatusbar,"error opening DB");
 					}
 					else{
+						set_focus_after_open(db,TRUE);
 						reassign_tables(db);
 						if(task==TASK_OPEN_DB_AND_TABLE){
 							char *s=0;
