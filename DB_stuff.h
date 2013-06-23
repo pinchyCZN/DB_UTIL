@@ -447,12 +447,15 @@ int update_row(TABLE_WINDOW *win,int row,char *data)
 			}
 			printf("%s\n",sql);
 			if(reopen_db(win)){
+				int result;
 				mdi_create_abort(win);
-				if(execute_sql(win,sql,FALSE)){
+				result=execute_sql(win,sql,FALSE);
+				if(result){
 					lv_update_data(win->hlistview,row,win->selected_column,data);
 					result=TRUE;
 				}
 				mdi_destroy_abort(win);
+				PostMessage(win->hwnd,WM_USER,win->hlistview,IDC_MDI_CLIENT);
 			}
 			//SetWindowText(win->hedit,sql);
 		}
