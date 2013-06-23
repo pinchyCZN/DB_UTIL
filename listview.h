@@ -503,6 +503,10 @@ LRESULT APIENTRY sc_lvedit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		break;
 	case WM_KEYFIRST:
 		switch(wparam){
+		case 'A':
+			if(GetKeyState(VK_CONTROL)&0x8000)
+				SendMessage(hwnd,EM_SETSEL,0,-1);
+			break;
 		case VK_F1:
 			{
 				RECT rect={0};
@@ -581,7 +585,7 @@ int create_lv_edit(TABLE_WINDOW *win,RECT *rect)
 	if(win!=0 && rect!=0){
 		if(win->hlvedit!=0)
 			destroy_lv_edit(win);
-		win->hlvedit = CreateWindow("RichEdit50W",
+		win->hlvedit = CreateWindow("EDIT", //"RichEdit50W",
 										 "",
 										 WS_TABSTOP|WS_CHILD|WS_CLIPSIBLINGS|WS_VISIBLE|
 										 ES_LEFT|ES_AUTOHSCROLL|ES_MULTILINE|ES_AUTOVSCROLL,
