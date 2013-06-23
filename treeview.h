@@ -267,21 +267,6 @@ LRESULT APIENTRY sc_treeview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		tick=GetTickCount();
 	}
 	switch(msg){
-	case WM_CHAR:
-		if(wparam==VK_TAB){
-			HANDLE hmdi=SendMessage(ghmdiclient,WM_MDIGETACTIVE,0,0);
-			if(hmdi!=0){
-				TABLE_WINDOW *win=0;
-				if(find_win_by_hwnd(hmdi,&win)){
-//					if(win->hlastfocus==hwnd)
-//						win->hlastfocus=win->hlistview;
-				}
-				printf("sending user to %08X %08X\n",ghmdiclient,hmdi);
-				//SetFocus(hmdi);
-				PostMessage(hmdi,WM_USER,hmdi,IDC_MDI_CLIENT);
-			}
-		}
-		break;
 	case WM_RBUTTONDOWN:
 		{
 			TV_HITTESTINFO ht={0};
@@ -350,12 +335,31 @@ LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 				{
 				TV_KEYDOWN *tvn=lparam;
 				switch(tvn->wVKey){
+				case 'W':
+					if(!(GetKeyState(VK_CONTROL)&0x8000)){
+						break;
+					}
 				case VK_DELETE:
 					PostMessage(hwnd,WM_COMMAND,CMD_CLOSEDB,0);
 					break;
 				case VK_RETURN:
 					open_selected_table(ghtreeview);
 					printf("%08x %08X %08X\n",nm->code,nm->hwndFrom,nm->idFrom);
+					break;
+				case VK_TAB:
+					{
+						HANDLE hmdi=SendMessage(ghmdiclient,WM_MDIGETACTIVE,0,0);
+						if(hmdi!=0){
+							TABLE_WINDOW *win=0;
+							if(find_win_by_hwnd(hmdi,&win)){
+			//					if(win->hlastfocus==hwnd)
+			//						win->hlastfocus=win->hlistview;
+							}
+							printf("sending user to %08X %08X\n",ghmdiclient,hmdi);
+							//SetFocus(hmdi);
+							PostMessage(hmdi,WM_USER,hmdi,IDC_MDI_CLIENT);
+						}
+					}
 					break;
 				}
 				}

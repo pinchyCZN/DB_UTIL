@@ -974,6 +974,11 @@ int custom_dispatch(MSG *msg)
 				}
 
 				break;
+			case 'L':
+				if(GetKeyState(VK_CONTROL)&0x8000)
+					if(ghtreeview!=0)
+						SetFocus(ghtreeview);
+				break;
 			case 'W':
 				if(GetKeyState(VK_CONTROL)&0x8000)
 					if(win->hwnd!=0)
