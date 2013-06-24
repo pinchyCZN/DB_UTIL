@@ -444,15 +444,7 @@ int process_cmd_line(char *cmd)
 			}
 
 		}
-		if(table[0]!=0){
-			char str[MAX_PATH];
-			//DSN=Visual FoxPro Tables;UID=;PWD=;SourceDB=C:\temp\test\;SourceType=DBF;Exclusive=No;BackgroundFetch=Yes;Collate=Machine;Null=Yes;Deleted=Yes;
-
-			_snprintf(str,sizeof(str),"blah blah ;TABLE=%s",table);
-			//task_open_db_and_table(str);
-		}
-		else
-			task_open_db_and_table("UID=dba;PWD=sql;DSN=Journal;TABLE=PATIENT");
+//		task_open_db_and_table("UID=dba;PWD=sql;DSN=Journal;TABLE=PATIENT");
 	}
 	return TRUE;
 }
@@ -460,7 +452,7 @@ int process_cmd_line(char *cmd)
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
 	static HWND last_focus=0;
-	//if(FALSE)
+	if(FALSE)
 	//if(msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY)
 	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_MOUSEMOVE&&msg!=WM_NCMOUSEMOVE)
 	{

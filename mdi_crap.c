@@ -45,8 +45,8 @@ typedef struct{
 }DB_TREE;
 
 
-static TABLE_WINDOW table_windows[5];
-static DB_TREE db_tree[5];
+static TABLE_WINDOW table_windows[50];
+static DB_TREE db_tree[20];
 
 #include "col_info.h"
 #include "treeview.h"
@@ -57,7 +57,7 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 {
 	static int split_drag=FALSE,mdi_split=60;
 	static HWND last_focus=0;
-	//if(FALSE)
+	if(FALSE)
 	if(msg!=WM_NCMOUSEMOVE&&msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY
 		&&msg!=WM_ERASEBKGND&&msg!=WM_DRAWITEM) 
 		//if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE)
