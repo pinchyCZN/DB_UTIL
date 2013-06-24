@@ -32,6 +32,8 @@
 #define IDC_LISTVIEW_FONT               1024
 #define IDC_TREEVIEW_FONT               1026
 #define IDC_EDIT1                       1027
+#define IDC_SINGLE_INSTANCE             1028
+#define IDC_DEBUG                       1029
 #define IDM_SETTINGS                    40002
 #define IDM_OPEN                        40006
 #define IDM_CLOSE                       40007
@@ -45,7 +47,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        110
 #define _APS_NEXT_COMMAND_VALUE         40011
-#define _APS_NEXT_CONTROL_VALUE         1028
+#define _APS_NEXT_CONTROL_VALUE         1030
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

@@ -685,6 +685,57 @@ int acquire_table_window(TABLE_WINDOW **win,char *tname)
 	}
 	return FALSE;
 }
+int grab_param(const char *search,char *str,char *out,int olen)
+{
+	char *p;
+	p=strstr(str,search);
+	if(p!=0){
+		int i,len,index;
+		p+=strlen(search);
+		len=strlen(p);
+		if(len>=olen-1)
+			len=olen-1;
+		index=0;
+		for(i=0;i<len;i++){
+			if(p[i]==';')
+				break;
+			out[index++]=p[i];
+		}
+		out[index]=0;
+		if(index>0)
+			return TRUE;
+	}
+	return FALSE;
+}
+int compare_connect_str(char *c1,char *c2)
+{
+	char s1[512],s2[512];
+	int match=FALSE;
+	if(grab_param("DSN=",c1,s1,sizeof(s1)) &&
+		grab_param("DSN=",c2,s2,sizeof(s2))){
+		if(stricmp(s1,s2)==0)
+			match=TRUE;
+		else
+			match=FALSE;
+	}
+	if(match)
+	if(grab_param("SourceDB",c1,s1,sizeof(s1)) &&
+		grab_param("SourceDB",c2,s2,sizeof(s2))){
+		if(stricmp(s1,s2)==0)
+			match=TRUE;
+		else
+			match=FALSE;
+	}
+	if(match)
+	if(grab_param("SourceType",c1,s1,sizeof(s1)) &&
+		grab_param("SourceType",c2,s2,sizeof(s2))){
+		if(stricmp(s1,s2)==0)
+			match=TRUE;
+		else
+			match=FALSE;
+	}
+	return match;
+}
 int find_db_tree(char *name,DB_TREE **tree)
 {
 	int i;
@@ -694,7 +745,7 @@ int find_db_tree(char *name,DB_TREE **tree)
 				*tree=&db_tree[i];
 				return TRUE;
 			}
-			else if(stricmp(name,db_tree[i].connect_str)==0){
+			else if(compare_connect_str(name,db_tree[i].connect_str)){
 				*tree=&db_tree[i];
 				return TRUE;
 			}

@@ -100,9 +100,19 @@ LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 	case WM_INITDIALOG:
 		{
 			extern int keep_closed;
+			int val;
 			get_ini_value(INI_SETTINGS,"KEEP_CLOSED",&keep_closed);
 			if(!keep_closed)
 				CheckDlgButton(hwnd,IDC_KEEP_CONNECTED,BST_CHECKED);
+			val=0;
+			get_ini_value(INI_SETTINGS,"SINGLE_INSTANCE",&val);
+			if(val)
+				CheckDlgButton(hwnd,IDC_SINGLE_INSTANCE,BST_CHECKED);
+			val=0;
+			get_ini_value(INI_SETTINGS,"DEBUG",&val);
+			if(val)
+				CheckDlgButton(hwnd,IDC_DEBUG,BST_CHECKED);
+
 			add_fonts(hwnd,IDC_SQL_FONT);
 			add_fonts(hwnd,IDC_LISTVIEW_FONT);
 			add_fonts(hwnd,IDC_TREEVIEW_FONT);
@@ -169,11 +179,27 @@ LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			{
 			extern int keep_closed;
 			char key[80],str[80];
-			int i,ctrls[3]={IDC_SQL_FONT,IDC_LISTVIEW_FONT,IDC_TREEVIEW_FONT};
+			int i,val,ctrls[3]={IDC_SQL_FONT,IDC_LISTVIEW_FONT,IDC_TREEVIEW_FONT};
 			if(IsDlgButtonChecked(hwnd,IDC_KEEP_CONNECTED)==BST_CHECKED)
 				keep_closed=FALSE;
 			else
 				keep_closed=TRUE;
+			
+			val=0;
+			if(IsDlgButtonChecked(hwnd,IDC_KEEP_CONNECTED)==BST_CHECKED)
+				val=1;
+			write_ini_value(INI_SETTINGS,"SINGLE_INSTANCE",val);
+			
+			val=0;
+			if(IsDlgButtonChecked(hwnd,IDC_SINGLE_INSTANCE)==BST_CHECKED)
+				val=1;
+			write_ini_value(INI_SETTINGS,"SINGLE_INSTANCE",val);
+
+			val=0;
+			if(IsDlgButtonChecked(hwnd,IDC_DEBUG)==BST_CHECKED)
+				val=1;
+			write_ini_value(INI_SETTINGS,"DEBUG",val);
+
 			write_ini_value(INI_SETTINGS,"KEEP_CLOSED",keep_closed);
 			for(i=0;i<sizeof(ctrls)/sizeof(int);i++){
 				key[0]=0;

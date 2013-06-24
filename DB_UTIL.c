@@ -360,13 +360,64 @@ int strstri(const char *s1,const char *s2)
 				return (s1+i);
 	return NULL;
 }
+int get_path(char *fname,char *path,int plen)
+{
+	char drive[_MAX_DRIVE]={0},dir[_MAX_DIR]={0};
+	char *trail="\\";
+	int dirlen=0;
+	_splitpath(fname,drive,dir,NULL,NULL);
+	dirlen=strlen(dir);
+	if(dirlen>0 && dir[dirlen-1]=='\\')
+		trail="";
+	_snprintf(path,plen,"%s%s%s",drive,dir,trail);
+	return TRUE;
+}
+int remove_quotes(char *path,int max)
+{
+	int i,len,index=0,infile=FALSE;
+	if(strchr(path,'\"')==0)
+		return TRUE;
+	len=strlen(path);
+	if(len>=max-1)
+		len=max-1;
+	for(i=0;i<len;i++){
+		if(infile){
+			if(path[i]=='\"')
+				break;
+			path[index++]=path[i];
+		}
+		else if(path[i]=='\"')
+			infile=TRUE;
+
+	}
+	path[index]=0;
+	return TRUE;
+}
+int get_table(char *fname,char *table,int tsize)
+{
+	char file[_MAX_FNAME]={0};
+	_splitpath(fname,NULL,NULL,file,NULL);
+	_snprintf(table,tsize,"%s",file);
+	if(tsize>0)
+		table[tsize-1]=0;
+	return TRUE;
+}
+int get_ext(char *fname,char *ext,int size)
+{
+	char extension[_MAX_FNAME]={0};
+	_splitpath(fname,NULL,NULL,NULL,extension);
+	_snprintf(ext,size,"%s",extension);
+	if(size>0)
+		ext[size-1]=0;
+	return TRUE;
+}
 int process_cmd_line(char *cmd)
 {
 	if(cmd==0)
 		return FALSE;
 	if(strlen(cmd)>0){
 		char *opt=0;
-		char table[8]={0};
+		char table[80]={0};
 		opt=strstr(cmd,"/TABLE ");
 		if(opt!=0){
 			opt+=sizeof("/TABLE ")-1;
@@ -375,24 +426,35 @@ int process_cmd_line(char *cmd)
 		}
 		opt=strstri(cmd,".DBF");
 		if(opt!=0){
-			int i,index=0,len=strlen(cmd);
-			for(i=0;i<len;i++){
-				if(index>=sizeof(table)-1)
-					break;
-				if((cmd+i)==opt)
-					break;
-				table[index++]=cmd[i];
+			char fname[MAX_PATH+4]={0};
+			char path[MAX_PATH]={0};
+			char ext[_MAX_EXT]={0};
+			_snprintf(fname,sizeof(fname),"%s",cmd);
+			fname[sizeof(fname)-1]=0;
+			remove_quotes(fname,sizeof(fname));
+			get_path(fname,path,sizeof(path));
+			get_table(fname,table,sizeof(table));
+			get_ext(fname,ext,sizeof(ext));
+			if(stricmp(ext,".DBF")==0 && table[0]!=0){
+				char connect[1024]={0};
+				_snprintf(connect,sizeof(connect),
+					"DSN=Visual FoxPro Tables;UID=;PWD=;SourceDB=%s;SourceType=DBF;Exclusive=No;BackgroundFetch=Yes;Collate=Machine;Null=Yes;Deleted=Yes;TABLE=%s",path,table);
+				task_open_db_and_table(connect);
+				return TRUE;
 			}
-			table[index]=0;
+
 		}
 		if(table[0]!=0){
 			char str[MAX_PATH];
+			//DSN=Visual FoxPro Tables;UID=;PWD=;SourceDB=C:\temp\test\;SourceType=DBF;Exclusive=No;BackgroundFetch=Yes;Collate=Machine;Null=Yes;Deleted=Yes;
+
 			_snprintf(str,sizeof(str),"blah blah ;TABLE=%s",table);
 			//task_open_db_and_table(str);
 		}
 		else
 			task_open_db_and_table("UID=dba;PWD=sql;DSN=Journal;TABLE=PATIENT");
 	}
+	return TRUE;
 }
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
@@ -428,6 +490,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 			parts[0]=100;parts[1]=-1;
 		}
 		break;
+	case WM_COPYDATA:
+		if(lparam!=0){
+			COPYDATASTRUCT *cd=lparam;
+			process_cmd_line(cd->lpData);
+		}
+		break;
 	case WM_USER:
 		switch(wparam){
 		case IDC_TREEVIEW:
@@ -437,8 +505,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 		}
 		break;
 	case WM_USER+1:
-		break;
-	case WM_USER+2:
 			if(last_focus!=0)
 				SetFocus(last_focus);
 		break;
@@ -448,13 +514,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 			printf("main saving focus %08X\n",last_focus);
 		}
 		else{
-			PostMessage(hwnd,WM_USER+2,0,0);
+			PostMessage(hwnd,WM_USER+1,0,0);
 			printf("main ncactivating focus %08X\n",last_focus);
 		}
 		break;
 	case WM_ACTIVATEAPP: //close any tooltip on app switch
 		if(wparam){
-			PostMessage(hwnd,WM_USER+2,0,0);
+			PostMessage(hwnd,WM_USER+1,0,0);
 			printf("main psoting focus %08X\n",last_focus);
 		}
 		break;
@@ -577,7 +643,15 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 		int val=0;
 		get_ini_value("SETTINGS","SINGLE_INSTANCE",&val);
 		if(val && (!first_instance)){
-
+			COPYDATASTRUCT cd={0};
+			HWND hdbutil;
+			cd.cbData=nCmdShow;
+			cd.cbData=strlen(lpCmdLine)+1;
+			cd.lpData=lpCmdLine;
+			hdbutil=FindWindow("DB_UTIL_CLASS",NULL);
+			if(hdbutil!=0)
+				SendMessage(hdbutil,WM_COPYDATA,hInstance,&cd);
+			return TRUE;
 		}
 	}
 	init_mdi_stuff();
