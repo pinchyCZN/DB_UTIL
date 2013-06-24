@@ -46,7 +46,7 @@ int copy_str_clipboard(char *str)
 }
 int load_icon(HWND hwnd)
 {
-	HICON hIcon = LoadIcon(ghinstance,MAKEINTRESOURCE(IDI_ICON1));
+	HICON hIcon = LoadIcon(ghinstance,MAKEINTRESOURCE(IDI_ICON));
     if(hIcon){
 		SendMessage(hwnd,WM_SETICON,ICON_SMALL,(LPARAM)hIcon);
 		SendMessage(hwnd,WM_SETICON,ICON_BIG,(LPARAM)hIcon);

@@ -9,7 +9,7 @@
 #define IDD_SETTINGS                    107
 #define IDD_COL_INFO                    108
 #define IDD_FILENAME                    109
-#define IDI_ICON1                       110
+#define IDI_ICON                        110
 #define IDC_STATUS                      1003
 #define IDC_TABLES                      1004
 #define IDC_MDI_LISTVIEW                1005
