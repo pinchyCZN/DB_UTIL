@@ -446,7 +446,7 @@ int process_cmd_line(char *cmd)
 		}
 //		task_open_db_and_table("UID=dba;PWD=sql;DSN=Journal;TABLE=PATIENT");
 	}
-	return TRUE;
+	return FALSE;
 }
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
@@ -641,8 +641,18 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 			cd.cbData=strlen(lpCmdLine)+1;
 			cd.lpData=lpCmdLine;
 			hdbutil=FindWindow("DB_UTIL_CLASS",NULL);
-			if(hdbutil!=0)
+			if(hdbutil!=0){
+				int sw;
 				SendMessage(hdbutil,WM_COPYDATA,hInstance,&cd);
+				if (IsZoomed(hdbutil))
+					sw=SW_MAXIMIZE;
+				else if(IsIconic(hdbutil))
+					sw=SW_RESTORE;
+				else
+					sw=SW_SHOW;
+				ShowWindow(hdbutil,sw);
+				SetForegroundWindow(hdbutil);
+			}
 			return TRUE;
 		}
 	}
