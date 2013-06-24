@@ -290,6 +290,7 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 	if(hstmt!=0 && win!=0){
 		while(TRUE){
 			int result=0;
+
 			int i;
 			if(win->abort || win->hwnd==0)
 				break;

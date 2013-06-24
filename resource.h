@@ -10,6 +10,7 @@
 #define IDD_COL_INFO                    108
 #define IDD_FILENAME                    109
 #define IDI_ICON                        110
+#define IDD_SEARCH                      111
 #define IDC_STATUS                      1003
 #define IDC_TABLES                      1004
 #define IDC_MDI_LISTVIEW                1005
@@ -34,6 +35,7 @@
 #define IDC_EDIT1                       1027
 #define IDC_SINGLE_INSTANCE             1028
 #define IDC_DEBUG                       1029
+#define IDC_SEARCH_COL                  1030
 #define IDM_SETTINGS                    40002
 #define IDM_OPEN                        40006
 #define IDM_CLOSE                       40007
@@ -45,9 +47,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        111
+#define _APS_NEXT_RESOURCE_VALUE        112
 #define _APS_NEXT_COMMAND_VALUE         40011
-#define _APS_NEXT_CONTROL_VALUE         1030
+#define _APS_NEXT_CONTROL_VALUE         1031
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

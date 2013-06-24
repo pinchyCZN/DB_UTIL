@@ -1,3 +1,5 @@
+#include "search.h"
+
 static HMENU lv_menu=0;
 static HMENU lv_col_menu=0;
 enum {
@@ -303,6 +305,14 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 						ListView_GetItemText(win->hlistview,sel,win->selected_column,str,sizeof(str))
 						copy_str_clipboard(str);
 					}
+				}
+			}
+			break;
+		case 'F':
+			if(GetKeyState(VK_CONTROL)&0x8000){
+				TABLE_WINDOW *win=0;
+				if(find_win_by_hlistview(hwnd,&win)){
+					//DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_SEARCH),hwnd,search_proc,win);
 				}
 			}
 			break;
