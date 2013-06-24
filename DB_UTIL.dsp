@@ -226,6 +226,10 @@ SOURCE=.\pragma.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\search.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\treeview.h
 # End Source File
 # End Group
