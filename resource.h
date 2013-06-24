@@ -2,7 +2,6 @@
 // Microsoft Developer Studio generated include file.
 // Used by resource.rc
 //
-#define IDI_ICON                        101
 #define IDR_MENU1                       102
 #define IDD_DIALOG1                     103
 #define IDR_ACCELERATOR1                105
@@ -10,6 +9,7 @@
 #define IDD_SETTINGS                    107
 #define IDD_COL_INFO                    108
 #define IDD_FILENAME                    109
+#define IDI_ICON1                       110
 #define IDC_STATUS                      1003
 #define IDC_TABLES                      1004
 #define IDC_MDI_LISTVIEW                1005
@@ -45,7 +45,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        110
+#define _APS_NEXT_RESOURCE_VALUE        111
 #define _APS_NEXT_COMMAND_VALUE         40011
 #define _APS_NEXT_CONTROL_VALUE         1030
 #define _APS_NEXT_SYMED_VALUE           101

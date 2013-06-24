@@ -245,7 +245,10 @@ int thread(HANDLE event)
 								create_table_window(ghmdiclient,win);
 								open_db(db);
 								assign_db_to_table(db,win);
-								_snprintf(sql,sizeof(sql),"SELECT * FROM %s",table);
+								if(strchr(table,' ')!=0)
+									_snprintf(sql,sizeof(sql),"SELECT * FROM [%s]",table);
+								else
+									_snprintf(sql,sizeof(sql),"SELECT * FROM %s",table);
 								mdi_set_edit_text(win,sql);
 								mdi_create_abort(win);
 								result=execute_sql(win,sql,TRUE);
