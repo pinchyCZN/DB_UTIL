@@ -290,6 +290,8 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 	if(fname!=0 && fname[0]!=0)
 		f=fopen(fname,"wb");
 	if(hstmt!=0 && win!=0){
+		int buf_size=0x20000;
+		char *buf=malloc(buf_size);
 		while(TRUE){
 			int result=0;
 
@@ -300,11 +302,18 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 			if(!(result==SQL_SUCCESS || result==SQL_SUCCESS_WITH_INFO))
 				break;
 			for(i=0;i<cols;i++){
-				static char str[0x10000]={0};
+				char tmp[255]={0};
+				char *str=tmp;
+				int sizeof_str=sizeof(tmp);
 				int len=0;
 				if(win->abort || win->hwnd==0)
 					break;
-				result=SQLGetData(hstmt,i+1,SQL_C_CHAR,str,sizeof(str),&len);
+				if(buf!=0){ //use buffer if its avail
+					str=buf;
+					sizeof_str=buf_size;
+					str[0]=0;
+				}
+				result=SQLGetData(hstmt,i+1,SQL_C_CHAR,str,sizeof_str,&len);
 				if(f!=0)
 					fprintf(f,"%s%s",str,i==cols-1?"\n----------------------------------------------------\n":",@@@@\n");
 				if(result==SQL_SUCCESS || result==SQL_SUCCESS_WITH_INFO){
@@ -326,6 +335,8 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 			}
 			rows++;
 		}
+		if(buf!=0)
+			free(buf);
 		{
 			int i;
 			if(win->col_attr!=0)
