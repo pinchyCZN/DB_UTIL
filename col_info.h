@@ -76,7 +76,7 @@ int populate_col_info(HWND hwnd,HWND hlistview,LPARAM lparam)
 			method=LVSCW_AUTOSIZE_USEHEADER;
 		ListView_SetColumnWidth(hlistview,i,method);
 	}
-
+	return TRUE;
 }
 LRESULT CALLBACK col_info_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {

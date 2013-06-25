@@ -61,8 +61,11 @@ int task_new_query()
 	return TRUE;
 
 }
-int task_execute_query()
+int task_execute_query(char *fname)
 {
+	taskinfo[0]=0;
+	if(fname!=0 && fname[0]!=0)
+		_snprintf(taskinfo,sizeof(taskinfo),"%s",fname);
 	task=TASK_EXECUTE_QUERY;
 	SetEvent(event);
 	return TRUE;

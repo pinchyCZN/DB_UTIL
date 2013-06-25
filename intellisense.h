@@ -373,6 +373,7 @@ int subclass_edit(HWND hedit)
 static int gintellisense_tid=0;
 int assert()
 {
+	return 0;
 }
 int intellisense_thread(void)
 {

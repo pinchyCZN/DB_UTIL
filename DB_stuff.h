@@ -286,7 +286,9 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 {
 	SQLINTEGER rows=0;
 	FILE *f=0;
-	//f=fopen("c:\\temp\\sql_data.txt","wb");
+	char *fname=0;
+	if(fname!=0 && fname[0]!=0)
+		f=fopen(fname,"wb");
 	if(hstmt!=0 && win!=0){
 		while(TRUE){
 			int result=0;

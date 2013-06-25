@@ -579,7 +579,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 			task_new_query();
 			break;
 		case IDC_EXECUTE_SQL:
-			task_execute_query();
+			task_execute_query(NULL);
 			break;
 		}
 		break;

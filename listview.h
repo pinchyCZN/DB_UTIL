@@ -205,6 +205,8 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 					f=fopen(fname,"wb");
 					if(f!=0){
 						int i,j,item_count,col_count;
+						char *buf;
+						int buf_size=0x10000;
 						item_count=ListView_GetItemCount(hwnd);
 						col_count=lv_get_column_count(hwnd);
 						set_status_bar_text(ghstatusbar,0,"exporting data to %s",fname);
@@ -213,13 +215,19 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 							lv_get_col_text(hwnd,i,str,sizeof(str));
 							fprintf(f,"%s%s",str,i==col_count-1?"\n":",");
 						}
-						for(i=0;i<item_count;i++){
-							for(j=0;j<col_count;j++){
-								char str[255]={0};
-								ListView_GetItemText(hwnd,i,j,str,sizeof(str));
-								fprintf(f,"%s%s",str,j==col_count-1?"\n":",");
+						buf=malloc(buf_size);
+						if(buf!=0){
+							for(i=0;i<item_count;i++){
+								for(j=0;j<col_count;j++){
+									buf[0]=0;
+									ListView_GetItemText(hwnd,i,j,buf,buf_size);
+									fprintf(f,"%s%s",buf,j==col_count-1?"\n":",");
+								}
 							}
+							free(buf);
 						}
+						else
+							fprintf(f,"cant allocate buffer of size %08X\n",buf_size);
 						fclose(f);
 						set_status_bar_text(ghstatusbar,0,"finished export to %s",fname);
 					}else{
@@ -312,7 +320,7 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			if(GetKeyState(VK_CONTROL)&0x8000){
 				TABLE_WINDOW *win=0;
 				if(find_win_by_hlistview(hwnd,&win)){
-					//DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_SEARCH),hwnd,search_proc,win);
+					DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_SEARCH),hwnd,search_proc,win);
 				}
 			}
 			break;
