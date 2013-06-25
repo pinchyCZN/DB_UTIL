@@ -93,6 +93,31 @@ int select_current_font(HWND hwnd,int ctrl)
 	SendDlgItemMessage(hwnd,ctrl,CB_SETCURSEL,index,0);
 	return TRUE;
 }
+int set_single_instance(int set)
+{
+	static char *instname="DB_UTIL Instance";
+	static HANDLE hmutex=0;
+	if(set){
+		SetLastError(NO_ERROR);
+		if(hmutex==0)
+			hmutex=CreateMutex(NULL,FALSE,instname);
+		if(GetLastError()==ERROR_ALREADY_EXISTS)
+			return FALSE;
+		else
+			return TRUE;
+	}
+	else{
+		if(hmutex!=0){
+			if(WaitForSingleObject(hmutex,0)==WAIT_OBJECT_0)
+				if(ReleaseMutex(hmutex)!=0)
+					if(CloseHandle(hmutex)!=0){
+						hmutex=0;
+						return TRUE;
+					}
+		}
+	}
+	return FALSE;
+}
 LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
 	static HWND grippy=0;
@@ -194,6 +219,7 @@ LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			if(IsDlgButtonChecked(hwnd,IDC_SINGLE_INSTANCE)==BST_CHECKED)
 				val=1;
 			write_ini_value(INI_SETTINGS,"SINGLE_INSTANCE",val);
+			set_single_instance(val);
 
 			val=0;
 			if(IsDlgButtonChecked(hwnd,IDC_DEBUG)==BST_CHECKED)

@@ -25,9 +25,14 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 	case WM_COMMAND:
 		switch(LOWORD(wparam)){
 		case IDOK:
+			if((GetKeyState(VK_CONTROL)&0x8000) || (GetKeyState(VK_SHIFT)&0x8000))
+				wparam=IDC_SEARCH_UP;
+			else
+				wparam=IDC_SEARCH_DOWN;
+
 		case IDC_SEARCH_UP:
 		case IDC_SEARCH_DOWN:
-
+			break;
 		case IDCANCEL:
 			EndDialog(hwnd,0);
 			break;

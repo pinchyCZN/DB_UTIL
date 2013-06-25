@@ -619,10 +619,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 #ifdef _DEBUG
 	debug=1;
 #endif
-	SetLastError(NO_ERROR);
-	CreateMutex(NULL,FALSE,"DB_UTIL Instance");
-	if(GetLastError()==ERROR_ALREADY_EXISTS)
-		first_instance=FALSE;
+	first_instance=set_single_instance(TRUE);
 
 	ghinstance=hInstance;
 	init_ini_file();
@@ -655,6 +652,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 			}
 			return TRUE;
 		}
+		set_single_instance(val);
 	}
 	init_mdi_stuff();
 
