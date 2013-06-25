@@ -123,9 +123,10 @@ int thread(HANDLE event)
 					}
 					acquire_db_tree(localinfo,&db);
 					if(!mdi_open_db(db,TRUE)){
-						char str[80];
+						char str[512];
 						mdi_remove_db(db);
 						_snprintf(str,sizeof(str),"Cant open %s",localinfo);
+						str[sizeof(str)-1]=0;
 						MessageBox(ghmainframe,str,"OPEN DB FAIL",MB_OK);
 						SetWindowText(ghstatusbar,"error opening DB");
 						set_focus_after_open(db);
