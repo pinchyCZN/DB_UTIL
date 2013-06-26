@@ -33,16 +33,14 @@ int get_str_width(HWND hwnd,char *str)
 }
 int lv_scroll_column(HWND hlistview,int index)
 {
-	HWND header;
+	RECT rect={0};
 	int result=FALSE;
-	header=SendMessage(hlistview,LVM_GETHEADER,0,0);
-	if(header!=0){
-		RECT rect={0},rectlv={0};
+	if(lv_get_col_rect(hlistview,index,&rect)){
+		RECT rectlv={0};
 		SCROLLINFO si;
 		si.cbSize=sizeof(si);
 		si.fMask=SIF_POS;
-		if(SendMessage(header,HDM_GETITEMRECT,index,&rect) &&
-			GetClientRect(hlistview,&rectlv) &&
+		if(	GetClientRect(hlistview,&rectlv) &&
 			GetScrollInfo(hlistview,SB_HORZ,&si)){
 			int diff=0;
 			if(rect.right-si.nPos>rectlv.right)
@@ -50,8 +48,19 @@ int lv_scroll_column(HWND hlistview,int index)
 			else if(rect.left-si.nPos<rectlv.left)
 				diff=-si.nPos+rect.left;
 			if(diff!=0)
-				ListView_Scroll(hlistview,diff,0);
+				result=ListView_Scroll(hlistview,diff,0);
 		}
+	}
+	return result;
+}
+int lv_get_col_rect(HWND hlistview,int col,RECT *rect)
+{
+	int result=FALSE;
+	if(hlistview!=0 && rect!=0){
+		HWND header=SendMessage(hlistview,LVM_GETHEADER,0,0);
+		if(header!=0)
+			if(SendMessage(header,HDM_GETITEMRECT,col,rect))
+				result=TRUE;
 	}
 	return result;
 }
@@ -294,6 +303,7 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		break;
 	case WM_KEYFIRST:
 		switch(wparam){
+/*
 		case VK_ESCAPE:
 			{
 				TABLE_WINDOW *win=0;
@@ -324,6 +334,7 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				}
 			}
 			break;
+*/
 		}
 		break;
 	case WM_CONTEXTMENU:
@@ -347,12 +358,10 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 					TABLE_WINDOW *win=0;
 					if(find_win_by_hlistview(hwnd,&win)){
 						win->selected_column=ht.iSubItem;
-						InvalidateRect(hwnd,NULL
-							,FALSE);
+						InvalidateRect(hwnd,NULL,FALSE);
 					}
 					printf("hit test %08X %i %i\n",ht.flags,ht.iItem,ht.iSubItem);
 				}
-				
 				hmenu=lv_col_menu;
 			}
 			else{

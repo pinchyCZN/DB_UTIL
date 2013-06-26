@@ -480,6 +480,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 			}
 			get_ini_value("SETTINGS","KEEP_CLOSED",&keep_closed);
 			parts[0]=100;parts[1]=-1;
+			load_icon(hwnd);
 		}
 		break;
 	case WM_COPYDATA:

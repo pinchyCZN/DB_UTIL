@@ -186,13 +186,32 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 							case VK_RIGHT:dir=1;break;
 							case VK_ESCAPE:
 								destroy_lv_edit(win);
+								SendMessage(win->hwnd,WM_USER,0,IDC_MDI_LISTVIEW);
+								SetFocus(win->hedit);
+								break;
+							case 'C':
+								if(GetKeyState(VK_CONTROL)&0x8000){
+									int sel=ListView_GetSelectionMark(win->hlistview);
+									if(sel>=0){
+										char str[255]={0};
+										ListView_GetItemText(win->hlistview,sel,win->selected_column,str,sizeof(str))
+										copy_str_clipboard(str);
+									}
+								}
+								break;
+							case 'F':
+								if(GetKeyState(VK_CONTROL)&0x8000)
+									DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_SEARCH),hwnd,search_proc,win);
+								break;
 							}
-							win->selected_column+=dir;
-							if(win->selected_column<0)
-								win->selected_column=0;
-							if(win->selected_column>=win->columns)
-								win->selected_column=win->columns-1;
-							lv_scroll_column(win->hlistview,win->selected_column);
+							if(dir!=0){
+								win->selected_column+=dir;
+								if(win->selected_column<0)
+									win->selected_column=0;
+								if(win->selected_column>=win->columns)
+									win->selected_column=win->columns-1;
+								lv_scroll_column(win->hlistview,win->selected_column);
+							}
 						}
 					}
 					break;
