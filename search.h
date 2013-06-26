@@ -165,7 +165,8 @@ int do_search(TABLE_WINDOW *win,HWND hwnd,char *find,int dir,int col_only)
 
 
 		}
-		
+		set_status_bar_text(ghstatusbar,1,"row=%3i col=%2i",last_row+1,win->selected_column);
+
 		SetWindowPos(hwnd,NULL,rect_col.left,rect.bottom,0,0,SWP_NOSIZE|SWP_NOZORDER);
 		if(dir==IDC_SEARCH_DOWN){
 			last_dir=DOWN;
@@ -205,7 +206,7 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 	static HWND hwndTT=0;
 	int search=0;
 
-
+	if(FALSE)
 	if(msg!=WM_NCMOUSEMOVE&&msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY
 		&&msg!=WM_USER&&msg!=WM_GETFONT)
 	{
@@ -259,9 +260,6 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 					index=ListView_GetSelectionMark(win->hlistview);
 					if(index>=0){
 						ListView_RedrawItems(win->hlistview,index,index);
-						//RECT rect={0};
-						//if(ListView_GetItemRect(win->hlistview,index,&rect,LVIR_BOUNDS))
-						//	InvalidateRect(win->hlistview,&rect,TRUE);
 					}
 					lv_scroll_column(win->hlistview,sel);
 				}
