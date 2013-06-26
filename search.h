@@ -110,7 +110,6 @@ int do_search(TABLE_WINDOW *win,HWND hwnd,char *find,int dir,int col_only)
 					j=win->selected_column;
 					ListView_GetItemText(win->hlistview,i,win->selected_column,str,sizeof(str));
 					if(strstri(str,find)!=0){
-						i--;
 						found=TRUE;
 						break;
 					}
@@ -168,10 +167,17 @@ int do_search(TABLE_WINDOW *win,HWND hwnd,char *find,int dir,int col_only)
 		}
 		
 		SetWindowPos(hwnd,NULL,rect_col.left,rect.bottom,0,0,SWP_NOSIZE|SWP_NOZORDER);
-		if(dir==IDC_SEARCH_DOWN)
+		if(dir==IDC_SEARCH_DOWN){
 			last_dir=DOWN;
-		else
+			if(col_only)
+				last_row++;
+
+		}
+		else{
 			last_dir=UP;
+			if(col_only)
+				last_row--;
+		}
 	}
 	return found;
 }
@@ -275,7 +281,10 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			search=UP;
 			break;
 		case IDC_SEARCH_DOWN:
-			search=DOWN;
+			if((GetKeyState(VK_CONTROL)&0x8000) || (GetKeyState(VK_SHIFT)&0x8000))
+				search=UP;
+			else
+				search=DOWN;
 			break;
 		case IDCANCEL:
 			if(timer!=0)
