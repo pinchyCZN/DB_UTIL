@@ -284,8 +284,7 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 						if(SetWindowPos(win->hlvedit,HWND_TOP,rect.left-(pos-xscroll),rect.top,0,0,SWP_NOSIZE)){
 							int item;
 							item=ListView_GetSelectionMark(win->hlistview);
-							ListView_GetItemRect(win->hlistview,item,&rect,LVIR_BOUNDS);
-							InvalidateRect(win->hlistview,&rect,FALSE);
+							ListView_RedrawItems(win->hlistview,item,item);
 							InvalidateRect(win->hlvedit,NULL,FALSE);
 							printf("pos=%i xscroll=%i item=%i\n",pos,xscroll,item);
 						}

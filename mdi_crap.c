@@ -154,10 +154,9 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 					if(ListView_SubItemHitTest(nmhdr->hwndFrom,&lvhit)>=0){
 						find_win_by_hwnd(hwnd,&win);
 						if(win!=0){
-							RECT rect={0};
-							ListView_GetItemRect(nmhdr->hwndFrom,lvhit.iItem,&rect,LVIR_BOUNDS);
 							win->selected_column=lvhit.iSubItem;
-							InvalidateRect(nmhdr->hwndFrom,&rect,TRUE);
+							ListView_RedrawItems(nmhdr->hwndFrom,lvhit.iItem,lvhit.iItem);
+							UpdateWindow(nmhdr->hwndFrom);
 							set_status_bar_text(ghstatusbar,1,"row=%3i col=%2i",lvhit.iItem+1,lvhit.iSubItem+1);
 						}
 					}

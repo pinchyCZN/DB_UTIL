@@ -70,7 +70,6 @@ int do_search(TABLE_WINDOW *win,HWND hwnd,char *find,int dir,int col_only)
 					j=win->selected_column;
 					ListView_GetItemText(win->hlistview,i,win->selected_column,str,sizeof(str));
 					if(strstri(str,find)!=0){
-						i++;
 						found=TRUE;
 						break;
 					}
@@ -250,12 +249,13 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				int sel=SendDlgItemMessage(hwnd,IDC_COMBO1,CB_GETCURSEL,0,0);
 				if(sel>=0){
 					int index;
-					RECT rect={0};
 					win->selected_column=sel;
 					index=ListView_GetSelectionMark(win->hlistview);
 					if(index>=0){
-						if(ListView_GetItemRect(win->hlistview,index,&rect,LVIR_BOUNDS))
-							InvalidateRect(win->hlistview,&rect,TRUE);
+						ListView_RedrawItems(win->hlistview,index,index);
+						//RECT rect={0};
+						//if(ListView_GetItemRect(win->hlistview,index,&rect,LVIR_BOUNDS))
+						//	InvalidateRect(win->hlistview,&rect,TRUE);
 					}
 					lv_scroll_column(win->hlistview,sel);
 				}
