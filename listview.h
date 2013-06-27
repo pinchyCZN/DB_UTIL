@@ -128,9 +128,10 @@ int lv_insert_data(HWND hlistview,int row,int col,char *str)
 		LV_ITEM item;
 		memset(&item,0,sizeof(item));
 		if(col==0){
-			item.mask=LVIF_TEXT;
+			item.mask=LVIF_TEXT|LVIF_PARAM;
 			item.iItem=row;
 			item.pszText=str;
+			item.lParam=row;
 			ListView_InsertItem(hlistview,&item);
 		}
 		else{

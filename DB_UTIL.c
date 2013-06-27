@@ -1,4 +1,9 @@
+#if _WIN32_WINNT<0x400
+#define _WIN32_WINNT 0x400
+#define COMPILE_MULTIMON_STUBS
+#endif
 #include <windows.h>
+#include <multimon.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -54,58 +59,75 @@ int load_icon(HWND hwnd)
 	}
 	return FALSE;
 }
-int load_window_ini(HWND hwnd)
+int get_nearest_monitor(int x,int y,int width,int height,RECT *rect)
 {
-	char str[20];
-	RECT rect;
-	int width=0,height=0,x=0,y=0;
-	int result=FALSE;
-	get_ini_value("SETTINGS","main_window_width",&width);
-	get_ini_value("SETTINGS","main_window_height",&height);
-	get_ini_value("SETTINGS","main_window_xpos",&x);
-	get_ini_value("SETTINGS","main_window_ypos",&y);
-	if(GetWindowRect(GetDesktopWindow(),&rect)!=0){
-		int flags=SWP_SHOWWINDOW;
-		if(width<50 || height<50)
-			flags|=SWP_NOSIZE;
-		if(x<-32 || y<=-32)
-			flags|=SWP_NOMOVE;
-		if(x<((rect.right-rect.left)-50))
-			if(y<((rect.bottom-rect.top)-50))
-				if(SetWindowPos(hwnd,HWND_TOP,x,y,width,height,flags)!=0)
-					result=TRUE;
-	}
-	str[0]=0;
-	if(get_ini_str("SETTINGS","main_window_maximized",str,sizeof(str))){
-		if(str[0]=='1'){
-			ShowWindow(hwnd,SW_SHOWMAXIMIZED);
-			result=TRUE;
-		}
-	}
-	return result;
-}
-int save_window_ini(HWND hwnd)
-{
-	char str[20];
-	RECT rect;
-	WINDOWPLACEMENT wp;
-	wp.length=sizeof(wp);
-	if(GetWindowPlacement(hwnd,&wp)!=0){
-		write_ini_str("SETTINGS","main_window_maximized",wp.flags&WPF_RESTORETOMAXIMIZED?"1":"0");
-		rect=wp.rcNormalPosition;
-		str[0]=0;
-		_snprintf(str,sizeof(str),"%i",rect.right-rect.left);
-		write_ini_str("SETTINGS","main_window_width",str);
-		_snprintf(str,sizeof(str),"%i",rect.bottom-rect.top);
-		write_ini_str("SETTINGS","main_window_height",str);
-		_snprintf(str,sizeof(str),"%i",rect.left);
-		write_ini_str("SETTINGS","main_window_xpos",str);
-		_snprintf(str,sizeof(str),"%i",rect.top);
-		write_ini_str("SETTINGS","main_window_ypos",str);
+	HMONITOR hmon;
+	MONITORINFO mi;
+	RECT r={0};
+	r.left=x;
+	r.top=y;
+	r.right=x+width;
+	r.bottom=y+height;
+	hmon=MonitorFromRect(&r,MONITOR_DEFAULTTONEAREST);
+    mi.cbSize=sizeof(mi);
+	if(GetMonitorInfo(hmon,&mi)){
+		*rect=mi.rcWork;
 		return TRUE;
 	}
 	return FALSE;
 }
+int load_window_size(HWND hwnd,char *section)
+{
+	RECT rect={0};
+	int width=0,height=0,x=0,y=0,maximized=0;
+	int result=FALSE;
+	get_ini_value(section,"width",&width);
+	get_ini_value(section,"height",&height);
+	get_ini_value(section,"xpos",&x);
+	get_ini_value(section,"ypos",&y);
+	get_ini_value(section,"maximized",&maximized);
+	if(get_nearest_monitor(x,y,width,height,&rect)){
+		int flags=SWP_SHOWWINDOW;
+		if((GetKeyState(VK_SHIFT)&0x8000)==0){
+			if(width<50 || height<50)
+				flags|=SWP_NOSIZE;
+			if(x>(rect.right-25) || x<(rect.left-25)
+				|| y<(rect.top-25) || y>(rect.bottom-25))
+				flags|=SWP_NOMOVE;
+			if(SetWindowPos(hwnd,HWND_TOP,x,y,width,height,flags)!=0)
+				result=TRUE;
+		}
+	}
+	if(maximized)
+		PostMessage(hwnd,WM_SYSCOMMAND,SC_MAXIMIZE,0);
+	return result;
+}
+int save_window_size(HWND hwnd,char *section)
+{
+	WINDOWPLACEMENT wp;
+	RECT rect={0};
+	int x,y;
+
+	wp.length=sizeof(wp);
+	if(GetWindowPlacement(hwnd,&wp)!=0){
+		if(wp.flags&WPF_RESTORETOMAXIMIZED)
+			write_ini_value(section,"maximized",1);
+		else
+			write_ini_value(section,"maximized",0);
+
+		rect=wp.rcNormalPosition;
+		x=rect.right-rect.left;
+		y=rect.bottom-rect.top;
+		if(x<100)x=320;
+		if(y<100)y=240;
+		write_ini_value(section,"width",x);
+		write_ini_value(section,"height",y);
+		write_ini_value(section,"xpos",rect.left);
+		write_ini_value(section,"ypos",rect.top);
+	}
+	return TRUE;
+}
+
 int create_status_bar_parts(HWND hwnd,HWND hstatus)
 {
 	if(hwnd!=0 && hstatus!=0){
@@ -594,12 +616,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 		break;
 	case WM_ENDSESSION:
 		if(wparam){
+			save_window_size(hwnd,"MAIN_WINDOW");
 		}
 		return 0;
 	case WM_CLOSE:
         break;
 	case WM_DESTROY:
-		save_window_ini(hwnd);
+		save_window_size(hwnd,"MAIN_WINDOW");
 		PostQuitMessage(0);
         break;
     }
@@ -681,7 +704,9 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 
 	ShowWindow(ghmainframe,nCmdShow);
 	UpdateWindow(ghmainframe);
-	load_window_ini(ghmainframe);
+	//load_window_ini(ghmainframe);
+	load_window_size(ghmainframe,"MAIN_WINDOW");
+
 	haccel=LoadAccelerators(ghinstance,MAKEINTRESOURCE(IDR_ACCELERATOR1));
 
 	process_cmd_line(lpCmdLine);

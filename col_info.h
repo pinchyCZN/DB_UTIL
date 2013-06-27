@@ -48,7 +48,7 @@ int populate_col_info(HWND hwnd,HWND hlistview,LPARAM lparam)
 {
 	int i;
 	static TABLE_WINDOW *win=0;
-	char *cols[]={"field name","type","type #","size"};
+	char *cols[]={"field name","type","type #","size","index"};
 	for(i=0;i<sizeof(cols)/sizeof(char *);i++)
 		lv_add_column(hlistview,cols[i],i);
 
@@ -66,6 +66,8 @@ int populate_col_info(HWND hwnd,HWND hlistview,LPARAM lparam)
 			lv_insert_data(hlistview,i,2,str);
 			_snprintf(str,sizeof(str),"%i",win->col_attr[i].length);
 			lv_insert_data(hlistview,i,3,str);
+			_snprintf(str,sizeof(str),"%i",i);
+			lv_insert_data(hlistview,i,4,str);
 		}
 		if(win->table[0]!=0)
 			SetWindowText(hwnd,win->table);
@@ -78,9 +80,60 @@ int populate_col_info(HWND hwnd,HWND hlistview,LPARAM lparam)
 	}
 	return TRUE;
 }
+struct find_helper{
+	int dir;
+	int col;
+	HWND hlistview;
+};
+int CALLBACK compare_func(LPARAM lparam1, LPARAM lparam2,struct find_helper *fh)
+{
+	LV_FINDINFO find1,find2;
+	char str1[80]={0},str2[80]={0};
+	int index1,index2;
+	find1.flags=LVFI_PARAM;
+	find1.lParam=lparam1;
+	find2.flags=LVFI_PARAM;
+	find2.lParam=lparam2;
+	index1=ListView_FindItem(fh->hlistview,-1,&find1);
+	index2=ListView_FindItem(fh->hlistview,-1,&find2);
+	if(index1>=0 && index2>=0){
+		int result;
+		ListView_GetItemText(fh->hlistview,index1,fh->col,str1,sizeof(str1));
+		ListView_GetItemText(fh->hlistview,index2,fh->col,str2,sizeof(str2));
+		if(isdigit(str1[0]) && isdigit(str2[0])){
+			int a,b;
+			a=atoi(str1);
+			b=atoi(str2);
+			if(a<b)
+				result=-1;
+			else if(a==b)
+				result=0;
+			else
+				result=1;
+		}
+		else
+			result=_stricmp(str1,str2);
+		if(fh->dir)
+			result=-result;
+		return result;
+	}
+	return 0;
+}
+
+int sort_listview(HWND hlistview,int dir,int column)
+{
+	struct find_helper fh;
+	fh.hlistview=hlistview;
+	fh.dir=dir;
+	fh.col=column;
+	ListView_SortItems(hlistview,compare_func,&fh);
+	return TRUE;
+}
 LRESULT CALLBACK col_info_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
 	static HWND grippy=0,hlistview=0;
+	static int sort_dir=0;
+
 	if(FALSE)
 	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_MOUSEMOVE&&msg!=WM_NCMOUSEMOVE)
 	{
@@ -106,6 +159,7 @@ LRESULT CALLBACK col_info_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		SetFocus(hlistview);
 		grippy=create_grippy(hwnd);
 		resize_col_info(hwnd);
+		sort_dir=0;
 		break;
 	case WM_SIZE:
 		resize_col_info(hwnd);
@@ -116,7 +170,9 @@ LRESULT CALLBACK col_info_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			NMHDR *nmhdr=lparam;
 			if(lparam==0)
 				break;
-			if(nmhdr->code==LVN_KEYDOWN){
+			switch(nmhdr->code){
+			case LVN_KEYDOWN:
+				{
 				LV_KEYDOWN *lvk=lparam;
 				switch(lvk->wVKey){
 				case 'A':
@@ -163,6 +219,18 @@ LRESULT CALLBACK col_info_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 					}
 					break;
 				}
+				}
+				break;
+			case  LVN_COLUMNCLICK:
+				{
+					NMLISTVIEW *nmlv=lparam;
+					if(nmlv!=0){
+						sort_listview(hlistview,sort_dir,nmlv->iSubItem);
+						sort_dir=!sort_dir;
+					}
+
+				}
+				break;
 			}
 		}
 		break;
