@@ -88,7 +88,7 @@ int handle_intellisense(TABLE_WINDOW *win,char *str,int pos,int mode)
 			int width=80;
 			if(populate_intel(win,tab_word,mode,&width)){
 				POINT p={0};
-				SendMessage(win->hedit,EM_POSFROMCHAR,&p,pos);
+				SendMessage(win->hedit,EM_POSFROMCHAR,&p,tab_pos);
 				if(width<100 || width>640)
 					width=100;
 				else
