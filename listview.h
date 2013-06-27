@@ -209,6 +209,11 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		case CMD_COL_INFO:
 			DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_COL_INFO),hwnd,col_info_proc,hwnd);
 			break;
+		case CMD_SQL_UPDATE:
+			{
+				//create a SQL script and copy to clipboard
+			}
+			break;
 		case CMD_EXPORT_DATA:
 			{
 				static char fname[MAX_PATH]={0};
@@ -248,6 +253,36 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 					}
 				}
 
+			}
+			break;
+		case CMD_COL_WIDTH_DATA:
+			{
+				TABLE_WINDOW *win=0;
+				if(find_win_by_hlistview(hwnd,&win)){
+					int i,width,top,count,done;
+					top=ListView_GetTopIndex(win->hlistview);
+					count=ListView_GetItemCount(win->hlistview);
+					width=0;
+					done=0;
+					for(i=top;i<count;i++){
+						char str[100]={0};
+						ListView_GetItemText(win->hlistview,i,win->selected_column,str,sizeof(str));
+						str[sizeof(str)-1]=0;
+						if(str[0]!=0){
+							int w=get_str_width(win->hlistview,str);
+							if(w>width)
+								width=w;
+						}
+						done++;
+						if(done>500)
+							break;
+					}
+					if(width<=0)
+						width=10;
+					else if(width>1000)
+						width=1000;
+					ListView_SetColumnWidth(win->hlistview,win->selected_column,width);
+				}
 			}
 			break;
 		case CMD_COL_WIDTH_HEADER:
