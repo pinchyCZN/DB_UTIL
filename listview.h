@@ -154,10 +154,10 @@ LRESULT CALLBACK filename_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			if(lparam==0)
 				EndDialog(hwnd,FALSE);
 			else{
+				char str[MAX_PATH]={0};
 				char *s=lparam;
 				fname=lparam;
 				if(fname[0]==0){
-					char str[MAX_PATH]={0};
 					GetCurrentDirectory(sizeof(str),str);
 					s=str;
 				}
