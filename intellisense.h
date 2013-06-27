@@ -5,8 +5,9 @@ int tab_continue=FALSE,tab_pos=0;
 #define TABLE_MODE 1
 #define FIELD_MODE 0
 
-int populate_intel(TABLE_WINDOW *win,char *src,int mode)
+int populate_intel(TABLE_WINDOW *win,char *src,int mode,int *width)
 {
+	int max_width=0;
 	if(win!=0 && src!=0){
 		SendMessage(win->hintel,LB_RESETCONTENT,0,0);
 		if(mode==TABLE_MODE){
@@ -19,8 +20,13 @@ int populate_intel(TABLE_WINDOW *win,char *src,int mode)
 				tree_get_info(h,str,sizeof(str),0);
 				if(strnicmp(str,src,strlen(src))==0){
 					index=SendMessage(win->hintel,LB_FINDSTRINGEXACT,-1,str);
-					if(index==LB_ERR)
+					if(index==LB_ERR){
+						int w;
 						SendMessage(win->hintel,LB_ADDSTRING,0,str);
+						w=get_str_width(win->hintel,str);
+						if(w>max_width)
+							max_width=w;
+					}
 				}
 				else{
 					index=SendMessage(win->hintel,LB_FINDSTRINGEXACT,-1,str);
@@ -40,8 +46,13 @@ int populate_intel(TABLE_WINDOW *win,char *src,int mode)
 					int index;
 					if(strnicmp(str,src,strlen(src))==0){
 						index=SendMessage(win->hintel,LB_FINDSTRINGEXACT,-1,str);
-						if(index==LB_ERR)
+						if(index==LB_ERR){
+							int w;
 							SendMessage(win->hintel,LB_ADDSTRING,0,str);
+							w=get_str_width(win->hintel,str);
+							if(w>max_width)
+								max_width=w;
+						}
 					}
 					else{
 						index=SendMessage(win->hintel,LB_FINDSTRINGEXACT,-1,str);
@@ -59,6 +70,7 @@ int populate_intel(TABLE_WINDOW *win,char *src,int mode)
 			if(index<0)
 				index=0;
 			SendMessage(win->hintel,LB_SETCURSEL,index,0);
+			*width=max_width;
 			return TRUE;
 		}
 	}
@@ -72,12 +84,18 @@ int handle_intellisense(TABLE_WINDOW *win,char *str,int pos,int mode)
 	if(get_substr(str,pos,tab_word,sizeof(tab_word),&tab_pos)){
 		tab_continue=TRUE;
 		printf("substr=%s\n",tab_word);
-		if(win->hintel!=0)
-			if(populate_intel(win,tab_word,mode)){
+		if(win->hintel!=0){
+			int width=80;
+			if(populate_intel(win,tab_word,mode,&width)){
 				POINT p={0};
 				SendMessage(win->hedit,EM_POSFROMCHAR,&p,pos);
-				SetWindowPos(win->hintel,HWND_TOP,p.x,p.y+16,80,200,SWP_SHOWWINDOW);
+				if(width<100 || width>640)
+					width=100;
+				else
+					width+=7;
+				SetWindowPos(win->hintel,HWND_TOP,p.x,p.y+16,width,200,SWP_SHOWWINDOW);
 			}
+		}
 	}
 	else{
 		ShowWindow(win->hintel,SW_HIDE);

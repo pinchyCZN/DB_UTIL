@@ -25,6 +25,9 @@ int get_str_width(HWND hwnd,char *str)
 				if(hold!=0)
 					SelectObject(hdc,hold);
 			}
+			else{
+				GetTextExtentPoint32(hdc,str,strlen(str),&size);
+			}
 			ReleaseDC(hwnd,hdc);
 			return size.cx;
 		}

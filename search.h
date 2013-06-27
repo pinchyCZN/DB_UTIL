@@ -53,8 +53,15 @@ int do_search(TABLE_WINDOW *win,HWND hwnd,char *find,int dir,int col_only)
 			last_row=last_col=0;
 		}
 		last_dir=FIRST;
-		printf("reset search\n");
 		return TRUE;
+	}
+	if(last_dir!=FIRST && col_only){
+		if(last_dir!=dir){
+			if(dir==DOWN)
+				last_row++;
+			else
+				last_row--;
+		}
 	}
 	if(dir==DOWN){
 		max=ListView_GetItemCount(win->hlistview);
@@ -92,6 +99,7 @@ int do_search(TABLE_WINDOW *win,HWND hwnd,char *find,int dir,int col_only)
 			}
 		}
 	}
+	//UP ------------------------------
 	else{
 		for(i=last_row;i>=0;i--){
 			if(last_dir==FIRST)
@@ -165,10 +173,10 @@ int do_search(TABLE_WINDOW *win,HWND hwnd,char *find,int dir,int col_only)
 
 
 		}
-		set_status_bar_text(ghstatusbar,1,"row=%3i col=%2i",last_row+1,win->selected_column);
+		set_status_bar_text(ghstatusbar,1,"row=%3i col=%2i",last_row+1,win->selected_column+1);
 
 		SetWindowPos(hwnd,NULL,rect_col.left,rect.bottom,0,0,SWP_NOSIZE|SWP_NOZORDER);
-		if(dir==IDC_SEARCH_DOWN){
+		if(dir==DOWN){
 			last_dir=DOWN;
 			if(col_only)
 				last_row++;
@@ -260,6 +268,7 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 					index=ListView_GetSelectionMark(win->hlistview);
 					if(index>=0){
 						ListView_RedrawItems(win->hlistview,index,index);
+						set_status_bar_text(ghstatusbar,1,"row=%3i col=%2i",index+1,win->selected_column+1);
 					}
 					lv_scroll_column(win->hlistview,sel);
 				}
