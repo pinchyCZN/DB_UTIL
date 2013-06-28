@@ -131,8 +131,9 @@ int populate_col_info(HWND hwnd,HWND hlistview,LPARAM lparam)
 				sscanf(str+i,"%255[ -~]",tmp);
 				tmp[sizeof(tmp)-1]=0;
 				if(col_row){
-					if(tmp[0]==0)
-						tmp[0]='_';
+					if(tmp[0]==0){
+						_snprintf(tmp,sizeof(tmp),"empty");
+					}
 					w=lv_add_column(hlistview,tmp,index);
 					if(widths!=0){
 						if(index<num_cols)
