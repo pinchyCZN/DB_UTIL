@@ -192,9 +192,16 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 								if(GetKeyState(VK_CONTROL)&0x8000){
 									int sel=ListView_GetSelectionMark(win->hlistview);
 									if(sel>=0){
-										char str[255]={0};
-										ListView_GetItemText(win->hlistview,sel,win->selected_column,str,sizeof(str))
-										copy_str_clipboard(str);
+										char *buf;
+										int buf_size=0x10000;
+										buf=malloc(buf_size);
+										if(buf!=0){
+											ListView_GetItemText(win->hlistview,sel,win->selected_column,buf,buf_size);
+											buf[buf_size-1]=0;
+											copy_str_clipboard(buf);
+											free(buf);
+											set_status_bar_text(ghstatusbar,0,"copied string to clipboard");
+										}
 									}
 								}
 								break;
