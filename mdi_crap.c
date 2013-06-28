@@ -186,6 +186,23 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 								SendMessage(win->hwnd,WM_USER,0,IDC_MDI_LISTVIEW);
 								SetFocus(win->hedit);
 								break;
+							case VK_F3:
+								{
+									char *find=0;
+									get_search_text(&find);
+									if(find!=0 && find[0]!=0){
+										int dir=IDC_SEARCH_DOWN;
+										int result;
+										if(GetKeyState(VK_CONTROL)&0x8000)
+											dir=IDC_SEARCH_UP;
+										if(GetKeyState(VK_MENU)&0x8000)
+											do_search(win,0,0,0,0);
+										set_status_bar_text(ghstatusbar,0,"searching for %s",find);
+										result=do_search(win,NULL,find,dir,0);
+										set_status_bar_text(ghstatusbar,0,"searched for:%s%s",find,result?", found":", nothing found");
+									}
+								}
+								break;
 							case 'C':
 								if(GetKeyState(VK_CONTROL)&0x8000){
 									int sel=ListView_GetSelectionMark(win->hlistview);

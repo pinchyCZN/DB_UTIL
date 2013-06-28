@@ -55,6 +55,9 @@ int do_search(TABLE_WINDOW *win,HWND hwnd,char *find,int dir,int col_only)
 		last_dir=FIRST;
 		return TRUE;
 	}
+	if(win==0 || find==0 || find[0]==0)
+		return FALSE;
+
 	if(last_dir!=FIRST && col_only){
 		if(last_dir!=dir){
 			if(dir==DOWN)
@@ -156,7 +159,8 @@ int do_search(TABLE_WINDOW *win,HWND hwnd,char *find,int dir,int col_only)
 		
 		ListView_GetItemRect(win->hlistview,i,&rect,LVIR_BOUNDS);
 		lv_scroll_column(win->hlistview,win->selected_column);
-		InvalidateRect(hwnd,NULL,TRUE);
+		if(hwnd!=0)
+			InvalidateRect(hwnd,NULL,TRUE);
 		MapWindowPoints(win->hlistview,NULL,&rect,2);
 		printf("found at %i %i\n",last_row,last_col);
 		printf("rect %i %i\n",rect.left,rect.top);
@@ -174,8 +178,8 @@ int do_search(TABLE_WINDOW *win,HWND hwnd,char *find,int dir,int col_only)
 
 		}
 		set_status_bar_text(ghstatusbar,1,"row=%3i col=%2i",last_row+1,win->selected_column+1);
-
-		SetWindowPos(hwnd,NULL,rect_col.left,rect.bottom,0,0,SWP_NOSIZE|SWP_NOZORDER);
+		if(hwnd!=0)
+			SetWindowPos(hwnd,NULL,rect_col.left,rect.bottom,0,0,SWP_NOSIZE|SWP_NOZORDER);
 		if(dir==DOWN){
 			last_dir=DOWN;
 			if(col_only)
@@ -204,13 +208,22 @@ int search_fill_lb(HWND hwnd,HWND hlistview,int index)
 	}
 	SendDlgItemMessage(hwnd,IDC_COMBO1,CB_SETCURSEL,index,0);
 }
-
+int get_search_text(char **str)
+{
+	static char find[80]={0};
+	if(str!=0){
+		*str=find;
+		return sizeof(find);
+	}
+	else
+		return 0;
+}
 LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
 
 	static TABLE_WINDOW *win=0;
 	static int col_only=FALSE,timer=0;
-	static char find[80]={0};
+	//static char find[80]={0};
 	static HWND hwndTT=0;
 	int search=0;
 
@@ -228,14 +241,19 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 	switch(msg){
 	case WM_INITDIALOG:
 		{
+			char *find=0;
+			int find_len;
 			RECT rect={0};
 			if(lparam==0)
 				EndDialog(hwnd,-1);
 			win=lparam;
-			SendDlgItemMessage(hwnd,IDC_EDIT1,EM_SETLIMITTEXT,sizeof(find),0);
+			find_len=get_search_text(&find);
+			if(find_len>0){
+				SendDlgItemMessage(hwnd,IDC_EDIT1,EM_SETLIMITTEXT,find_len,0);
+				SetWindowText(GetDlgItem(hwnd,IDC_EDIT1),find);
+			}
 			GetWindowRect(win->hwnd,&rect);
 			SetWindowPos(hwnd,NULL,rect.left,rect.top,0,0,SWP_NOSIZE|SWP_NOZORDER);
-			SetWindowText(GetDlgItem(hwnd,IDC_EDIT1),find);
 			SendDlgItemMessage(hwnd,IDC_EDIT1,EM_SETSEL,0,-1);
 			SetFocus(GetDlgItem(hwnd,IDC_EDIT1));
 
@@ -326,17 +344,22 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		break;
 	}
 	if(search){
-		GetWindowText(GetDlgItem(hwnd,IDC_EDIT1),find,sizeof(find));
-		if(do_search(win,hwnd,find,search,col_only)==0){
-			RECT rect={0};
-			int y;
-			GetWindowRect(win->hlistview,&rect);
-			if(search==DOWN)
-				y=rect.bottom;
-			else
-				y=rect.top;
-			create_tooltip(hwnd,"nothing more found",rect.left,y,&hwndTT);
-			timer=SetTimer(hwnd,0x1337,550,NULL);
+		char *find=0;
+		int find_len;
+		find_len=get_search_text(&find);
+		if(find_len>0){
+			GetWindowText(GetDlgItem(hwnd,IDC_EDIT1),find,find_len);
+			if(do_search(win,hwnd,find,search,col_only)==0){
+				RECT rect={0};
+				int y;
+				GetWindowRect(win->hlistview,&rect);
+				if(search==DOWN)
+					y=rect.bottom;
+				else
+					y=rect.top;
+				create_tooltip(hwnd,"nothing more found",rect.left,y,&hwndTT);
+				timer=SetTimer(hwnd,0x1337,550,NULL);
+			}
 		}
 	}
 
