@@ -202,6 +202,49 @@ int CALLBACK compare_func(LPARAM lparam1, LPARAM lparam2,struct find_helper *fh)
 	return 0;
 }
 
+int fit_win_to_data(HWND hlistview,HWND hwnd)
+{
+	int col_count,row_count;
+	col_count=lv_get_column_count(hlistview);
+	if(col_count>0){
+		int width=0;
+		int height=0;
+		row_count=ListView_GetItemCount(hlistview);
+		if(row_count>0){
+			RECT rect={0};
+			ListView_GetItemRect(hlistview,0,&rect,LVIR_BOUNDS);
+			width=rect.right-rect.left;
+			height=(rect.bottom-rect.top+2)*row_count;
+		}
+		if(width>100){
+			RECT rect={0};
+			int flags=SWP_NOZORDER|SWP_NOMOVE;
+			int x=0,y=0;
+			width+=8;
+			height+=100;
+			if(GetWindowRect(hwnd,&rect)!=0){
+				RECT nrect={0};
+				if(get_nearest_monitor(rect.left,rect.top,rect.right-rect.left,rect.bottom-rect.top,&nrect)){
+					if(width>(nrect.right-nrect.left)){
+						width=nrect.right-nrect.left;
+						x=nrect.left;
+						y=rect.top;
+						flags=SWP_NOZORDER;
+					}
+					if(height>(nrect.bottom-nrect.top)){
+						height=nrect.bottom-nrect.top;
+						x=nrect.left;
+						y=rect.top;
+						flags=SWP_NOZORDER;
+					}
+				}
+			}
+			SetWindowPos(hwnd,NULL,x,y,width,height,flags);
+		}
+
+	}
+
+}
 int sort_listview(HWND hlistview,int dir,int column)
 {
 	struct find_helper fh;
@@ -238,6 +281,7 @@ LRESULT CALLBACK col_info_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		ListView_SetExtendedListViewStyle(hlistview,LVS_EX_FULLROWSELECT);
 		SendMessage(hlistview,WM_SETFONT,GetStockObject(get_font_setting(IDC_LISTVIEW_FONT)),0);
 		populate_col_info(hwnd,hlistview,lparam);
+		fit_win_to_data(hlistview,hwnd);
 		SetFocus(hlistview);
 		grippy=create_grippy(hwnd);
 		resize_col_info(hwnd);
