@@ -94,8 +94,6 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 				win->abort;
 		}
 		break;
-	case WM_KILLFOCUS:
-		break;
 	case WM_SETFOCUS:
 		break;
 	case WM_NCACTIVATE:
@@ -271,21 +269,30 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 			}
 		}
 		break;
+	case WM_KILLFOCUS:
 	case WM_RBUTTONDOWN:
 	case WM_LBUTTONUP:
-		ReleaseCapture();
-		write_ini_value("SETTINGS","MDI_SPLIT",mdi_split);
-		split_drag=FALSE;
+		if(split_drag){
+			ReleaseCapture();
+			write_ini_value("SETTINGS","MDI_SPLIT",mdi_split);
+			split_drag=FALSE;
+		}
 		break;
 	case WM_LBUTTONDOWN:
-		SetCapture(hwnd);
-		SetCursor(LoadCursor(NULL,IDC_SIZENS));
-		split_drag=TRUE;
+		{
+			int y=HIWORD(lparam);
+			if(y>=(mdi_split-10) && y<=(mdi_split+10)){
+				SetCapture(hwnd);
+				SetCursor(LoadCursor(NULL,IDC_SIZENS));
+				split_drag=TRUE;
+			}
+		}
 		break;
 	case WM_MOUSEFIRST:
 		{
 			int y=HIWORD(lparam);
-			SetCursor(LoadCursor(NULL,IDC_SIZENS));
+			if(y>=(mdi_split-10) && y<=(mdi_split+10))
+				SetCursor(LoadCursor(NULL,IDC_SIZENS));
 			if(split_drag){
 				RECT rect;
 				GetClientRect(hwnd,&rect);

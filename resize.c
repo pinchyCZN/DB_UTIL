@@ -378,7 +378,7 @@ short mdi_anchors[]={
 		XPOS,0,
 		YPOS,5,
 		HUG_CTRL_Y,IDC_MDI_EDIT,
-		SIZE_WIDTH_OFF,0,
+		SIZE_WIDTH_OFF,-4,
 		CONTROL_FINISH,-1,
 	RESIZE_FINISH
 };

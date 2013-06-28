@@ -539,22 +539,31 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 			printf("main psoting focus %08X\n",last_focus);
 		}
 		break;
+	case WM_KILLFOCUS:
 	case WM_RBUTTONDOWN:
 	case WM_LBUTTONUP:
-		ReleaseCapture();
-		main_drag=FALSE;
-		write_ini_value("SETTINGS","TREE_WIDTH",tree_width);
+		if(main_drag){
+			ReleaseCapture();
+			main_drag=FALSE;
+			write_ini_value("SETTINGS","TREE_WIDTH",tree_width);
+		}
 		break;
 	case WM_LBUTTONDOWN:
-		SetCapture(hwnd);
-		SetCursor(LoadCursor(NULL,IDC_SIZEWE));
-		main_drag=TRUE;
+		{
+			int x=LOWORD(lparam);
+			if(x>=(tree_width-10) && x<(tree_width+10)){
+				SetCapture(hwnd);
+				SetCursor(LoadCursor(NULL,IDC_SIZEWE));
+				main_drag=TRUE;
+			}
+		}
 		break;
 	case WM_MOUSEFIRST:
 		{
 			int y=HIWORD(lparam);
 			int x=LOWORD(lparam);
-			SetCursor(LoadCursor(NULL,IDC_SIZEWE));
+			if(x>=(tree_width-10) && x<(tree_width+10))
+				SetCursor(LoadCursor(NULL,IDC_SIZEWE));
 			if(main_drag){
 				RECT rect;
 				GetClientRect(ghmainframe,&rect);
