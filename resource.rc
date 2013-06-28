@@ -68,7 +68,10 @@ BEGIN
     MENUITEM "New QUERY",                   IDM_QUERY
     MENUITEM "Settings",                    IDM_SETTINGS
     MENUITEM "Recent",                      IDM_RECENT
-    MENUITEM "Window",                      65535
+    POPUP "Window"
+    BEGIN
+        MENUITEM "List",                        ID_WINDOW_LIST
+    END
 END
 
 
@@ -111,29 +114,29 @@ BEGIN
     PUSHBUTTON      "Close",IDCANCEL,348,179,50,14
 END
 
-IDD_SETTINGS DIALOG DISCARDABLE  0, 0, 364, 209
+IDD_SETTINGS DIALOG DISCARDABLE  0, 0, 271, 185
 STYLE WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "Settings"
 FONT 8, "MS Sans Serif"
 BEGIN
     CONTROL         "keep connected",IDC_KEEP_CONNECTED,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,2,6,82,19
-    PUSHBUTTON      "Open ini",IDC_OPEN_INI,2,149,50,14
-    DEFPUSHBUTTON   "OK",IDOK,2,195,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,288,195,50,14
-    COMBOBOX        IDC_SQL_FONT,52,77,136,111,CBS_DROPDOWNLIST | CBS_SORT | 
-                    WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_LISTVIEW_FONT,52,101,136,112,CBS_DROPDOWNLIST | 
-                    CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "SQL font:",IDC_STATIC,2,78,51,8
-    LTEXT           "Listview font:",IDC_STATIC,2,102,42,8
-    LTEXT           "Treeview font:",IDC_STATIC,2,126,40,8
-    COMBOBOX        IDC_TREEVIEW_FONT,52,124,136,112,CBS_DROPDOWNLIST | 
-                    CBS_SORT | WS_VSCROLL | WS_TABSTOP
+                    BS_AUTOCHECKBOX | WS_TABSTOP,2,5,82,19
     CONTROL         "Single instance",IDC_SINGLE_INSTANCE,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,2,28,69,10
     CONTROL         "Debug window",IDC_DEBUG,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,0,43,62,10
+                    WS_TABSTOP,2,44,62,10
+    LTEXT           "SQL font:",IDC_STATIC,2,78,51,8
+    COMBOBOX        IDC_SQL_FONT,52,77,136,111,CBS_DROPDOWNLIST | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Listview font:",IDC_STATIC,2,102,42,8
+    COMBOBOX        IDC_LISTVIEW_FONT,52,101,136,112,CBS_DROPDOWNLIST | 
+                    CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Treeview font:",IDC_STATIC,2,126,40,8
+    COMBOBOX        IDC_TREEVIEW_FONT,52,124,136,112,CBS_DROPDOWNLIST | 
+                    CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Open ini",IDC_OPEN_INI,2,149,50,14
+    DEFPUSHBUTTON   "OK",IDOK,2,171,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,199,171,50,14
 END
 
 IDD_COL_INFO DIALOG DISCARDABLE  0, 0, 320, 150
@@ -193,7 +196,6 @@ BEGIN
     IDD_SETTINGS, DIALOG
     BEGIN
         LEFTMARGIN, 2
-        RIGHTMARGIN, 363
         VERTGUIDE, 52
         VERTGUIDE, 188
     END

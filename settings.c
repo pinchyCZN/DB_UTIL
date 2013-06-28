@@ -152,6 +152,13 @@ LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		break;
 	case WM_COMMAND:
 		switch(LOWORD(wparam)){
+		case IDC_DEBUG:
+			printf("debug %08X %08X\n",wparam,lparam);
+			if(IsDlgButtonChecked(hwnd,IDC_DEBUG)==BST_CHECKED)
+				open_console();
+			else
+				hide_console();
+			break;
 		case IDC_OPEN_INI:
 			open_ini(hwnd,FALSE);
 			break;

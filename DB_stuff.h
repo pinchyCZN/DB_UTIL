@@ -70,8 +70,8 @@ int get_tables(DB_TREE *tree)
 				}
 				*/
 				hitem=insert_item(table,tree->hroot,IDC_TABLE_ITEM);
-				if(hitem!=0)
-					get_columns(tree,table,hitem);
+				//if(hitem!=0)
+				//	get_columns(tree,table,hitem);
 
 				SQLFetch(hstmt);
 				count++;

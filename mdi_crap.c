@@ -564,7 +564,7 @@ int create_mdiclient(HWND hwnd,HMENU hmenu,HINSTANCE hinstance)
 {
 	CLIENTCREATESTRUCT MDIClientCreateStruct;
 	HWND hmdiclient;
-	MDIClientCreateStruct.hWindowMenu   = GetSubMenu(hmenu,2);
+	MDIClientCreateStruct.hWindowMenu   = GetSubMenu(hmenu,5);
 	MDIClientCreateStruct.idFirstChild  = 50000;
 	hmdiclient = CreateWindow("MDICLIENT",NULL,
 		WS_CHILD|WS_CLIPCHILDREN|WS_CLIPSIBLINGS|WS_VSCROLL|WS_HSCROLL|WS_VISIBLE, //0x56300001

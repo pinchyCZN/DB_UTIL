@@ -704,7 +704,6 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 
 	ShowWindow(ghmainframe,nCmdShow);
 	UpdateWindow(ghmainframe);
-	//load_window_ini(ghmainframe);
 	load_window_size(ghmainframe,"MAIN_WINDOW");
 
 	haccel=LoadAccelerators(ghinstance,MAKEINTRESOURCE(IDR_ACCELERATOR1));
