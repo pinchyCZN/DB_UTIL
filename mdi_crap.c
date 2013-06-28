@@ -177,10 +177,31 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 							switch(lvkey->wVKey){
 							case VK_F2:
 							case VK_RETURN:
-								create_lv_edit_selected(win);
+								if(GetKeyState(VK_MENU)&0x8000){
+									int message=WM_MDIMAXIMIZE;
+									if(IsZoomed(win->hwnd))
+										message=WM_MDIRESTORE;
+									SendMessage(ghmdiclient,message,win->hwnd,0);
+								}
+								else
+									create_lv_edit_selected(win);
 								break;
-							case VK_LEFT:dir=-1;break;
-							case VK_RIGHT:dir=1;break;
+							case VK_UP:
+							case VK_DOWN:
+							case VK_NEXT:
+							case VK_PRIOR:
+							case VK_HOME:
+							case VK_END:
+								do_search(win,0,0,0,0); //reset search position
+								break;
+							case VK_LEFT:
+								dir=-1;
+								do_search(win,0,0,0,0); //reset search position
+								break;
+							case VK_RIGHT:
+								dir=1;
+								do_search(win,0,0,0,0); //reset search position
+								break;
 							case VK_ESCAPE:
 								destroy_lv_edit(win);
 								SendMessage(win->hwnd,WM_USER,0,IDC_MDI_LISTVIEW);
@@ -195,8 +216,6 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 										int result;
 										if(GetKeyState(VK_CONTROL)&0x8000)
 											dir=IDC_SEARCH_UP;
-										if(GetKeyState(VK_MENU)&0x8000)
-											do_search(win,0,0,0,0);
 										set_status_bar_text(ghstatusbar,0,"searching for %s",find);
 										result=do_search(win,NULL,find,dir,0);
 										set_status_bar_text(ghstatusbar,0,"searched for:%s%s",find,result?", found":", nothing found");
