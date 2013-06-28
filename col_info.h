@@ -44,18 +44,37 @@ static int find_sql_type_str(int type,const char **str)
 	}
 	return FALSE;
 }
+static int find_num_cols(char *str)
+{
+	int count=0;
+	if(str!=0){
+		int i,len;
+		len=strlen(str);
+		for(i=0;i<len;i++){
+			if(str[i]=='\t')
+				count++;
+			else if(str[i]=='\n'){
+				count++;
+				break;
+			}
+			else if(str[i]==0)
+				break;
+		}
+	}
+	return count;
+}
 int populate_col_info(HWND hwnd,HWND hlistview,LPARAM lparam)
 {
 	int i;
-	TABLE_WINDOW *win=0;
-	char *cols[]={"field name","type","type #","size","index"};
-	for(i=0;i<sizeof(cols)/sizeof(char *);i++)
-		lv_add_column(hlistview,cols[i],i);
 
 	if(IsWindow(lparam)){
+		TABLE_WINDOW *win=0;
+		char *cols[]={"field name","type","type #","size","index"};
+		for(i=0;i<sizeof(cols)/sizeof(char *);i++)
+			lv_add_column(hlistview,cols[i],i);
 		if(find_win_by_hlistview(lparam,&win)){
 			for(i=0;i<win->columns;i++){
-				char str[10]={0};
+				char str[20]={0};
 				char name[80]={0};
 				char *sql_name="";
 				lv_get_col_text(win->hlistview,i,name,sizeof(name));
@@ -72,6 +91,12 @@ int populate_col_info(HWND hwnd,HWND hlistview,LPARAM lparam)
 			if(win->table[0]!=0)
 				SetWindowText(hwnd,win->table);
 		}
+		for(i=0;i<sizeof(cols)/sizeof(char *);i++){
+			int method=LVSCW_AUTOSIZE;
+			if(i>=2)
+				method=LVSCW_AUTOSIZE_USEHEADER;
+			ListView_SetColumnWidth(hlistview,i,method);
+		}
 	}
 	else if(lparam!=0){
 		char *str=lparam;
@@ -79,31 +104,60 @@ int populate_col_info(HWND hwnd,HWND hlistview,LPARAM lparam)
 		int index=0;
 		int count=0;
 		int found=FALSE;
+		int col_row=TRUE;
+		int *widths;
+		int num_cols;
+		num_cols=find_num_cols(str);
+		widths=malloc(num_cols*sizeof(int));
+		if(widths!=0)
+			memset(widths,0,num_cols*sizeof(int));
 		for(i=0;i<len;i++){
 			if(str[i]=='\t'){
 				index++;
 				found=FALSE;
 			}
 			else if(str[i]=='\n'){
-				count++;
+				if(!col_row)
+					count++;
 				index=0;
+				col_row=FALSE;
 				found=FALSE;
 			}
 			else if(str[i]==0)
 				break;
 			else if(found==FALSE){
-				char name[256]={0};
-				sscanf(str+i,"%255s",name);
-				lv_insert_data(hlistview,count,index,name);
+				char tmp[256]={0};
+				int w;
+				sscanf(str+i,"%255[ -~]",tmp);
+				tmp[sizeof(tmp)-1]=0;
+				if(col_row){
+					if(tmp[0]==0)
+						tmp[0]='_';
+					w=lv_add_column(hlistview,tmp,index);
+					if(widths!=0){
+						if(index<num_cols)
+							widths[index]=w;
+					}
+				}
+				else{
+					lv_insert_data(hlistview,count,index,tmp);
+					w=get_str_width(hlistview,tmp)+12;
+					if(widths!=0){
+						if(index<num_cols){
+							if(w>widths[index])
+								widths[index]=w;
+						}
+					}
+				}
 				found=TRUE;
 			}
 		}
-	}
-	for(i=0;i<sizeof(cols)/sizeof(char *);i++){
-		int method=LVSCW_AUTOSIZE;
-		if(i>=2)
-			method=LVSCW_AUTOSIZE_USEHEADER;
-		ListView_SetColumnWidth(hlistview,i,method);
+		if(widths!=0){
+			for(i=0;i<num_cols;i++){
+				ListView_SetColumnWidth(hlistview,i,widths[i]);
+			}
+			free(widths);
+		}
 	}
 	return TRUE;
 }

@@ -157,7 +157,7 @@ int thread(HANDLE event)
 				{
 					void *db=0;
 					char table[80]={0};
-					sscanf(localinfo,"DB=0x%08X;TABLE=%79s",&db,table);
+					sscanf(localinfo,"DB=0x%08X;TABLE=%79[ -~]",&db,table);
 					table[sizeof(table)-1]=0;
 					if(db!=0){
 						set_status_bar_text(ghstatusbar,0,"getting col info for %s",table);
