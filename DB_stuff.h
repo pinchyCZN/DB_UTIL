@@ -570,20 +570,44 @@ int get_col_info(DB_TREE *tree,char *table)
 		return FALSE;
 	if(open_db(tree)){
 		HSTMT hstmt;
-		int count=0;
 		if(SQLAllocStmt(tree->hdbc, &hstmt)==SQL_SUCCESS){
 			if(SQLColumns(hstmt,NULL,SQL_NTS,NULL,SQL_NTS,table,SQL_NTS,NULL,SQL_NTS)==SQL_SUCCESS){
-				if(SQLFetch(hstmt)!=SQL_NO_DATA_FOUND){
-					char name[256]={0};
-					int len=0;
-					while(!SQLGetData(hstmt,4,SQL_C_CHAR,name,sizeof(name),&len)){
-						printf("cole %i = %s\n",count,name);
-						
-						SQLFetch(hstmt);
-						count++;
-						name[0]=0;
-						len=0;
+				char *buf;
+				int buf_size=0x10000;
+				buf=malloc(buf_size);
+				if(buf!=0){
+					int col=0;
+					memset(buf,0,buf_size);
+					while(SQLFetch(hstmt)==SQL_SUCCESS){
+						int len;
+						char name[256];
+						short data;
+						name[0]=len=0;
+						SQLGetData(hstmt,4,SQL_C_CHAR,name,sizeof(name),&len);
+						name[sizeof(name)-1]=0;
+						_snprintf(buf,buf_size,"%s%s",buf,name);
+
+						name[0]=len=0;
+						SQLGetData(hstmt,6,SQL_C_CHAR,name,sizeof(name),&len);
+						name[sizeof(name)-1]=0;
+						_snprintf(buf,buf_size,"%s\t%s",buf,name);
+
+						data=len=0;
+						SQLGetData(hstmt,5,SQL_C_SHORT,&data,sizeof(short),&len);
+						_snprintf(buf,buf_size,"%s\t%i",buf,data);
+
+						data=len=0;
+						SQLGetData(hstmt,7,SQL_C_SHORT,&data,sizeof(short),&len);
+						_snprintf(buf,buf_size,"%s\t%i",buf,data);
+
+						_snprintf(buf,buf_size,"%s\t%i",buf,col);
+						col++;
+
+						_snprintf(buf,buf_size,"%s\n",buf);
 					}
+					buf[buf_size-1]=0;
+					DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_COL_INFO),tree->htree,col_info_proc,buf);
+					free(buf);
 				}
 			}
 		}

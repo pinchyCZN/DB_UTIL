@@ -160,9 +160,11 @@ int thread(HANDLE event)
 					sscanf(localinfo,"DB=0x%08X;TABLE=%79s",&db,table);
 					table[sizeof(table)-1]=0;
 					if(db!=0){
+						set_status_bar_text(ghstatusbar,0,"getting col info for %s",table);
 						get_col_info(db,table);
 						if(keep_closed)
 							close_db(db);
+						set_status_bar_text(ghstatusbar,0,"done, %s",keep_closed?"closed DB":"");
 					}
 				}
 				break;

@@ -47,30 +47,57 @@ static int find_sql_type_str(int type,const char **str)
 int populate_col_info(HWND hwnd,HWND hlistview,LPARAM lparam)
 {
 	int i;
-	static TABLE_WINDOW *win=0;
+	TABLE_WINDOW *win=0;
 	char *cols[]={"field name","type","type #","size","index"};
 	for(i=0;i<sizeof(cols)/sizeof(char *);i++)
 		lv_add_column(hlistview,cols[i],i);
 
-	win=0;
-	if(find_win_by_hlistview(lparam,&win)){
-		for(i=0;i<win->columns;i++){
-			char str[10]={0};
-			char name[80]={0};
-			char *sql_name="";
-			lv_get_col_text(win->hlistview,i,name,sizeof(name));
-			lv_insert_data(hlistview,i,0,name);
-			find_sql_type_str(win->col_attr[i].type,&sql_name);
-			lv_insert_data(hlistview,i,1,sql_name);
-			_snprintf(str,sizeof(str),"%i",win->col_attr[i].type);
-			lv_insert_data(hlistview,i,2,str);
-			_snprintf(str,sizeof(str),"%i",win->col_attr[i].length);
-			lv_insert_data(hlistview,i,3,str);
-			_snprintf(str,sizeof(str),"%i",i);
-			lv_insert_data(hlistview,i,4,str);
+	if(IsWindow(lparam)){
+		if(find_win_by_hlistview(lparam,&win)){
+			for(i=0;i<win->columns;i++){
+				char str[10]={0};
+				char name[80]={0};
+				char *sql_name="";
+				lv_get_col_text(win->hlistview,i,name,sizeof(name));
+				lv_insert_data(hlistview,i,0,name);
+				find_sql_type_str(win->col_attr[i].type,&sql_name);
+				lv_insert_data(hlistview,i,1,sql_name);
+				_snprintf(str,sizeof(str),"%i",win->col_attr[i].type);
+				lv_insert_data(hlistview,i,2,str);
+				_snprintf(str,sizeof(str),"%i",win->col_attr[i].length);
+				lv_insert_data(hlistview,i,3,str);
+				_snprintf(str,sizeof(str),"%i",i);
+				lv_insert_data(hlistview,i,4,str);
+			}
+			if(win->table[0]!=0)
+				SetWindowText(hwnd,win->table);
 		}
-		if(win->table[0]!=0)
-			SetWindowText(hwnd,win->table);
+	}
+	else if(lparam!=0){
+		char *str=lparam;
+		int len=strlen(lparam);
+		int index=0;
+		int count=0;
+		int found=FALSE;
+		for(i=0;i<len;i++){
+			if(str[i]=='\t'){
+				index++;
+				found=FALSE;
+			}
+			else if(str[i]=='\n'){
+				count++;
+				index=0;
+				found=FALSE;
+			}
+			else if(str[i]==0)
+				break;
+			else if(found==FALSE){
+				char name[256]={0};
+				sscanf(str+i,"%255s",name);
+				lv_insert_data(hlistview,count,index,name);
+				found=TRUE;
+			}
+		}
 	}
 	for(i=0;i<sizeof(cols)/sizeof(char *);i++){
 		int method=LVSCW_AUTOSIZE;
