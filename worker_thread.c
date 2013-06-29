@@ -217,7 +217,7 @@ int thread(HANDLE event)
 						void *win=0;
 						if(acquire_table_window(&win,0)){
 							create_table_window(ghmdiclient,win);
-							assign_db_to_table(db,win);
+							assign_db_to_table(db,win,"new query");
 						}
 					}
 				}
@@ -250,7 +250,7 @@ int thread(HANDLE event)
 								int result;
 								create_table_window(ghmdiclient,win);
 								open_db(db);
-								assign_db_to_table(db,win);
+								assign_db_to_table(db,win,table);
 								if(strchr(table,' ')!=0)
 									_snprintf(sql,sizeof(sql),"SELECT * FROM [%s]",table);
 								else

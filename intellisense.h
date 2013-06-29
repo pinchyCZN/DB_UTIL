@@ -283,7 +283,7 @@ static WNDPROC wporigtedit=0;
 LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
 	static int last_insert=FALSE;
-	if(FALSE)
+	//if(FALSE)
 	if(msg!=WM_NCMOUSEMOVE&&msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY
 		&&msg!=WM_ERASEBKGND)
 		//if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE)
@@ -323,6 +323,19 @@ LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		}
 		}
 		break;
+	case WM_SYSKEYDOWN:
+		if(wparam==VK_RETURN){
+			TABLE_WINDOW *win=0;
+			if(find_win_by_hedit(hwnd,&win)){
+				if(GetKeyState(VK_MENU)&0x8000){
+					int message=WM_MDIMAXIMIZE;
+					if(IsZoomed(win->hwnd))
+						message=WM_MDIRESTORE;
+					SendMessage(ghmdiclient,message,win->hwnd,0);
+				}
+			}
+		}
+		break;
 	case WM_KEYFIRST:
 		{
 		TABLE_WINDOW *win=0;
@@ -349,7 +362,6 @@ LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 					last_insert=TRUE;
 					return TRUE;
 				}
-					//msg=WM_USER+1;
 			}
 			break;
 		case VK_ESCAPE:

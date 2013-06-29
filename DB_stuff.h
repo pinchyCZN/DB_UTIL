@@ -652,14 +652,14 @@ int get_col_info(DB_TREE *tree,char *table)
 	}
 	return 0;
 }
-int assign_db_to_table(DB_TREE *db,TABLE_WINDOW *win)
+int assign_db_to_table(DB_TREE *db,TABLE_WINDOW *win,char *table)
 {
 	if(db!=0 && win!=0){
 		win->hdbc=db->hdbc;
 		win->hdbenv=db->hdbenv;
 		win->hroot=db->hroot;
 		strncpy(win->name,db->name,sizeof(win->name));
-		SetWindowText(win->hwnd,db->name);
+		set_window_text(win->hwnd,"%s - %s",table,db->name);
 		return TRUE;
 	}
 	return FALSE;

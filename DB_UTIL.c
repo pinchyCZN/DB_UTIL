@@ -139,6 +139,19 @@ int create_status_bar_parts(HWND hwnd,HWND hstatus)
 	}
 	return FALSE;
 }
+int set_window_text(HWND hwnd,char *fmt,...)
+{
+	if(hwnd!=0){
+		char str[256]={0};
+		va_list va;
+		va_start(va,fmt);
+		_vsnprintf(str,sizeof(str),fmt,va);
+		va_end(va);
+		str[sizeof(str)-1]=0;
+		return SetWindowText(hwnd,str);
+	}
+	return FALSE;
+}
 int set_status_bar_text(HWND hstatus,int part,char *fmt,...)
 {
 	if(hstatus!=0){
