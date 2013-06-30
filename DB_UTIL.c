@@ -91,9 +91,10 @@ int load_window_size(HWND hwnd,char *section)
 		if((GetKeyState(VK_SHIFT)&0x8000)==0){
 			if(width<50 || height<50)
 				flags|=SWP_NOSIZE;
-			if(x>(rect.right-25) || x<(rect.left-25)
-				|| y<(rect.top-25) || y>(rect.bottom-25))
-				flags|=SWP_NOMOVE;
+			if(x>(rect.right-25) || x<(rect.left-25))
+				x=rect.left;
+			if(y<(rect.top-25) || y>(rect.bottom-25))
+				y=rect.top;
 			if(SetWindowPos(hwnd,HWND_TOP,x,y,width,height,flags)!=0)
 				result=TRUE;
 		}
@@ -118,8 +119,6 @@ int save_window_size(HWND hwnd,char *section)
 		rect=wp.rcNormalPosition;
 		x=rect.right-rect.left;
 		y=rect.bottom-rect.top;
-		if(x<100)x=320;
-		if(y<100)y=240;
 		write_ini_value(section,"width",x);
 		write_ini_value(section,"height",y);
 		write_ini_value(section,"xpos",rect.left);
