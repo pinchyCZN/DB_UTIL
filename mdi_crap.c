@@ -339,17 +339,6 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 			}
 		}
 		break;
-	case WM_SYSCOMMAND:
-		switch(wparam&0xFFF0){
-		case SC_MAXIMIZE:
-			write_ini_str("SETTINGS","mdi_maximized","1");
-			break;
-		case SC_RESTORE:
-			write_ini_str("SETTINGS","mdi_maximized","0");
-			break;
-		}
-		break;
-
 	case WM_VKEYTOITEM:
 		switch(LOWORD(wparam)){
 		case VK_RETURN:
@@ -438,6 +427,16 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 			break;
 		}
 		break;
+	case WM_SYSCOMMAND:
+		switch(wparam&0xFFF0){
+		case SC_MAXIMIZE:
+			write_ini_value("SETTINGS","mdi_maximized",1);
+			break;
+		case SC_RESTORE:
+			write_ini_value("SETTINGS","mdi_maximized",0);
+			break;
+		}
+		break;
 	case WM_SIZE:
 		resize_mdi_window(hwnd,mdi_split);
 		break;
@@ -477,13 +476,10 @@ int save_mdi_size(HWND hwnd)
 	wp.length=sizeof(wp);
 	if(GetWindowPlacement(hwnd,&wp)!=0){
 		RECT rect={0};
-		char str[80]={0};
 		rect=wp.rcNormalPosition;
-		_snprintf(str,sizeof(str),"%i",rect.right-rect.left);
-		write_ini_str("SETTINGS","mdi_width",str);
-		_snprintf(str,sizeof(str),"%i",rect.bottom-rect.top);
-		write_ini_str("SETTINGS","mdi_height",str);
-		write_ini_str("SETTINGS","mdi_maximized",wp.flags&WPF_RESTORETOMAXIMIZED?"1":"0");
+		write_ini_value("SETTINGS","mdi_width",rect.right-rect.left);
+		write_ini_value("SETTINGS","mdi_height",rect.bottom-rect.top);
+		write_ini_value("SETTINGS","mdi_maximized",wp.flags&WPF_RESTORETOMAXIMIZED?1:0);
 		return TRUE;
 	}
 	return FALSE;
