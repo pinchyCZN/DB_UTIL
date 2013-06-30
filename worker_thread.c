@@ -165,6 +165,7 @@ int thread(HANDLE event)
 						if(keep_closed)
 							close_db(db);
 						set_status_bar_text(ghstatusbar,0,"done, %s",keep_closed?"closed DB":"");
+						set_focus_after_open(db);
 					}
 				}
 				break;
