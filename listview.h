@@ -212,7 +212,11 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			break;
 		case CMD_SQL_UPDATE:
 			{
-				//create a SQL script and copy to clipboard
+				TABLE_WINDOW *win=0;
+				if(find_win_by_hlistview(hwnd,&win)){
+					int row=ListView_GetSelectionMark(win->hlistview);
+					task_update_record(win,row,"xyz",TRUE);
+				}
 			}
 			break;
 		case CMD_EXPORT_DATA:
@@ -589,7 +593,7 @@ LRESULT APIENTRY sc_lvedit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 					char text[1024]={0};
 					index=ListView_GetSelectionMark(win->hlistview);
 					GetWindowText(win->hlvedit,text,sizeof(text));
-					task_update_record(win,index,text);
+					task_update_record(win,index,text,FALSE);
 					PostMessage(win->hwnd,WM_USER,win,MAKELPARAM(IDC_LV_EDIT,IDOK));
 				}
 			}
@@ -608,25 +612,34 @@ LRESULT APIENTRY sc_lvedit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 
 int create_lv_edit_selected(TABLE_WINDOW *win)
 {
+	int result=FALSE;
 	if(win!=0 && win->hlistview!=0){
 		int index=0;
 		index=ListView_GetSelectionMark(win->hlistview);
 		if(index>=0){
 			RECT rect={0};
 			if(ListView_GetSubItemRect(win->hlistview,index,win->selected_column,LVIR_LABEL,&rect)!=0){
-				char text[255]={0};
+				char *str=0;
+				int str_size=0x10000;
 				create_lv_edit(win,&rect);
-				ListView_GetItemText(win->hlistview,index,win->selected_column,text,sizeof(text));
-				if(win->hlvedit!=0){
-					if(text[0]!=0)
-						SetWindowText(win->hlvedit,text);
-					SetFocus(win->hlvedit);
-					return TRUE;
+				str=malloc(str_size);
+				if(str!=0){
+					ListView_GetItemText(win->hlistview,index,win->selected_column,str,str_size);
 				}
+				if(win->hlvedit!=0){
+					if(str!=0){
+						if(str[0]!=0)
+							SetWindowText(win->hlvedit,str);
+					}
+					SetFocus(win->hlvedit);
+					result=TRUE;
+				}
+				if(str!=0)
+					free(str);
 			}
 		}
 	}
-	return FALSE;
+	return result;
 }
 int create_lv_menus()
 {

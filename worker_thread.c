@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <stdio.h>
+#include <rpc.h>
 
 extern HWND ghmainframe,ghmdiclient,ghtreeview,ghdbview,ghstatusbar;
 HANDLE event;
@@ -16,6 +17,7 @@ enum{
 	TASK_NEW_QUERY,
 	TASK_EXECUTE_QUERY,
 	TASK_UPDATE_ROW,
+	TASK_UPDATE_ROW_COPY,
 	TASK_GET_COL_INFO
 };
 
@@ -77,9 +79,12 @@ int task_refresh_tables(char *str)
 	SetEvent(event);
 	return TRUE;
 }
-int task_update_record(void *win,int row,char *data)
+int task_update_record(void *win,int row,char *data,int only_copy)
 {
-	task=TASK_UPDATE_ROW;
+	if(only_copy)
+		task=TASK_UPDATE_ROW_COPY;
+	else
+		task=TASK_UPDATE_ROW;
 	_snprintf(taskinfo,sizeof(taskinfo),"WIN=0x%08X;ROW=%i;DATA=%s",win,row,data);
 	SetEvent(event);
 	return TRUE;
@@ -169,6 +174,7 @@ int thread(HANDLE event)
 					}
 				}
 				break;
+			case TASK_UPDATE_ROW_COPY:
 			case TASK_UPDATE_ROW:
 				{
 					void *win=0;
@@ -177,8 +183,11 @@ int thread(HANDLE event)
 					if(win!=0){
 						char *s=strstr(localinfo,"DATA=");
 						if(s!=0){
+							int only_copy=FALSE;
 							s+=sizeof("DATA=")-1;
-							update_row(win,row,s);
+							if(task==TASK_UPDATE_ROW_COPY)
+								only_copy=TRUE;
+							update_row(win,row,s,only_copy);
 						}
 					}
 				}
@@ -284,7 +293,19 @@ int thread(HANDLE event)
 
 int start_worker_thread()
 {
-	event=CreateEvent(NULL,TRUE,FALSE,"worker thread");
+	char str[80]={0};
+	UUID uuid;
+	RPC_STATUS result=UuidCreate(&uuid);
+	_snprintf(str,sizeof(str),"%s","worker thread:");
+	if(result==RPC_S_OK){
+		char *p=0;
+		UuidToString(&uuid,&p);
+		if(p!=0){
+			_snprintf(str,sizeof(str),"%s%s",str,p);
+			RpcStringFree(&p);
+		}
+	}
+	event=CreateEvent(NULL,TRUE,FALSE,str);
 	if(event==0)
 		return FALSE;
 	_beginthread(thread,0,event);

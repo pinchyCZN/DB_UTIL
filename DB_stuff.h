@@ -287,8 +287,12 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 	if(fname!=0 && fname[0]!=0)
 		f=fopen(fname,"wb");
 	if(hstmt!=0 && win!=0){
+		RECT rect={0};
+		int max_width;
 		int buf_size=0x20000;
 		char *buf=malloc(buf_size);
+		GetClientRect(win->hlistview,&rect);
+		max_width=rect.right*.95;
 		while(TRUE){
 			int result=0;
 
@@ -322,7 +326,18 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 						lv_insert_data(win->hlistview,rows,i,s);
 					else
 						lv_update_data(win->hlistview,rows,i,s);
+					if(len>255){
+						int j;
+						for(j=0;j<255;j++){
+							if(str[j]=='\r' || str[j]=='\n'){
+								str[j]=0;
+								break;
+							}
+						}
+					}
 					width=get_str_width(win->hlistview,s)+4;
+					if(max_width!=0 && width>max_width)
+						width=max_width;
 					if(win->col_attr!=0 && (width>win->col_attr[i].col_width))
 						win->col_attr[i].col_width=width;
 //Sleep(250);
@@ -389,12 +404,14 @@ int sanitize_value(char *str,char *out,int size,int type)
 			case SQL_DOUBLE:
 				_snprintf(out,size,"%s",tmp);
 				break;
+			case -1:
 			case SQL_VARCHAR:
 			case SQL_CHAR:
 				_snprintf(out,size,"'%s'",tmp);
 				break;
 			case SQL_DATETIME:
 			case SQL_TYPE_DATE:
+			case SQL_TYPE_TIMESTAMP:
 				if(strchr(tmp,'-')){
 					if(strchr(tmp,':'))
 						_snprintf(out,size,"{ts'%s'}",tmp);
@@ -414,27 +431,28 @@ int sanitize_value(char *str,char *out,int size,int type)
 	}
 	return result;
 }
-int update_row(TABLE_WINDOW *win,int row,char *data)
+int update_row(TABLE_WINDOW *win,int row,char *data,int only_copy)
 {
 	int result=FALSE;
 	if(win!=0 && win->hlistview!=0 && win->table[0]!=0 && data!=0){
 		char *sql=0;
 		char col_name[80]={0};
-		int i,count,sql_size=0x10000;
+		char *tmp=0;
+		int i,count,sql_size=0x10000,tmp_size=0x10000;
 		count=lv_get_column_count(win->hlistview);
 		lv_get_col_text(win->hlistview,win->selected_column,col_name,sizeof(col_name));
 		sql=malloc(sql_size);
-		if(count>0 && sql!=0 && col_name[0]!=0){
-			char cdata[80]={0};
+		tmp=malloc(tmp_size);
+		if(count>0 && sql!=0 && tmp!=0 && col_name[0]!=0){
 			char *lbrack="",*rbrack="";
 			if(is_sql_reserved(col_name) || strchr(col_name,' ')){
 				lbrack="[",rbrack="]";
 			}
 			sql[0]=0;
-			sanitize_value(data,cdata,sizeof(cdata),get_column_type(win,win->selected_column));
-			_snprintf(sql,sql_size,"UPDATE [%s] SET %s%s%s=%s WHERE ",win->table,lbrack,col_name,rbrack,cdata[0]==0?"''":cdata);
+			tmp[0]=0;
+			sanitize_value(data,tmp,tmp_size,get_column_type(win,win->selected_column));
+			_snprintf(sql,sql_size,"UPDATE [%s] SET %s%s%s=%s WHERE ",win->table,lbrack,col_name,rbrack,tmp[0]==0?"''":tmp);
 			for(i=0;i<count;i++){
-				char tmp[128]={0};
 				char *v=0,*eq="=";
 				col_name[0]=0;
 				lv_get_col_text(win->hlistview,i,col_name,sizeof(col_name));
@@ -444,7 +462,8 @@ int update_row(TABLE_WINDOW *win,int row,char *data)
 				else{
 					lbrack="",rbrack="";
 				}
-				ListView_GetItemText(win->hlistview,row,i,tmp,sizeof(tmp));
+				tmp[0]=0;
+				ListView_GetItemText(win->hlistview,row,i,tmp,tmp_size);
 				if(stricmp(tmp,"(NULL)")==0){
 					v="NULL";
 					eq=" is ";
@@ -453,25 +472,32 @@ int update_row(TABLE_WINDOW *win,int row,char *data)
 					v="''";
 				else
 					v=tmp;
-				sanitize_value(tmp,tmp,sizeof(tmp),get_column_type(win,i));
+				sanitize_value(tmp,tmp,tmp_size,get_column_type(win,i));
 				_snprintf(sql,sql_size,"%s%s%s%s%s%s%s",sql,lbrack,col_name,rbrack,eq,v,i>=count-1?"":" AND\r\n");
 			}
 			printf("%s\n",sql);
-			if(reopen_db(win)){
-				int result;
-				mdi_create_abort(win);
-				result=execute_sql(win,sql,FALSE);
-				if(result){
-					lv_update_data(win->hlistview,row,win->selected_column,data);
-					result=TRUE;
-				}
-				mdi_destroy_abort(win);
-				PostMessage(win->hwnd,WM_USER,win->hlistview,IDC_MDI_CLIENT);
+			if(only_copy){
+				copy_str_clipboard(sql);
+				//SetWindowText(win->hedit,sql);
 			}
-			//SetWindowText(win->hedit,sql);
+			else{
+				if(reopen_db(win)){
+					int result;
+					mdi_create_abort(win);
+					result=execute_sql(win,sql,FALSE);
+					if(result){
+						lv_update_data(win->hlistview,row,win->selected_column,data);
+						result=TRUE;
+					}
+					mdi_destroy_abort(win);
+					PostMessage(win->hwnd,WM_USER,win->hlistview,IDC_MDI_CLIENT);
+				}
+			}
 		}
 		if(sql!=0)
 			free(sql);
+		if(tmp!=0)
+			free(tmp);
 	}
 	return result;
 }
