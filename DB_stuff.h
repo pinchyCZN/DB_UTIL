@@ -361,6 +361,17 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 		fclose(f);
 	return rows;
 }
+int is_dbf(TABLE_WINDOW *win)
+{
+	int result=FALSE;
+	if(win!=0){
+		if(win->name!=0){
+			if(strstri(win->name,"DSN=visual foxpro")!=0)
+				result=TRUE;
+		}
+	}
+	return result;
+}
 int is_sql_reserved(const char *sql)
 {
 	extern const char *sql_reserved_words[];
@@ -415,8 +426,12 @@ int sanitize_value(char *str,char *out,int size,int type)
 				if(strchr(tmp,'-')){
 					if(strchr(tmp,':'))
 						_snprintf(out,size,"{ts'%s'}",tmp);
-					else
-						_snprintf(out,size,"{d'%s'}",tmp);
+					else{
+						if(strcmp(tmp,"1899-12-30")==0)
+							_snprintf(out,size,"{dt'%s'}",tmp);
+						else
+							_snprintf(out,size,"{d'%s'}",tmp);
+					}
 				}
 				else
 					_snprintf(out,size,"'%s'",tmp);
@@ -444,12 +459,19 @@ int update_row(TABLE_WINDOW *win,int row,char *data,int only_copy)
 		sql=malloc(sql_size);
 		tmp=malloc(tmp_size);
 		if(count>0 && sql!=0 && tmp!=0 && col_name[0]!=0){
+			int DBF_TYPE=FALSE;
 			char *lbrack="",*rbrack="";
+			DBF_TYPE=is_dbf(win);
 			if(is_sql_reserved(col_name) || strchr(col_name,' ')){
-				lbrack="[",rbrack="]";
+				if(DBF_TYPE){
+					lbrack="`",rbrack="`";
+				}else{
+					lbrack="[",rbrack="]";
+				}
 			}
 			sql[0]=0;
 			tmp[0]=0;
+			is_dbf(win);
 			sanitize_value(data,tmp,tmp_size,get_column_type(win,win->selected_column));
 			_snprintf(sql,sql_size,"UPDATE [%s] SET %s%s%s=%s WHERE ",win->table,lbrack,col_name,rbrack,tmp[0]==0?"''":tmp);
 			for(i=0;i<count;i++){
@@ -457,7 +479,12 @@ int update_row(TABLE_WINDOW *win,int row,char *data,int only_copy)
 				col_name[0]=0;
 				lv_get_col_text(win->hlistview,i,col_name,sizeof(col_name));
 				if(is_sql_reserved(col_name) || strchr(col_name,' ')){
-					lbrack="[",rbrack="]";
+					if(DBF_TYPE){
+						lbrack="`",rbrack="`";
+					}
+					else{
+						lbrack="[",rbrack="]";
+					}
 				}
 				else{
 					lbrack="",rbrack="";
