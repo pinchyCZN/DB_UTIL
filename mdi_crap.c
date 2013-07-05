@@ -207,6 +207,27 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 								SendMessage(win->hwnd,WM_USER,0,IDC_MDI_LISTVIEW);
 								SetFocus(win->hedit);
 								break;
+							case VK_INSERT:
+								{
+									char str[256]={0};
+									_snprintf(str,sizeof(str),"OK to insert row?");
+									if(MessageBox(win->hwnd,str,"warning",MB_OKCANCEL)==IDOK)
+										;
+								}
+								break;
+							case VK_DELETE:
+								{
+									int row=ListView_GetSelectionMark(win->hlistview);
+									if(row>=0){
+										char str[256]={0};
+										char col[80]={0};
+										ListView_GetItemText(win->hlistview,row,win->selected_column,col,sizeof(col));
+										_snprintf(str,sizeof(str),"OK to delete row %i ?\r\n(cell data=%s)",row+1,col);
+										if(MessageBox(win->hwnd,str,"warning",MB_OKCANCEL)==IDOK)
+											task_delete_row(win,row);
+									}
+								}
+								break;
 							case VK_F3:
 								{
 									char *find=0;
@@ -864,6 +885,7 @@ int mdi_open_db(DB_TREE *tree,int load_tables)
 			if(tree->hroot!=0){
 				rename_tree_item(tree->hroot,tree->name);
 				tree_delete_all_child(tree->hroot);
+				set_status_bar_text(ghstatusbar,0,"retrieving tables:%s",tree->name);
 				get_tables(tree);
 				expand_root(tree->hroot);
 				result=TRUE;

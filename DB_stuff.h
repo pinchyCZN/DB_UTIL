@@ -446,6 +446,86 @@ int sanitize_value(char *str,char *out,int size,int type)
 	}
 	return result;
 }
+int delete_row(TABLE_WINDOW *win,int row)
+{
+	int result=FALSE;
+	if(win!=0 && win->hlistview!=0 && win->table[0]!=0){
+		char *sql=0,*tmp=0;
+		int sql_size=0x10000;
+		int tmp_size=0x10000;
+		int col_count;
+		sql=malloc(sql_size);
+		tmp=malloc(tmp_size);
+		col_count=lv_get_column_count(win->hlistview);
+		if(sql!=0 && tmp!=0){
+			int i;
+			int DBF_TYPE=FALSE;
+			char *lbrack="",*rbrack="";
+			DBF_TYPE=is_dbf(win);
+
+			if(is_sql_reserved(win->table) || strchr(win->table,' ')){
+				if(DBF_TYPE){
+					lbrack="`",rbrack="`";
+				}else{
+					lbrack="[",rbrack="]";
+				}
+			}
+			sql[0]=0;
+			_snprintf(sql,sql_size,"DELETE FROM %s%s%s WHERE \n",lbrack,win->table,rbrack);
+			for(i=0;i<col_count;i++){
+				char *v=0,*eq="=";
+				char col_name[80]={0};
+				lv_get_col_text(win->hlistview,i,col_name,sizeof(col_name));
+				if(is_sql_reserved(col_name) || strchr(col_name,' ')){
+					if(DBF_TYPE){
+						lbrack="`",rbrack="`";
+					}
+					else{
+						lbrack="[",rbrack="]";
+					}
+				}
+				else{
+					lbrack="",rbrack="";
+				}
+				tmp[0]=0;
+				ListView_GetItemText(win->hlistview,row,i,tmp,tmp_size);
+				if(stricmp(tmp,"(NULL)")==0){
+					v="NULL";
+					eq=" is ";
+				}
+				else if(tmp[0]==0)
+					v="''";
+				else
+					v=tmp;
+				sanitize_value(tmp,tmp,tmp_size,get_column_type(win,i));
+				_snprintf(sql,sql_size,"%s%s%s%s%s%s%s",sql,lbrack,col_name,rbrack,eq,v,i>=col_count-1?"":" AND\r\n");
+			}
+			if(col_count>0){
+				if(reopen_db(win)){
+					mdi_create_abort(win);
+					set_status_bar_text(ghstatusbar,0,"deleting row %i",row+1);
+					result=execute_sql(win,sql,FALSE);
+					if(result){
+						ListView_DeleteItem(win->hlistview,row);
+						set_status_bar_text(ghstatusbar,0,"row %i deleted",row+1);
+						result=TRUE;
+					}
+					else{
+						set_status_bar_text(ghstatusbar,0,"FAILED to delete row %i",row+1);
+					}
+					mdi_destroy_abort(win);
+					PostMessage(win->hwnd,WM_USER,win->hlistview,IDC_MDI_CLIENT);
+				}
+			}
+		}
+		if(sql!=0)
+			free(sql);
+		if(tmp!=0)
+			free(tmp);
+
+	}
+
+}
 int update_row(TABLE_WINDOW *win,int row,char *data,int only_copy)
 {
 	int result=FALSE;

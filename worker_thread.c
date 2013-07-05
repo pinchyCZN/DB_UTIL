@@ -18,6 +18,7 @@ enum{
 	TASK_EXECUTE_QUERY,
 	TASK_UPDATE_ROW,
 	TASK_UPDATE_ROW_COPY,
+	TASK_DELETE_ROW,
 	TASK_GET_COL_INFO
 };
 
@@ -88,6 +89,14 @@ int task_update_record(void *win,int row,char *data,int only_copy)
 	_snprintf(taskinfo,sizeof(taskinfo),"WIN=0x%08X;ROW=%i;DATA=%s",win,row,data);
 	SetEvent(event);
 	return TRUE;
+}
+int task_delete_row(void *win,int row)
+{
+	task=TASK_DELETE_ROW;
+	_snprintf(taskinfo,sizeof(taskinfo),"WIN=0x%08X;ROW=%i",win,row);
+	SetEvent(event);
+	return TRUE;
+
 }
 int	task_get_col_info(void *db,char *table)
 {
@@ -190,6 +199,15 @@ int thread(HANDLE event)
 							update_row(win,row,s,only_copy);
 						}
 					}
+				}
+				break;
+			case TASK_DELETE_ROW:
+				{
+					void *win=0;
+					int row=0;
+					sscanf(localinfo,"WIN=0x%08X;ROW=%i",&win,&row);
+					if(win!=0)
+						delete_row(win,row);
 				}
 				break;
 			case TASK_EXECUTE_QUERY:
