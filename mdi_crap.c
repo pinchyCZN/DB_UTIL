@@ -933,8 +933,22 @@ int mdi_set_edit_text(TABLE_WINDOW *win,char *str)
 }
 int mdi_get_edit_text(TABLE_WINDOW *win,char *str,int size)
 {
-	if(win!=0 && win->hedit!=0)
+	if(win!=0 && win->hedit!=0){
+		CHARRANGE range={0};
 		GetWindowText(win->hedit,str,size);
+		SendMessage(win->hedit,EM_EXGETSEL,0,&range);
+		if(range.cpMax!=range.cpMin){
+			int len;
+			if(range.cpMin>range.cpMax)
+				len=range.cpMin-range.cpMax;
+			else
+				len=range.cpMax-range.cpMin;
+			if(len>2 && len<size){
+				SendMessage(win->hedit,EM_GETSELTEXT,0,str);
+			}
+
+		}
+	}
 	return TRUE;
 }
 int mdi_set_title(TABLE_WINDOW *win,char *title)

@@ -168,6 +168,10 @@ SOURCE=.\ini_file.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\insert_row.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\mdi_crap.c
 # End Source File
 # Begin Source File
@@ -213,6 +217,10 @@ SOURCE=.\pragma.h
 # Begin Source File
 
 SOURCE=.\search.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\structs.h
 # End Source File
 # Begin Source File
 
