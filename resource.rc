@@ -173,6 +173,16 @@ BEGIN
     PUSHBUTTON      "Cancel",IDCANCEL,147,46,50,14
 END
 
+IDD_INSERT DIALOG DISCARDABLE  0, 0, 265, 137
+STYLE WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | 
+    WS_THICKFRAME
+CAPTION "Add row"
+FONT 8, "MS Sans Serif"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,0,123,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,119,123,50,14
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //

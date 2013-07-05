@@ -6,43 +6,19 @@
 #define _WIN32_IE 0x400
 #endif
 #include <windows.h>
+#include <Commctrl.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <io.h>
 #include <richedit.h>
 #include <math.h>
-#include "Commctrl.h"
 #include "resource.h"
 
 extern HINSTANCE ghinstance;
 extern HWND ghmainframe,ghmdiclient,ghtreeview,ghdbview,ghstatusbar;
 
-typedef struct{
-	int type;
-	int length;
-	int col_width;
-}COL_ATTR;
-typedef struct{
-	char name[1024];
-	char table[80];
-	void *hdbc;
-	void *hdbenv;
-	int abort;
-	int columns;
-	COL_ATTR *col_attr;
-	int rows;
-	int selected_column;
-	HWND hwnd,hlistview,hlvedit,hedit,hroot,habort,hintel,hlastfocus;
-}TABLE_WINDOW;
-
-typedef struct{
-	char name[1024];
-	char connect_str[1024];
-	void *hdbc;
-	void *hdbenv;
-	HWND htree,hroot;
-}DB_TREE;
+#include "structs.h"
 
 
 static TABLE_WINDOW table_windows[50];
@@ -208,12 +184,7 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 								SetFocus(win->hedit);
 								break;
 							case VK_INSERT:
-								{
-									char str[256]={0};
-									_snprintf(str,sizeof(str),"OK to insert row?");
-									if(MessageBox(win->hwnd,str,"warning",MB_OKCANCEL)==IDOK)
-										;
-								}
+								do_insert_dlg(hwnd,win);
 								break;
 							case VK_DELETE:
 								{

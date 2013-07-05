@@ -3,6 +3,7 @@
 #define COMPILE_MULTIMON_STUBS
 #endif
 #include <windows.h>
+#include <Commctrl.h>
 #include <multimon.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -10,7 +11,6 @@
 #include <io.h>
 
 #include "resource.h"
-#include "Commctrl.h"
 
 HINSTANCE ghinstance=0;
 HWND ghmainframe=0,ghmdiclient=0,ghdbview=0,ghstatusbar=0;
