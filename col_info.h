@@ -33,7 +33,7 @@ static const char *SQL_TYPES[]={
 	"SQL_TYPE_TIME",92,
 	"SQL_TYPE_TIMESTAMP",93
 };
-static int find_sql_type_str(int type,const char **str)
+int find_sql_type_str(int type,const char **str)
 {
 	int i;
 	for(i=0;i<sizeof(SQL_TYPES)/sizeof(char *);i+=2){
