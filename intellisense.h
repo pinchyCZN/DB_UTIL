@@ -280,7 +280,7 @@ int insert_selection(TABLE_WINDOW *win)
 
 
 static WNDPROC wporigtedit=0;
-LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
+static LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
 	static int last_insert=FALSE;
 	if(FALSE)
