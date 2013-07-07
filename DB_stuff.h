@@ -508,7 +508,6 @@ int delete_row(TABLE_WINDOW *win,int row)
 					if(result){
 						ListView_DeleteItem(win->hlistview,row);
 						set_status_bar_text(ghstatusbar,0,"row %i deleted",row+1);
-						result=TRUE;
 					}
 					else{
 						set_status_bar_text(ghstatusbar,0,"FAILED to delete row %i",row+1);
@@ -524,7 +523,93 @@ int delete_row(TABLE_WINDOW *win,int row)
 			free(tmp);
 
 	}
+	return result;
+}
 
+int insert_row(TABLE_WINDOW *win,HWND hlistview)
+{
+	int result=FALSE;
+	int FIELD_COL=0,VAL_COL=1,TYPE_COL=2;
+	char *sql=0;
+	char *tmp=0;
+	int sql_size=0x10000,tmp_size=0x10000;
+	if(win==0 || hlistview==0)
+		return result;
+	sql=malloc(sql_size);
+	tmp=malloc(tmp_size);
+	if(sql!=0 && tmp!=0){
+		int i,count,inserted;
+		char *lbrack="",*rbrack="";
+		int DBF_TYPE=FALSE;
+		tmp[0]=0;
+		GetWindowText(GetParent(hlistview),tmp,tmp_size);
+		if(strstri(tmp,"add row ")!=0){
+			_snprintf(tmp,tmp_size,tmp+sizeof("add row ")-1);
+		}
+		_snprintf(sql,sql_size,"INSERT INTO %s (",tmp);
+		if(tmp[0]=='`')
+			DBF_TYPE=TRUE;
+
+		count=ListView_GetItemCount(hlistview);
+		inserted=0;
+		for(i=0;i<count;i++){
+			lbrack="",rbrack="";
+
+			ListView_GetItemText(hlistview,i,VAL_COL,tmp,tmp_size);
+			if(tmp[0]==0)
+				continue;
+
+			tmp[0]=0;
+			ListView_GetItemText(hlistview,i,FIELD_COL,tmp,tmp_size);
+			if(is_sql_reserved(tmp) || strchr(tmp,' ')){
+				if(DBF_TYPE){
+					lbrack="`",rbrack="`";
+				}else{
+					lbrack="[",rbrack="]";
+				}
+			}
+			_snprintf(sql,sql_size,"%s%s%s%s%s",sql,(inserted>0)?",":"",lbrack,tmp,rbrack);
+			inserted++;
+		}
+		
+		_snprintf(sql,sql_size,"%s) VALUES (",sql);
+		
+		inserted=0;
+		for(i=0;i<count;i++){
+			char *d=0;
+			char str[80]={0};
+			char *lquote="",*rquote="";
+			tmp[0]=0;
+			ListView_GetItemText(hlistview,i,VAL_COL,tmp,tmp_size);
+			if(tmp[0]==0)
+				continue;
+			d=tmp;
+			if(stricmp(tmp,"(NULL)")==0){
+				d="NULL";
+			}
+			else{
+				ListView_GetItemText(hlistview,i,TYPE_COL,str,sizeof(str));
+				if(strstri(str,"date")!=0 || strstri(str,"time")!=0 || strstri(str,"char")!=0){
+					lquote=rquote="'";
+				}
+			}
+			_snprintf(sql,sql_size,"%s%s%s%s%s",sql,(inserted>0)?",":"",lquote,d,rquote);
+			inserted++;
+		}
+		if(count>0){
+			_snprintf(sql,sql_size,"%s)",sql);
+			sql[sql_size-1]=0;
+			copy_str_clipboard(sql);
+			if(reopen_db(win)){
+				result=execute_sql(win,sql,FALSE);
+			}
+		}
+	}
+	if(sql!=0)
+		free(sql);
+	if(tmp!=0)
+		free(tmp);
+	return result;
 }
 int update_row(TABLE_WINDOW *win,int row,char *data,int only_copy)
 {
@@ -551,7 +636,6 @@ int update_row(TABLE_WINDOW *win,int row,char *data,int only_copy)
 			}
 			sql[0]=0;
 			tmp[0]=0;
-			is_dbf(win);
 			sanitize_value(data,tmp,tmp_size,get_column_type(win,win->selected_column));
 			_snprintf(sql,sql_size,"UPDATE [%s] SET %s%s%s=%s WHERE ",win->table,lbrack,col_name,rbrack,tmp[0]==0?"''":tmp);
 			for(i=0;i<count;i++){
@@ -589,13 +673,10 @@ int update_row(TABLE_WINDOW *win,int row,char *data,int only_copy)
 			}
 			else{
 				if(reopen_db(win)){
-					int result;
 					mdi_create_abort(win);
 					result=execute_sql(win,sql,FALSE);
-					if(result){
+					if(result)
 						lv_update_data(win->hlistview,row,win->selected_column,data);
-						result=TRUE;
-					}
 					mdi_destroy_abort(win);
 					PostMessage(win->hwnd,WM_USER,win->hlistview,IDC_MDI_CLIENT);
 				}

@@ -4,6 +4,7 @@
 #include "structs.h"
 
 extern HINSTANCE ghinstance;
+extern HWND ghmainframe;
 
 enum {FIELD_POS=0,DATA_POS,TYPE_POS,SIZE_POS};
 
@@ -27,14 +28,14 @@ int populate_insert_dlg(HWND hwnd,HWND hlistview,TABLE_WINDOW *win)
 		char str[80]={0};
 		lv_get_col_text(win->hlistview,i,str,sizeof(str));
 		lv_insert_data(hlistview,i,FIELD_POS,str);
-		w=get_str_width(hlistview,str)+8;
+		w=get_str_width(hlistview,str);
 		if(w>widths[FIELD_POS])
 			widths[FIELD_POS]=w;
 		if(row_sel>=0){
 			str[0]=0;
 			ListView_GetItemText(win->hlistview,row_sel,i,str,sizeof(str));
 			lv_insert_data(hlistview,i,DATA_POS,str);
-			w=get_str_width(hlistview,str)+8;
+			w=get_str_width(hlistview,str);
 			if(w>widths[DATA_POS])
 				widths[DATA_POS]=w;
 		}
@@ -46,13 +47,13 @@ int populate_insert_dlg(HWND hwnd,HWND hlistview,TABLE_WINDOW *win)
 			}
 			else
 				lv_insert_data(hlistview,i,TYPE_POS,s);
-			w=get_str_width(hlistview,s)+8;
+			w=get_str_width(hlistview,s);
 			if(w>widths[TYPE_POS])
 				widths[TYPE_POS]=w;
 
 			_snprintf(str,sizeof(str),"%i",win->col_attr[i].length);
 			lv_insert_data(hlistview,i,SIZE_POS,str);
-			w=get_str_width(hlistview,str)+8;
+			w=get_str_width(hlistview,str);
 			if(w>widths[SIZE_POS])
 				widths[SIZE_POS]=w;
 		}
@@ -60,6 +61,7 @@ int populate_insert_dlg(HWND hwnd,HWND hlistview,TABLE_WINDOW *win)
 	{
 		int total_width=0;
 		for(i=0;i<4;i++){
+			widths[i]+=12;
 			ListView_SetColumnWidth(hlistview,i,widths[i]);
 			total_width+=widths[i];
 		}
@@ -119,12 +121,58 @@ static LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 	}
     return CallWindowProc(wporigtedit,hwnd,msg,wparam,lparam);
 }
+static int set_title(HWND hwnd,TABLE_WINDOW *win)
+{
+	char str[255]={0};
+	char *lbrack="",*rbrack="";
+	if(is_sql_reserved(win->table) || strchr(win->table,' ')){
+		if(strstri(win->name,"DSN=visual foxpro")!=0){
+			lbrack=rbrack="`";
+		}
+		else{
+			lbrack="[";rbrack="]";
+		}
+	}
+	_snprintf(str,sizeof(str),"Add Row %s%s%s",lbrack,win->table,rbrack);
+	str[sizeof(str)-1]=0;
+	return SetWindowText(hwnd,str);
+}
+static int add_row_tablewindow(TABLE_WINDOW *win,HWND hlistview)
+{
+	int i,count,row;
+	if(win==0 || hlistview==0)
+		return FALSE;
+	count=ListView_GetItemCount(win->hlistview);
+	row=ListView_GetSelectionMark(win->hlistview);
+	if(row<0)
+		row=count;
+	else
+		row++;
+	for(i=0;i<count;i++){
+		char str[255]={0};
+		ListView_GetItemText(hlistview,i,DATA_POS,str,sizeof(str));
+		lv_insert_data(win->hlistview,row,i,str);
+	}
+	ListView_EnsureVisible(win->hlistview,row,FALSE);
+	ListView_SetSelectionMark(win->hlistview,row);
+	ListView_SetItemState(win->hlistview,row,LVIS_SELECTED|LVIS_FOCUSED,LVIS_SELECTED|LVIS_FOCUSED);
+	return TRUE;
+}
 
 LRESULT CALLBACK insert_dlg_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
 	static TABLE_WINDOW *win=0;
 	static HWND hlistview=0,hgrippy=0,hedit=0;
-
+	static HFONT hfont=0;
+	if(FALSE)
+	{
+		static DWORD tick=0;
+		if((GetTickCount()-tick)>500)
+			printf("--\n");
+		printf("i");
+		print_msg(msg,lparam,wparam,hwnd);
+		tick=GetTickCount();
+	}
 	switch(msg){
 	case WM_INITDIALOG:
 		if(lparam==0){
@@ -141,24 +189,40 @@ LRESULT CALLBACK insert_dlg_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
                                      ghinstance,
                                      NULL);
 		ListView_SetExtendedListViewStyle(hlistview,LVS_EX_FULLROWSELECT);
-		SendMessage(hlistview,WM_SETFONT,GetStockObject(get_font_setting(IDC_LISTVIEW_FONT)),0);
+		hfont=SendMessage(win->hlistview,WM_GETFONT,0,0);
+		if(hfont!=0)
+			SendMessage(hlistview,WM_SETFONT,hfont,0);
+		set_title(hwnd,win);
 		populate_insert_dlg(hwnd,hlistview,win);
+		ListView_SetItemState(hlistview,0,LVIS_SELECTED|LVIS_FOCUSED,LVIS_SELECTED|LVIS_FOCUSED);
 		hgrippy=create_grippy(hwnd);
 		resize_insert_dlg(hwnd);
 		break;
 	case WM_NOTIFY:
 		{
 			NMHDR *nmhdr=lparam;
-			if(nmhdr!=0 && nmhdr->hwndFrom==hlistview){
+			if(nmhdr!=0){
 				switch(nmhdr->code){
 				case NM_DBLCLK:
-					if(hedit==0)
+					if(hedit==0 && nmhdr->hwndFrom==hlistview)
 						SendMessage(hwnd,WM_COMMAND,IDOK,0);
 					break;
 				case LVN_KEYDOWN:
+					if(nmhdr->hwndFrom==hlistview)
 					{
 						LV_KEYDOWN *key=lparam;
 						switch(key->wVKey){
+						case VK_DOWN:
+						case VK_RIGHT:
+						case VK_NEXT:
+							{
+								int count,row_sel;
+								count=ListView_GetItemCount(hlistview);
+								row_sel=ListView_GetSelectionMark(hlistview);
+								if(count>0 && row_sel==count-1)
+									SetFocus(GetDlgItem(hwnd,IDOK));
+							}
+							break;
 						case 'A':
 							if(GetKeyState(VK_CONTROL)&0x8000){
 								int i,count;
@@ -170,6 +234,10 @@ LRESULT CALLBACK insert_dlg_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 							break;
 						case VK_DELETE:
 							clear_selected_items(hlistview);
+							break;
+						case VK_F5:
+							if(task_insert_row(win,hlistview))
+								SetWindowText(GetDlgItem(hwnd,IDOK),"Busy");
 							break;
 						case ' ':
 						case VK_F2:
@@ -195,7 +263,8 @@ LRESULT CALLBACK insert_dlg_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 										w=crect.right-crect.left+8;
 										h=rect.bottom-rect.top+8;
 										SetWindowPos(hedit,HWND_TOP,x,y,w,h,0);
-										SendMessage(hedit,WM_SETFONT,GetStockObject(get_font_setting(IDC_LISTVIEW_FONT)),0);
+										if(hfont!=0)
+											SendMessage(hedit,WM_SETFONT,hfont,0);
 										populate_edit_control(hlistview,hedit,row_sel);
 										SetFocus(hedit);
 										wporigtedit=SetWindowLong(hedit,GWL_WNDPROC,(LONG)sc_edit);
@@ -212,10 +281,23 @@ LRESULT CALLBACK insert_dlg_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			}
 		}
 		break;
+	case WM_HSCROLL:
+		if(lparam==hgrippy)
+			SetFocus(hlistview);
+		break;
 	case WM_USER:
 		if(hedit!=0 && lparam==hedit){
 			hedit=0;
 			SetFocus(hlistview);
+		}
+		else if(lparam==hlistview){
+			if(wparam==IDOK){
+				add_row_tablewindow(win,hlistview);
+			}
+			else
+				SetFocus(GetDlgItem(hwnd,IDCANCEL));
+
+			SetWindowText(GetDlgItem(hwnd,IDOK),"OK");
 		}
 		break;
 	case WM_SIZE:
@@ -245,7 +327,9 @@ LRESULT CALLBACK insert_dlg_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				break;
 			}
 			else{
-				EndDialog(hwnd,0);
+				if(task_insert_row(win,hlistview))
+					SetWindowText(GetDlgItem(hwnd,IDOK),"Busy");
+
 			}
 			break;
 		case IDCANCEL:
@@ -263,7 +347,11 @@ LRESULT CALLBACK insert_dlg_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 }
 
 
-int do_insert_dlg(HWND hwnd,void *win)
+int do_insert_dlg(HWND hwnd,TABLE_WINDOW *win)
 {
-	return DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_INSERT),hwnd,insert_dlg_proc,win);
+	int result;
+	result=DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_INSERT),hwnd,insert_dlg_proc,win);
+	if(win!=0 && win->hlistview!=0)
+		PostMessage(ghmainframe,WM_USER,IDC_MDI_LISTVIEW,win->hlistview);
+	return result;
 }

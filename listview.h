@@ -191,7 +191,6 @@ LRESULT CALLBACK filename_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 static WNDPROC wporiglistview=0;
 LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
-	static int xscroll=-1,yscroll=-1;
 	if(FALSE)
 	if(msg<=0x1000)
 	if(msg!=WM_NCMOUSEMOVE&&msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY
@@ -308,37 +307,37 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			break;
 		}
 		break;
+	case WM_MOUSEWHEEL:
 	case WM_VSCROLL:
+		{
+			TABLE_WINDOW *win=0;
+			if(find_win_by_hlistview(hwnd,&win) && win->hlvedit!=0){
+				InvalidateRect(win->hlistview,NULL,FALSE);
+				InvalidateRect(win->hlvedit,NULL,FALSE);
+			}
+		}
 		break;
 	case WM_HSCROLL:
 		{
 			TABLE_WINDOW *win=0;
-			if(find_win_by_hlistview(hwnd,&win)){
+			if(find_win_by_hlistview(hwnd,&win) && win->hlvedit!=0){
 				switch(LOWORD(wparam)){
-				case SB_THUMBTRACK:
-					if(win->hlvedit!=0){
-						RECT rect={0};
-						int pos=HIWORD(wparam);
-						if(xscroll<0)
-							xscroll=pos;
-
+				default:
+					{
+						RECT rect={0},crect={0};
+						int w;
 						GetWindowRect(win->hlvedit,&rect);
+						lv_get_col_rect(hwnd,win->selected_column,&crect);
 						MapWindowPoints(NULL,win->hlistview,&rect,2);
-						if(SetWindowPos(win->hlvedit,HWND_TOP,rect.left-(pos-xscroll),rect.top,0,0,SWP_NOSIZE)){
-							int item;
-							item=ListView_GetSelectionMark(win->hlistview);
-							ListView_RedrawItems(win->hlistview,item,item);
+						w=rect.right-rect.left;
+						rect.left=crect.left-GetScrollPos(hwnd,SB_HORZ);
+						rect.right=rect.left+w;
+						if(SetWindowPos(win->hlvedit,HWND_TOP,rect.left,rect.top,0,0,SWP_NOSIZE)){
+							InvalidateRect(win->hlistview,NULL,FALSE);
 							InvalidateRect(win->hlvedit,NULL,FALSE);
-							printf("pos=%i xscroll=%i item=%i\n",pos,xscroll,item);
 						}
-						xscroll=pos;
 					}
 					break;
-				case SB_ENDSCROLL:
-					xscroll=-1;
-					yscroll=-1;
-					break;
-
 				}
 			}
 		}
@@ -579,10 +578,28 @@ LRESULT APIENTRY sc_lvedit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		case VK_F1:
 			{
 				RECT rect={0};
-				GetClientRect(hwnd,&rect);
-				if(rect.right>5000)
-					break;
-				SetWindowPos(hwnd,NULL,0,0,rect.right*1.75,rect.bottom,SWP_NOOWNERZORDER|SWP_NOMOVE);
+				int w,h;
+				GetWindowRect(hwnd,&rect);
+				w=rect.right-rect.left;
+				h=rect.bottom-rect.top;
+				GetClientRect(GetParent(hwnd),&rect);
+				if(GetKeyState(VK_CONTROL)&0x8000){
+					w=w*.6;
+					h=h*.79;
+				}
+				else{
+					w=w*1.5;
+					h=h*1.25;
+				}
+				if(w>rect.right)
+					w=rect.right;
+				else if(w<10)
+					w=10;
+				if(h>rect.bottom)
+					h=rect.bottom;
+				else if(h<10)
+					h=10;
+				SetWindowPos(hwnd,NULL,0,0,w,h,SWP_NOOWNERZORDER|SWP_NOMOVE);
 			}
 			break;
 		case VK_RETURN:
@@ -661,20 +678,27 @@ int create_lv_edit(TABLE_WINDOW *win,RECT *rect)
 {
 	int result=FALSE;
 	if(win!=0 && rect!=0){
+		int x,y,w,h;
 		if(win->hlvedit!=0)
 			destroy_lv_edit(win);
+		x=rect->left-4;
+		y=rect->top-4;
+		w=rect->right - rect->left+8;
+		h=rect->bottom - rect->top+8;
 		win->hlvedit = CreateWindow("EDIT", //"RichEdit50W",
 										 "",
-										 WS_TABSTOP|WS_CHILD|WS_CLIPSIBLINGS|WS_VISIBLE|
+										 WS_THICKFRAME|WS_TABSTOP|WS_CHILD|WS_CLIPCHILDREN|WS_VISIBLE|
 										 ES_LEFT|ES_AUTOHSCROLL|ES_MULTILINE|ES_AUTOVSCROLL,
-										 rect->left-1,rect->top-1,
-										 rect->right - rect->left+2,
-										 rect->bottom - rect->top+2,
+										 x,y,
+										 w,h,
 										 win->hlistview,
 										 IDC_LV_EDIT,
 										 ghinstance,
 										 NULL);
 		if(win->hlvedit!=0){
+			HFONT hfont=SendMessage(win->hlistview,WM_GETFONT,0,0);
+			if(hfont!=0)
+				SendMessage(win->hlvedit,WM_SETFONT,hfont,0);
 			lvorigedit=SetWindowLong(win->hlvedit,GWL_WNDPROC,(LONG)sc_lvedit);
 			SetWindowText(ghstatusbar,"");
 			result=TRUE;

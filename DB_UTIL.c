@@ -529,6 +529,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 			if(lparam!=0)
 				SetFocus(lparam);
 			break;
+		case IDC_MDI_LISTVIEW:
+			if(lparam!=0){
+				last_focus=lparam;
+				SetFocus(lparam);
+			}
+			break;
 		}
 		break;
 	case WM_USER+1:

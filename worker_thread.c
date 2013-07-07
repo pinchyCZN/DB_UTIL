@@ -19,6 +19,7 @@ enum{
 	TASK_UPDATE_ROW,
 	TASK_UPDATE_ROW_COPY,
 	TASK_DELETE_ROW,
+	TASK_INSERT_ROW,
 	TASK_GET_COL_INFO
 };
 
@@ -98,6 +99,15 @@ int task_delete_row(void *win,int row)
 	return TRUE;
 
 }
+int task_insert_row(void *win,void *hlistview)
+{
+	if(WaitForSingleObject(event,0)==WAIT_OBJECT_0)
+		return FALSE;
+	task=TASK_INSERT_ROW;
+	_snprintf(taskinfo,sizeof(taskinfo),"WIN=%08X,HLISTVIEW=0x%08X",win,hlistview);
+	SetEvent(event);
+	return TRUE;
+}
 int	task_get_col_info(void *db,char *table)
 {
 	task=TASK_GET_COL_INFO;
@@ -162,7 +172,7 @@ int thread(HANDLE event)
 						else{
 							if(keep_closed)
 								close_db(db);
-							SetWindowText(ghstatusbar,"ready");
+							set_status_bar_text(ghstatusbar,0,"open DB done %s",keep_closed?"(closed DB)":"");
 						}
 					}
 				}
@@ -178,7 +188,7 @@ int thread(HANDLE event)
 						get_col_info(db,table);
 						if(keep_closed)
 							close_db(db);
-						set_status_bar_text(ghstatusbar,0,"done, %s",keep_closed?"closed DB":"");
+						set_status_bar_text(ghstatusbar,0,"col info done, %s",keep_closed?"(closed DB)":"");
 						set_focus_after_open(db);
 					}
 				}
@@ -186,6 +196,7 @@ int thread(HANDLE event)
 			case TASK_UPDATE_ROW_COPY:
 			case TASK_UPDATE_ROW:
 				{
+					int result=FALSE;
 					void *win=0;
 					int row=0;
 					sscanf(localinfo,"WIN=0x%08X;ROW=%i",&win,&row);
@@ -196,18 +207,59 @@ int thread(HANDLE event)
 							s+=sizeof("DATA=")-1;
 							if(task==TASK_UPDATE_ROW_COPY)
 								only_copy=TRUE;
-							update_row(win,row,s,only_copy);
+							result=update_row(win,row,s,only_copy);
+							if(keep_closed){
+								void *db=0;
+								acquire_db_tree_from_win(win,&db);
+								close_db(db);
+							}
 						}
 					}
+					set_status_bar_text(ghstatusbar,0,"update row %s %s",
+						result?"done":"failed",
+						keep_closed?"(closed DB)":"");
 				}
 				break;
 			case TASK_DELETE_ROW:
 				{
+					int result=FALSE;
 					void *win=0;
 					int row=0;
 					sscanf(localinfo,"WIN=0x%08X;ROW=%i",&win,&row);
-					if(win!=0)
-						delete_row(win,row);
+					if(win!=0){
+						result=delete_row(win,row);
+						if(keep_closed){
+							void *db=0;
+							acquire_db_tree_from_win(win,&db);
+							close_db(db);
+						}
+					}
+					set_status_bar_text(ghstatusbar,0,"delete row %s",
+						result?"done":"failed",
+						(win!=0 && keep_closed)?"(closed DB)":"");
+				}
+				break;
+			case TASK_INSERT_ROW:
+				{
+					int result=FALSE;
+					void *win=0,*hlistview=0;
+					sscanf(localinfo,"WIN=%08X,HLISTVIEW=0x%08X",&win,&hlistview);
+					if(win!=0 && hlistview!=0){
+						int msg=IDOK;
+						result=insert_row(win,hlistview);
+						if(!result)
+							msg=IDCANCEL;
+						PostMessage(GetParent(hlistview),WM_USER,msg,hlistview);
+						if(keep_closed){
+							void *db=0;
+							acquire_db_tree_from_win(win,&db);
+							close_db(db);
+						}
+					}
+					set_status_bar_text(ghstatusbar,0,"inserting row %s %s",
+						result?"done":"failed",
+						(win!=0 && hlistview!=0 && keep_closed)?"(closed DB)":"");
+
 				}
 				break;
 			case TASK_EXECUTE_QUERY:
@@ -232,9 +284,12 @@ int thread(HANDLE event)
 							acquire_db_tree_from_win(win,&db);
 							close_db(db);
 						}
-						printf("set focus\n");
 						set_focus_after_result(win,result);
 					}
+					set_status_bar_text(ghstatusbar,0,
+						"execute sql %s %s",
+						result?"OK":"failed",
+						keep_closed?"(closed DB)":"");
 				}
 				break;
 			case TASK_NEW_QUERY:
@@ -254,16 +309,23 @@ int thread(HANDLE event)
 				{
 					void *db=0;
 					SetWindowText(ghstatusbar,"refreshing tables");
-					acquire_db_tree(localinfo,&db);
-					if(!mdi_open_db(db,TRUE)){
-						mdi_remove_db(db);
-						SetWindowText(ghstatusbar,"error refreshing tables");
+					if(acquire_db_tree(localinfo,&db)){
+						if(!mdi_open_db(db,TRUE)){
+							mdi_remove_db(db);
+							SetWindowText(ghstatusbar,"error refreshing tables");
+						}
+						if(keep_closed)
+							close_db(db);
+						set_status_bar_text(ghstatusbar,0,"refreshed tables %s",
+							keep_closed?"(closed DB)":"");
 					}
-					SetWindowText(ghstatusbar,"done");
+					else
+						SetWindowText(ghstatusbar,"error refreshing cant acquire table");
 				}
 				break;
 			case TASK_OPEN_TABLE:
 				{
+					int result=FALSE;
 					char dbname[MAX_PATH*2]={0},table[80]={0},*p;
 					p=strrchr(localinfo,';');
 					if(p!=0){
@@ -275,7 +337,6 @@ int thread(HANDLE event)
 							void *win=0;
 							if(acquire_table_window(&win,table)){
 								char sql[256]={0};
-								int result;
 								create_table_window(ghmdiclient,win);
 								open_db(db);
 								assign_db_to_table(db,win,table);
@@ -297,7 +358,8 @@ int thread(HANDLE event)
 
 						}
 					}
-					printf("dbname=%s  table=%s\n",dbname,table);
+					set_status_bar_text(ghstatusbar,0,"open table %s %s %s",
+						table,result?"OK":"failed",keep_closed?"(closed DB)":"");
 				}
 				break;
 			default:
