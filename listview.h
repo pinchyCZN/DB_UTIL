@@ -565,8 +565,10 @@ LRESULT APIENTRY sc_lvedit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		//if(wparam!=0)
 		{
 			TABLE_WINDOW *win=0;
-			if(find_win_by_hlvedit(hwnd,&win))
+			if(find_win_by_hlvedit(hwnd,&win)){
 				PostMessage(win->hwnd,WM_USER,win,MAKELPARAM(IDC_LV_EDIT,IDCANCEL));
+				PostMessage(ghmainframe,WM_USER,IDC_LV_EDIT,win->hlistview);
+			}
 		}
 		break;
 	case WM_KEYFIRST:

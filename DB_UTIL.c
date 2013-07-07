@@ -535,6 +535,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 				SetFocus(lparam);
 			}
 			break;
+		case IDC_LV_EDIT:
+			if(lparam!=0)
+				last_focus=lparam;
+			break;
 		}
 		break;
 	case WM_USER+1:
