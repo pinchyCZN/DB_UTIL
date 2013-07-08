@@ -510,6 +510,7 @@ int delete_row(TABLE_WINDOW *win,int row)
 						set_status_bar_text(ghstatusbar,0,"row %i deleted",row+1);
 					}
 					else{
+						copy_str_clipboard(sql);
 						set_status_bar_text(ghstatusbar,0,"FAILED to delete row %i",row+1);
 					}
 					mdi_destroy_abort(win);

@@ -310,10 +310,17 @@ LRESULT CALLBACK insert_dlg_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			if(hedit!=0){
 				if(GetFocus()==hedit){
 					char str[80]={0};
-					int row_sel=ListView_GetSelectionMark(hlistview);
+					int count,row_sel=ListView_GetSelectionMark(hlistview);
 					GetWindowText(hedit,str,sizeof(str));
 					lv_update_data(hlistview,row_sel,DATA_POS,str);
 					SendMessage(hedit,WM_CLOSE,0,0);
+					count=ListView_GetItemCount(hlistview);
+					if(row_sel < (count-1)){
+						ListView_SetItemState(hlistview,row_sel,0,LVIS_SELECTED|LVIS_FOCUSED);
+						row_sel++;
+						ListView_SetItemState(hlistview,row_sel,LVIS_SELECTED|LVIS_FOCUSED,LVIS_SELECTED|LVIS_FOCUSED);
+						ListView_SetSelectionMark(hlistview,row_sel);
+					}
 					hedit=0;
 				}
 				break;
