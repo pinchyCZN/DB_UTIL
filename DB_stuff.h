@@ -265,7 +265,7 @@ int fetch_columns(SQLHSTMT hstmt,TABLE_WINDOW *win)
 				SQLColAttribute(hstmt,i+1,2,str,sizeof(str),NULL,&sqltype);
 				get_error_msg(hstmt,SQL_HANDLE_STMT,err,sizeof(err));
 				}
-				SQLColAttribute(hstmt,i+1,SQL_DESC_LENGTH,NULL,0,NULL,&sqllength);
+				SQLColAttribute(hstmt,i+1,SQL_DESC_LENGTH,NULL,0,NULL,&sqllength); //SQL_DESC_DISPLAY_SIZE 
 				mem=realloc(win->col_attr,(sizeof(COL_ATTR))*win->columns);
 				if(mem!=0){
 					win->col_attr=mem;
@@ -797,7 +797,7 @@ int get_col_info(DB_TREE *tree,char *table)
 						{"field name",4,SQL_C_CHAR},
 						{"type",6,SQL_C_CHAR},
 						{"type #",5,SQL_C_SHORT},
-						{"size",5,SQL_C_SHORT},
+						{"size",7,SQL_C_LONG},
 						{"index",0,0},
 						{"decimal digits",9,SQL_C_SHORT},
 						{"num prec radix",10,SQL_C_SHORT},
