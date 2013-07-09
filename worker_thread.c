@@ -289,10 +289,10 @@ int thread(HANDLE event)
 						}
 						set_focus_after_result(win,result);
 					}
-					set_status_bar_text(ghstatusbar,0,
-						"execute sql %s %s",
-						result?"OK":"failed",
-						keep_closed?"(closed DB)":"");
+					if(!result)
+						set_status_bar_text(ghstatusbar,0,
+							"execute sql failed %s",
+							keep_closed?"(closed DB)":"");
 				}
 				break;
 			case TASK_NEW_QUERY:
@@ -366,8 +366,9 @@ int thread(HANDLE event)
 
 						}
 					}
-					set_status_bar_text(ghstatusbar,0,"open table %s %s %s",
-						table,result?"OK":"failed",keep_closed?"(closed DB)":"");
+					if(!result)
+						set_status_bar_text(ghstatusbar,0,"open table:%s failed %s",
+							table,keep_closed?"(closed DB)":"");
 				}
 				break;
 			default:
