@@ -149,7 +149,7 @@ int thread(HANDLE event)
 						break;
 					}
 					acquire_db_tree(localinfo,&db);
-					if(!mdi_open_db(db,TRUE)){
+					if(!mdi_open_db(db)){
 						char str[512];
 						mdi_remove_db(db);
 						_snprintf(str,sizeof(str),"Cant open %s",localinfo);
@@ -159,6 +159,7 @@ int thread(HANDLE event)
 						set_focus_after_open(db);
 					}
 					else{
+						load_tables_if_empty(db);
 						set_focus_after_open(db);
 						reassign_tables(db);
 						if(task==TASK_OPEN_DB_AND_TABLE){
@@ -166,7 +167,9 @@ int thread(HANDLE event)
 							s=strstr(localinfo,";TABLE=");
 							if(s!=0){
 								s+=sizeof(";TABLE=")-1;
+								ResetEvent(event);
 								select_all_table(db,s);
+								continue;
 							}
 						}
 						else{
@@ -307,17 +310,22 @@ int thread(HANDLE event)
 				break;
 			case TASK_REFRESH_TABLES:
 				{
+					int result=FALSE;
 					void *db=0;
 					SetWindowText(ghstatusbar,"refreshing tables");
 					if(acquire_db_tree(localinfo,&db)){
-						if(!mdi_open_db(db,TRUE)){
+						if(!mdi_open_db(db)){
 							mdi_remove_db(db);
-							SetWindowText(ghstatusbar,"error refreshing tables");
+							SetWindowText(ghstatusbar,"error opening DB");
 						}
-						if(keep_closed)
-							close_db(db);
-						set_status_bar_text(ghstatusbar,0,"refreshed tables %s",
-							keep_closed?"(closed DB)":"");
+						else{
+							result=refresh_tables(db);
+							if(keep_closed)
+								close_db(db);
+						}
+						if(result)
+							set_status_bar_text(ghstatusbar,0,"refreshed tables %s",
+								keep_closed?"(closed DB)":"");
 					}
 					else
 						SetWindowText(ghstatusbar,"error refreshing cant acquire table");

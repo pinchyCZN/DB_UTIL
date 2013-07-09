@@ -848,23 +848,35 @@ int	acquire_db_tree_from_win(TABLE_WINDOW *win,DB_TREE **tree)
 	return acquire_db_tree(win->name,tree);
 }
 
-int mdi_open_db(DB_TREE *tree,int load_tables)
+int refresh_tables(DB_TREE *tree)
 {
 	int result=FALSE;
-	if(open_db(tree)){
-		if(load_tables){
-			if(tree->hroot!=0){
-				rename_tree_item(tree->hroot,tree->name);
-				tree_delete_all_child(tree->hroot);
-				set_status_bar_text(ghstatusbar,0,"retrieving tables:%s",tree->name);
-				get_tables(tree);
-				expand_root(tree->hroot);
-				result=TRUE;
-			}
-		}
-		else
-			result=TRUE;
+	if(tree!=0 && tree->hroot!=0){
+		rename_tree_item(tree->hroot,tree->name);
+		tree_delete_all_child(tree->hroot);
+		set_status_bar_text(ghstatusbar,0,"retrieving tables:%s",tree->name);
+		get_tables(tree);
+		expand_root(tree->hroot);
+		result=TRUE;
 	}
+	return result;
+}
+int load_tables_if_empty(DB_TREE *tree)
+{
+	int result=FALSE;
+	if(tree!=0 && tree->hroot!=0){
+		HTREEITEM h;
+		h=TreeView_GetChild(tree->htree,tree->hroot);
+		if(h==0)
+			result=refresh_tables(tree);
+	}
+	return result;
+}
+int mdi_open_db(DB_TREE *tree)
+{
+	int result=FALSE;
+	if(open_db(tree))
+		result=TRUE;
 	return result;
 }
 int mdi_remove_db(DB_TREE *tree)

@@ -154,11 +154,12 @@ int set_window_text(HWND hwnd,char *fmt,...)
 int set_status_bar_text(HWND hstatus,int part,char *fmt,...)
 {
 	if(hstatus!=0){
-		char str[80]={0};
+		char str[100]={0};
 		va_list va;
 		va_start(va,fmt);
 		_vsnprintf(str,sizeof(str),fmt,va);
 		va_end(va);
+		str[sizeof(str)-1]=0;
 		return SendMessage(hstatus,SB_SETTEXT,part,str);
 	}
 	return FALSE;
