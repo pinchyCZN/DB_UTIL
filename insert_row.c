@@ -148,6 +148,7 @@ static int add_row_tablewindow(TABLE_WINDOW *win,HWND hlistview)
 		row=count;
 	else
 		row++;
+	count=ListView_GetItemCount(hlistview);
 	for(i=0;i<count;i++){
 		char str[255]={0};
 		ListView_GetItemText(hlistview,i,DATA_POS,str,sizeof(str));
