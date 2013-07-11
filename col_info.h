@@ -245,6 +245,54 @@ int fit_win_to_data(HWND hlistview,HWND hwnd)
 	}
 
 }
+int copy_cols_clip(HWND hlistview)
+{
+	int count,cols,buf_size=0x10000,str_size=0x10000;
+	char *buf,*str;
+	int *widths;
+	count=ListView_GetItemCount(hlistview);
+	buf=malloc(buf_size);
+	str=malloc(str_size);
+	cols=lv_get_column_count(hlistview);
+	widths=malloc(cols*sizeof(int));
+	if(buf!=0 && widths!=0 && str!=0){
+		int i;
+		for(i=0;i<cols;i++){
+			int j;
+			widths[i]=0;
+			for(j=0;j<count;j++){
+				int w;
+				buf[0]=0;
+				ListView_GetItemText(hlistview,j,i,str,str_size);
+				str[str_size-1]=0;
+				w=strlen(str)+2;
+				if(w>widths[i])
+					widths[i]=w;
+			}
+		}
+		buf[0]=0;
+		for(i=0;i<count;i++){
+			int j;
+			for(j=0;j<cols;j++){
+				if(ListView_GetItemState(hlistview,i,LVIS_SELECTED)==LVIS_SELECTED){
+					str[0]=0;
+					ListView_GetItemText(hlistview,i,j,str,str_size);
+					str[str_size-1]=0;
+					_snprintf(buf,buf_size,"%s%-*s%s",buf,widths[j],str,j==(cols-1)?"\n":"");
+				}
+			}
+		}
+		buf[buf_size-1]=0;
+		copy_str_clipboard(buf);
+	}
+	if(buf!=0)
+		free(buf);
+	if(widths!=0)
+		free(widths);
+	if(str!=0)
+		free(str);
+	return TRUE;
+}
 int sort_listview(HWND hlistview,int dir,int column)
 {
 	struct find_helper fh;
@@ -310,39 +358,9 @@ LRESULT CALLBACK col_info_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 					}
 					break;
 				case 'C':
-					{
-						int count,buf_size=0x10000;
-						char *buf;
-						if(!(GetKeyState(VK_CONTROL)&0x8000))
-							break;
-						count=ListView_GetItemCount(hlistview);
-						buf=malloc(buf_size);
-						if(buf!=0){
-							int i;
-							memset(buf,0,buf_size);
-							for(i=0;i<count;i++){
-								int cols,j;
-								cols=lv_get_column_count(hlistview);
-								for(j=0;j<cols;j++){
-									int len=0;
-									len=strlen(buf);
-									if(len<(buf_size-2)){
-										if(ListView_GetItemState(hlistview,i,LVIS_SELECTED)==LVIS_SELECTED){
-											ListView_GetItemText(hlistview,i,j,buf+len,buf_size-len-2);
-											if(j==(cols-1))
-												strcat(buf,"\n");
-											else
-												strcat(buf,",");
-										}
-									}
-									else
-										break;
-								}
-							}
-							copy_str_clipboard(buf);
-							free(buf);
-						}
-					}
+					if(!(GetKeyState(VK_CONTROL)&0x8000))
+						break;
+					copy_cols_clip(hlistview);
 					break;
 				}
 				}

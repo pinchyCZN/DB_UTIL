@@ -334,6 +334,12 @@ LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 				{
 				TV_KEYDOWN *tvn=lparam;
 				switch(tvn->wVKey){
+				case 'F':
+					if(!(GetKeyState(VK_CONTROL)&0x8000)){
+						break;
+					}
+					do_tree_find(nm->hwndFrom);
+					break;
 				case 'W':
 					if(!(GetKeyState(VK_CONTROL)&0x8000)){
 						break;
