@@ -118,6 +118,7 @@ int set_single_instance(int set)
 LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
 	static HWND grippy=0;
+	static int font_changed=FALSE;
 	switch(msg){
 	case WM_INITDIALOG:
 		{
@@ -141,6 +142,7 @@ LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			select_current_font(hwnd,IDC_SQL_FONT);
 			select_current_font(hwnd,IDC_LISTVIEW_FONT);
 			select_current_font(hwnd,IDC_TREEVIEW_FONT);
+			font_changed=FALSE;
 		}
 		grippy=create_grippy(hwnd);
 		break;
@@ -173,6 +175,7 @@ LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 						InvalidateRect(hedit,NULL,TRUE);
 					}
 				}
+				font_changed=TRUE;
 			}
 			break;
 		case IDC_LISTVIEW_FONT:
@@ -189,6 +192,7 @@ LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 						InvalidateRect(hlistview,NULL,TRUE);
 					}
 				}
+				font_changed=TRUE;
 			}
 			break;
 		case IDC_TREEVIEW_FONT:
@@ -202,6 +206,7 @@ LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 					SendMessage(ghtreeview,WM_SETFONT,GetStockObject(font),0);
 					InvalidateRect(ghtreeview,NULL,TRUE);
 				}
+				font_changed=TRUE;
 			}
 			break;
 		case IDOK:
@@ -240,6 +245,45 @@ LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			}
 			}
 		case IDCANCEL:
+			if(font_changed){
+				int i,ctrls[3]={IDC_SQL_FONT,IDC_LISTVIEW_FONT,IDC_TREEVIEW_FONT};
+				for(i=0;i<sizeof(ctrls)/sizeof(int);i++){
+					char key[80],str[80];
+					key[0]=0;
+					get_control_name(ctrls[i],key,sizeof(key));
+					str[0]=0;
+					GetDlgItemText(hwnd,ctrls[i],str,sizeof(str));
+					get_ini_str(INI_SETTINGS,key,str,sizeof(str));
+					if(str[0]!=0){
+						int max=get_max_table_windows();
+						int font=fontname_to_int(str);
+						if(ctrls[i]==IDC_SQL_FONT){
+							int j;
+							for(j=0;j<max;j++){
+								HWND hedit=0;
+								if(get_win_hwnds(j,NULL,&hedit,NULL)){
+									SendMessage(hedit,WM_SETFONT,GetStockObject(font),0);
+									InvalidateRect(hedit,NULL,TRUE);
+								}
+							}
+						}
+						else if(ctrls[i]==IDC_LISTVIEW_FONT){
+							int j;
+							for(j=0;j<max;j++){
+								HWND hlistview;
+								if(get_win_hwnds(j,NULL,NULL,&hlistview)){
+									SendMessage(hlistview,WM_SETFONT,GetStockObject(font),0);
+									InvalidateRect(hlistview,NULL,TRUE);
+								}
+							}
+						}
+						else if(ctrls[i]==IDC_TREEVIEW_FONT){
+							extern HWND ghtreeview;
+							SendMessage(ghtreeview,WM_SETFONT,GetStockObject(font),0);
+						}
+					}
+				}
+			}
 			EndDialog(hwnd,0);
 			break;
 		}
