@@ -169,7 +169,7 @@ int load_recent(HWND hwnd,int list_ctrl)
 	int i,count=0;
 	const char *section="DATABASES";
 	SendDlgItemMessage(hwnd,list_ctrl,LB_RESETCONTENT,0,0); 
-	for(i=0;i<100;i++){
+	for(i=0;i<20;i++){
 		char str[1024]={0};
 		get_ini_entry(section,i,str,sizeof(str));
 		if(str[0]!=0){
@@ -185,7 +185,7 @@ int delete_connect_str(char *connect)
 	int i,result=FALSE;
 	const char *section="DATABASES";
 	if(connect!=0 && connect[0]!=0){
-		for(i=0;i<100;i++){
+		for(i=0;i<20;i++){
 			char str[1024]={0};
 			get_ini_entry(section,i,str,sizeof(str));
 			if(str[0]!=0 && stricmp(connect,str)==0){
@@ -197,73 +197,68 @@ int delete_connect_str(char *connect)
 	}
 	return result;
 }
-int remove_ini_gaps(char *section,int max)
+int get_ini_entry(char *section,int num,char *str,int len)
 {
-	int i,j;
-	char str[1024];
-	for(i=0,j=1;i<max;i++){
-next:
-		str[0]=0;
-		get_ini_entry(section,i,str,sizeof(str));
-		if(str[0]==0){
-			if(j<i)
-				j=i+1;
-			for(  ;j<max;j++){
-				str[0]=0;
-				get_ini_entry(section,j,str,sizeof(str));
-				if(str[0]!=0){
-					set_ini_entry(section,i,str);
-					set_ini_entry(section,j,"");
-					i++;
-					j++;
-					goto next;
-				}
-			}
-			if(j>=max)
-				break;
-		}
-	}
-	return TRUE;
+	char key[20];
+	_snprintf(key,sizeof(key),"ENTRY%02i",num);
+	return get_ini_str(section,key,str,len);
 }
+int set_ini_entry(char *section,int num,char *str)
+{
+	char key[20];
+	_snprintf(key,sizeof(key),"ENTRY%02i",num);
+	if(str==NULL)
+		return delete_ini_key(section,key);
+	return write_ini_str(section,key,str);
+}
+
 int add_connect_str(char *connect)
 {
-	int i,result=FALSE;
-	char str[1024]={0};
-	char *section="DATABASES";
+	int result=FALSE;
+	const char *section="DATABASES";
+	const int max_entries=20;
+	const int max_len=1024;
+
 	if(connect!=0 && connect[0]!=0){
-		for(i=0;i<100;i++){
-			str[0]=0;
-			get_ini_entry(section,i,str,sizeof(str));
-			if(str[0]!=0 && stricmp(connect,str)==0){
-				if(i!=0){
-					int j;
-					set_ini_entry(section,i,"");
-					for(j=i-1;j>=0;j--){
-						str[0]=0;
-						if(get_ini_entry(section,j,str,sizeof(str)))
-							set_ini_entry(section,j+1,str);
+		int i;
+		char **entries;
+		entries=malloc(max_entries*sizeof(char *));
+		if(entries!=0){
+			int index=0;
+			for(i=0;i<max_entries;i++){
+				entries[i]=malloc(max_len);
+				if(entries[i]!=0){
+					entries[i][0]=0;
+					get_ini_entry(section,i,entries[i],max_len);
+				}
+			}
+			for(i=0;i<max_entries;i++){
+				if(entries[i]!=0){
+					if(entries[i][0]!=0){
+						if(stricmp(entries[i],connect)==0)
+							entries[i][0]=0;
 					}
 				}
-				result=TRUE;
+				set_ini_entry(section,i,"");
 			}
-		}
-		if(result)
-			set_ini_entry(section,0,connect);
-		else{
-			str[0]=0;
-			get_ini_entry(section,0,str,sizeof(str));
-			if(str[0]!=0){
-				remove_ini_gaps(section,100);
-				for(i=100-1;i>=0;i--){
-					str[0]=0;
-					get_ini_entry(section,i,str,sizeof(str));
-					set_ini_entry(section,i+1,str);
+			set_ini_entry(section,index,connect);
+			index++;
+			for(i=0;i<max_entries;i++){
+				if(entries[i]!=0 && entries[i][0]!=0){
+					set_ini_entry(section,index,entries[i]);
+					index++;
 				}
+				if(index>=max_entries)
+					break;
 			}
-			set_ini_entry(section,0,connect);
-			result=TRUE;
 		}
-
+		if(entries!=0){
+			for(i=0;i<max_entries;i++){
+				if(entries[i]!=0)
+					free(entries[i]);
+			}
+			free(entries);
+		}
 	}
 	return result;
 }

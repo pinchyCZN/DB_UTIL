@@ -218,9 +218,14 @@ int thread(HANDLE event)
 							}
 						}
 					}
-					set_status_bar_text(ghstatusbar,0,"update row %s %s",
-						result?"done":"failed",
-						keep_closed?"(closed DB)":"");
+					if(task==TASK_UPDATE_ROW_COPY){
+						set_status_bar_text(ghstatusbar,0,"copied update string to clip %s",
+							result?"ok":"failed");
+					}
+					else
+						set_status_bar_text(ghstatusbar,0,"update row %s %s",
+							result?"done":"failed",
+							keep_closed?"(closed DB)":"");
 				}
 				break;
 			case TASK_DELETE_ROW:

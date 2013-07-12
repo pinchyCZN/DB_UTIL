@@ -40,8 +40,18 @@ static int fill_listbox(HWND hwnd,HWND htreeview)
 }
 int open_selection(HWND hwnd,HWND htreeview)
 {
+	int result=FALSE;
 	HWND hlist;
 	int sel=-1;
+	char *str,*table,*db;
+	int str_size=4096,table_size=256,db_size=4096;
+
+	str=malloc(str_size);
+	table=malloc(table_size);
+	db=malloc(db_size);
+	if(str==0 || table==0 || db==0)
+		goto exit;
+
 	hlist=GetDlgItem(hwnd,IDC_LIST1);
 	sel=SendMessage(hlist,LB_GETCURSEL,0,0);
 	if(sel<0){
@@ -50,30 +60,35 @@ int open_selection(HWND hwnd,HWND htreeview)
 			sel=0;
 	}
 	if(sel>=0){
-		char str[256]={0};
+		str[0]=0;
 		SendMessage(hlist,LB_GETTEXT,sel,str);
 		if(str[0]!=0){
-			char table[80]={0};
-			char db[160]={0};
-			sscanf(str,"%79[ -~]  %79[ -~]",table,db);
+			table[0]=0;
+			db[0]=0;
+			sscanf(str,"%255[ -~]  %4095[ -~]",table,db);
 			if(table[0]!=0 && db[0]!=0){
 				HTREEITEM hroot;
 				hroot=TreeView_GetRoot(htreeview);
 				while(hroot!=0){
-					char rootname[160]={0};
-					tree_get_item_text(hroot,rootname,sizeof(rootname));
+					char *rootname=str;
+					int rootname_size=str_size;
+					rootname[0]=0;
+					tree_get_item_text(hroot,rootname,rootname_size);
 					if(rootname[0]!=0){
 						if(stricmp(rootname,db)==0){
 							HTREEITEM hchild;
 							hchild=TreeView_GetChild(htreeview,hroot);
 							while(hchild!=0){
-								char item[80]={0};
-								tree_get_item_text(hchild,item,sizeof(item));
+								char *item=str;
+								int item_size=str_size;
+								item[0]=0;
+								tree_get_item_text(hchild,item,item_size);
 								if(item[0]!=0){
 									if(stricmp(table,item)==0){
 										TreeView_SelectItem(htreeview,hchild);
 										PostMessage(ghdbview,WM_USER,IDC_TABLE_ITEM,0);
-										return TRUE;
+										result=TRUE;
+										goto exit;
 									}
 								}
 								hchild=TreeView_GetNextSibling(htreeview,hchild);	
@@ -85,7 +100,14 @@ int open_selection(HWND hwnd,HWND htreeview)
 			}
 		}
 	}
-	return FALSE;
+exit:
+	if(str!=0)
+		free(str);
+	if(table!=0)
+		free(table);
+	if(db!=0)
+		free(db);
+	return result;
 }
 LRESULT CALLBACK find_table_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {

@@ -152,7 +152,7 @@ int open_db(DB_TREE *tree)
 					strncpy(tree->connect_str,str,sizeof(tree->connect_str));
 					extract_db_name(tree);
 					printf("connect str=%s\n",str);
-					save_connect_str(str);
+					add_connect_str(str);
 				}
 				tree->hdbc=hDbc;
 				tree->hdbenv=hEnv;
@@ -681,7 +681,7 @@ int update_row(TABLE_WINDOW *win,int row,char *data,int only_copy)
 			}
 			printf("%s\n",sql);
 			if(only_copy){
-				copy_str_clipboard(sql);
+				result=copy_str_clipboard(sql);
 				//SetWindowText(win->hedit,sql);
 			}
 			else{
@@ -890,50 +890,4 @@ int assign_db_to_table(DB_TREE *db,TABLE_WINDOW *win,char *table)
 		return TRUE;
 	}
 	return FALSE;
-}
-
-int get_ini_entry(char *section,int num,char *str,int len)
-{
-	char key[20];
-	_snprintf(key,sizeof(key),"ENTRY%i",num);
-	return get_ini_str(section,key,str,len);
-}
-int set_ini_entry(char *section,int num,char *str)
-{
-	char key[20];
-	_snprintf(key,sizeof(key),"ENTRY%i",num);
-	if(str==NULL)
-		return delete_ini_key(section,key);
-	return write_ini_str(section,key,str);
-}
-int save_connect_str(char *connect_str)
-{
-	int i;
-	int found=-1;
-	char *section="DATABASES";
-	if(connect_str==0 || connect_str[0]==0)
-		return FALSE;
-	for(i=0;i<100;i++){
-		char str[1024]={0};
-		get_ini_entry(section,i,str,sizeof(str));
-		if(str[0]!=0){
-			if(stricmp(connect_str,str)==0){
-				found=i;
-				if(i>0){
-					set_ini_entry(section,i,NULL);
-				}
-				break;
-			}
-		}
-	}
-	if(found!=0){
-		for(i=100-1;i>=0;i--){
-			char str[1024]={0};
-			get_ini_entry(section,i,str,sizeof(str));
-			set_ini_entry(section,i+1,str);
-		}
-	}
-	if(found!=0)
-		set_ini_entry(section,0,connect_str);
-	return TRUE;
 }
