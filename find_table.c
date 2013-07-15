@@ -5,37 +5,49 @@
 extern HINSTANCE ghinstance;
 extern HWND ghdbview;
 
+
 static int fill_listbox(HWND hwnd,HWND htreeview)
 {
 	int result=0;
 	char str[80]={0};
-	int len;
-	HTREEITEM hroot;
-	HWND hlist;
+	char *rootname,*entry;
+	int rootname_size=2048;
+	int entry_size=4096;
 	GetWindowText(GetDlgItem(hwnd,IDC_EDIT1),str,sizeof(str));
 	if(str[0]==0)
 		return result;
-	len=strlen(str);
-	hlist=GetDlgItem(hwnd,IDC_LIST1);
-	SendMessage(hlist,LB_RESETCONTENT,0,0);
-	hroot=TreeView_GetRoot(htreeview);
-	while(hroot!=0){
-		HTREEITEM hchild;
-		char rootname[160]={0};
-		tree_get_item_text(hroot,rootname,sizeof(rootname));
-		hchild=TreeView_GetChild(htreeview,hroot);
-		while(hchild!=0){
-			char item[80]={0};
-			tree_get_item_text(hchild,item,sizeof(item));
-			if(strnicmp(item,str,len)==0){
-				char entry[256]={0};
-				_snprintf(entry,sizeof(entry),"%s\t  %s",item,rootname);
-				SendMessage(hlist,LB_ADDSTRING,0,entry);
+	rootname=malloc(rootname_size);
+	entry=malloc(entry_size);
+	if(rootname!=0 && entry!=0){
+		HTREEITEM hroot;
+		HWND hlist;
+		int len;
+		len=strlen(str);
+		hlist=GetDlgItem(hwnd,IDC_LIST1);
+		SendMessage(hlist,LB_RESETCONTENT,0,0);
+		hroot=TreeView_GetRoot(htreeview);
+		while(hroot!=0){
+			HTREEITEM hchild;
+			rootname[0]=0;
+			tree_get_item_text(hroot,rootname,rootname_size);
+			hchild=TreeView_GetChild(htreeview,hroot);
+			while(hchild!=0){
+				char item[80]={0};
+				tree_get_item_text(hchild,item,sizeof(item));
+				if(strnicmp(item,str,len)==0){
+					entry[0]=0;
+					_snprintf(entry,entry_size,"%s\t  %s",item,rootname);
+					SendMessage(hlist,LB_ADDSTRING,0,entry);
+				}
+				hchild=TreeView_GetNextSibling(htreeview,hchild);
 			}
-			hchild=TreeView_GetNextSibling(htreeview,hchild);
+			hroot=TreeView_GetNextSibling(htreeview,hroot);
 		}
-		hroot=TreeView_GetNextSibling(htreeview,hroot);
 	}
+	if(rootname!=0)
+		free(rootname);
+	if(entry!=0)
+		free(entry);
 	return result;
 }
 int open_selection(HWND hwnd,HWND htreeview)
