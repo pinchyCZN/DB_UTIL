@@ -10,11 +10,11 @@
 int get_error_msg(SQLHANDLE handle,int handle_type,char *err,int len)
 {
 	SQLCHAR state[6]={0},msg[SQL_MAX_MESSAGE_LENGTH]={0};
-	SQLINTEGER  error;
+	SQLINTEGER  error=0;
 	SQLSMALLINT msglen;
 	SQLGetDiagRec(handle_type,handle,1,state,&error,msg,sizeof(msg),&msglen);
 	_snprintf(err,len,"%s %s",msg,state);
-	return TRUE;
+	return atoi(state);
 }
 
 int get_columns(DB_TREE *tree,char *table,HTREEITEM hitem)
@@ -354,8 +354,15 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 						win->col_attr[i].col_width=width;
 //Sleep(250);
 				}
-				else
-					break;
+				else{
+					char err[256]={0};
+					int code;
+					code=get_error_msg(hstmt,SQL_HANDLE_STMT,err,sizeof(err));
+					if(code==22012)
+						lv_insert_data(win->hlistview,rows,i,"0");
+					else
+						lv_insert_data(win->hlistview,rows,i,"error retr value");
+				}
 			}
 			rows++;
 		}
