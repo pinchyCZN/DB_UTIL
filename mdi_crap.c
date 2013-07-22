@@ -199,6 +199,9 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 									}
 								}
 								break;
+							case VK_F1:
+								SendMessage(win->hlistview,WM_COMMAND,CMD_COL_INFO,0);
+								break;
 							case VK_F3:
 								{
 									char *find=0;

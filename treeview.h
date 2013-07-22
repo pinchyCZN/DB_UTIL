@@ -349,6 +349,9 @@ LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 					PostMessage(hwnd,WM_COMMAND,CMD_VIEWTABLE,0);
 					printf("%08x %08X %08X\n",nm->code,nm->hwndFrom,nm->idFrom);
 					break;
+				case VK_F1:
+					SendMessage(hwnd,WM_COMMAND,CMD_TABLE_STRUCT,0);
+					break;
 				case VK_TAB:
 					{
 						HANDLE hmdi=SendMessage(ghmdiclient,WM_MDIGETACTIVE,0,0);
