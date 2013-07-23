@@ -291,6 +291,20 @@ int fetch_columns(SQLHSTMT hstmt,TABLE_WINDOW *win)
 	}
 	return cols;
 }
+int trim_trail_space(char *s,int slen)
+{
+	int i,len;
+	len=strlen(s);
+	if(len>slen)
+		len=slen;
+	for(i=len-1;i>0;i--){
+		if(s[i]<=' ')
+			s[i]=0;
+		else
+			break;
+	}
+	return len;
+}
 int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 {
 	SQLINTEGER rows=0;
@@ -330,10 +344,14 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 				if(f!=0)
 					fprintf(f,"%s%s",str,i==cols-1?"\n----------------------------------------------------\n":",@@@@\n");
 				if(result==SQL_SUCCESS || result==SQL_SUCCESS_WITH_INFO){
+					extern int trim_trailing;
 					char *s=str;
 					int width;
 					if(len==SQL_NULL_DATA)
 						s="(NULL)";
+					else if(trim_trailing)
+						trim_trail_space(s,sizeof_str);
+
 					if(i==0)
 						lv_insert_data(win->hlistview,rows,i,s);
 					else

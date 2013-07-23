@@ -2,6 +2,8 @@
 #include "resource.h"
 #define INI_SETTINGS "SETTINGS"
 
+int trim_trailing=0;
+
 struct FONT_NAME{
 	int font_num;
 	char *font_name;
@@ -136,6 +138,10 @@ LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			if(val)
 				CheckDlgButton(hwnd,IDC_DEBUG,BST_CHECKED);
 
+			get_ini_value(INI_SETTINGS,"TRIM_TRAILING",&trim_trailing);
+			if(trim_trailing)
+				CheckDlgButton(hwnd,IDC_TRIM_TRAILING,BST_CHECKED);
+
 			add_fonts(hwnd,IDC_SQL_FONT);
 			add_fonts(hwnd,IDC_LISTVIEW_FONT);
 			add_fonts(hwnd,IDC_TREEVIEW_FONT);
@@ -219,11 +225,8 @@ LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			else
 				keep_closed=TRUE;
 			
-			val=0;
-			if(IsDlgButtonChecked(hwnd,IDC_KEEP_CONNECTED)==BST_CHECKED)
-				val=1;
-			write_ini_value(INI_SETTINGS,"SINGLE_INSTANCE",val);
-			
+			write_ini_value(INI_SETTINGS,"KEEP_CLOSED",keep_closed);
+
 			val=0;
 			if(IsDlgButtonChecked(hwnd,IDC_SINGLE_INSTANCE)==BST_CHECKED)
 				val=1;
@@ -235,7 +238,14 @@ LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				val=1;
 			write_ini_value(INI_SETTINGS,"DEBUG",val);
 
-			write_ini_value(INI_SETTINGS,"KEEP_CLOSED",keep_closed);
+			
+			if(IsDlgButtonChecked(hwnd,IDC_TRIM_TRAILING)==BST_CHECKED)
+				trim_trailing=1;
+			else
+				trim_trailing=0;
+			write_ini_value(INI_SETTINGS,"TRIM_TRAILING",trim_trailing);
+
+
 			for(i=0;i<sizeof(ctrls)/sizeof(int);i++){
 				key[0]=0;
 				get_control_name(ctrls[i],key,sizeof(key));
