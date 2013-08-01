@@ -250,6 +250,7 @@ int copy_cols_clip(HWND hlistview)
 	int count,cols,buf_size=0x10000,str_size=0x10000;
 	char *buf,*str;
 	int *widths;
+	int rows_copied=0;
 	count=ListView_GetItemCount(hlistview);
 	buf=malloc(buf_size);
 	str=malloc(str_size);
@@ -273,14 +274,20 @@ int copy_cols_clip(HWND hlistview)
 		buf[0]=0;
 		for(i=0;i<count;i++){
 			int j;
+			int selected=FALSE;
 			for(j=0;j<cols;j++){
 				if(ListView_GetItemState(hlistview,i,LVIS_SELECTED)==LVIS_SELECTED){
 					str[0]=0;
 					ListView_GetItemText(hlistview,i,j,str,str_size);
 					str[str_size-1]=0;
 					_snprintf(buf,buf_size,"%s%-*s%s",buf,widths[j],str,j==(cols-1)?"\n":"");
+					selected=TRUE;
 				}
+				else
+					break;
 			}
+			if(selected)
+				rows_copied++;
 		}
 		buf[buf_size-1]=0;
 		copy_str_clipboard(buf);
@@ -291,7 +298,7 @@ int copy_cols_clip(HWND hlistview)
 		free(widths);
 	if(str!=0)
 		free(str);
-	return TRUE;
+	return rows_copied;
 }
 int sort_listview(HWND hlistview,int dir,int column)
 {
