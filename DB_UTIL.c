@@ -499,8 +499,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 	case WM_CREATE:
 		{
 			RECT rect={0};
-			int parts[2];
-			extern int keep_closed,trim_trailing;
+			extern int keep_closed,trim_trailing,left_justify;
 			GetClientRect(hwnd,&rect);
 			get_ini_value("SETTINGS","TREE_WIDTH",&tree_width);
 			if(tree_width>rect.right-10 || tree_width<10){
@@ -510,7 +509,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 			}
 			get_ini_value("SETTINGS","KEEP_CLOSED",&keep_closed);
 			get_ini_value("SETTINGS","TRIM_TRAILING",&trim_trailing);
-			parts[0]=100;parts[1]=-1;
+			get_ini_value("SETTINGS","LEFT_JUSTIFY",&left_justify);
 			load_icon(hwnd);
 		}
 		break;
