@@ -489,12 +489,14 @@ int draw_item(DRAWITEMSTRUCT *di,TABLE_WINDOW *win)
 			}
 			FrameRect(di->hDC,&rect,GetStockObject(DKGRAY_BRUSH));
 			if(text[0]!=0){
-
+				extern int left_justify;
 				SetTextColor(di->hDC,textcolor);
 				SetBkColor(di->hDC,bgcolor);
 
-				style=DT_LEFT|DT_NOPREFIX;
-				style=DT_RIGHT|DT_NOPREFIX;
+				if(left_justify)
+					style=DT_LEFT|DT_NOPREFIX;
+				else
+					style=DT_RIGHT|DT_NOPREFIX;
 
 			//		SetTextColor(di->hDC,file_text_color);
 
