@@ -222,7 +222,7 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 									int sel=ListView_GetSelectionMark(win->hlistview);
 									if(sel>=0){
 										if(GetKeyState(VK_SHIFT)&0x8000){
-											int count=copy_cols_clip(win->hlistview);
+											int count=copy_cols_clip(win->hlistview,GetKeyState(VK_MENU)&0x8000);
 											set_status_bar_text(ghstatusbar,0,"copied %i rows to clipboard",count);
 										}
 										else{
