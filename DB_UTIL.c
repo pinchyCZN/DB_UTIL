@@ -287,6 +287,13 @@ LRESULT CALLBACK recent_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		SendDlgItemMessage(hwnd,IDC_RECENT_EDIT,EM_LIMITTEXT,1024,0);
 		grippy=create_grippy(hwnd);
 		resize_recent_window(hwnd);
+		{
+			RECT crect={0},wrect={0};
+			GetClientRect(hwnd,&crect);
+			GetClientRect(ghmainframe,&wrect);
+			if(crect.right<wrect.right)
+				SetWindowPos(hwnd,NULL,0,0,wrect.right,crect.bottom,SWP_NOMOVE|SWP_NOZORDER);
+		}
 		break;
 	case WM_VKEYTOITEM:
 		switch(LOWORD(wparam)){
