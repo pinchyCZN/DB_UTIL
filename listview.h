@@ -431,14 +431,35 @@ int subclass_listview(HWND hlistview)
 	return wporiglistview;
 }
 
-
+int reduce_color(int color)
+{
+	unsigned char r,g,b;
+	//BGR
+	r=color&0xFF;
+	g=(color>>8)&0xFF;
+	b=(color>>16)&0xFF;
+	r/=3;
+	g/=3;
+	b/=3;
+	color=(b<<16)|(g<<8)|r;
+	return color;
+}
 
 int draw_item(DRAWITEMSTRUCT *di,TABLE_WINDOW *win)
 {
 	int i,count,xpos;
 	int textcolor,bgcolor;
-	RECT focus_rect={0},client_rect={0};
+	RECT bound_rect={0},client_rect={0};
+	static HBRUSH hbrush=0;
 
+	if(hbrush==0){
+		LOGBRUSH brush={0};
+		DWORD color=GetSysColor(COLOR_HIGHLIGHT);
+		color=reduce_color(color);
+		brush.lbColor=color;
+		brush.lbStyle=BS_SOLID;
+		hbrush=CreateBrushIndirect(&brush);
+	}
 	count=lv_get_column_count(di->hwndItem);
 	if(count>1000)
 		count=1000;
@@ -476,18 +497,22 @@ int draw_item(DRAWITEMSTRUCT *di,TABLE_WINDOW *win)
 			ListView_GetItemText(di->hwndItem,di->itemID,i,text,sizeof(text));
 			text[sizeof(text)-1]=0;
 
-			//rect.left=xpos;
-			//rect.right=xpos+width;
-		//	DrawText(di->hDC,text,-1,&rect,style);
-		//	SetTextColor(di->hDC,(0xFFFFFF^GetSysColor(COLOR_BTNTEXT)));
 			if((di->itemState&ODS_SELECTED) && win!=0 && win->selected_column==i){
-				FillRect(di->hDC,&rect,COLOR_WINDOW+1);
-				focus_rect=rect;
+				FillRect(di->hDC,&rect,hbrush);
+				bound_rect=rect;
+				bound_rect.bottom++;
+				bound_rect.right++;
 			}
 			else{
 				FillRect(di->hDC,&rect,di->itemState&ODS_SELECTED ? COLOR_HIGHLIGHT+1:COLOR_WINDOW+1);
 			}
-			FrameRect(di->hDC,&rect,GetStockObject(DKGRAY_BRUSH));
+			{
+				RECT tmprect=rect;
+				tmprect.bottom++;
+				tmprect.right++;
+				FrameRect(di->hDC,&tmprect,GetStockObject(DKGRAY_BRUSH));
+			}
+
 			if(text[0]!=0){
 				extern int left_justify;
 				SetTextColor(di->hDC,textcolor);
@@ -498,38 +523,22 @@ int draw_item(DRAWITEMSTRUCT *di,TABLE_WINDOW *win)
 				else
 					style=DT_RIGHT|DT_NOPREFIX;
 
-			//		SetTextColor(di->hDC,file_text_color);
-
-				//GetTextExtentPoint32(di->hDC,text,strlen(text),&size);
-				//rect.right=rect.left+size.cx;
 				DrawText(di->hDC,text,-1,&rect,style);
 			}
 		}
 	}
-	if(di->itemState&ODS_SELECTED)
-		DrawFocusRect(di->hDC,&focus_rect);
-
-	//if(di->itemState&ODS_FOCUS)
-		
-
+	if(di->itemState&ODS_SELECTED){
+		SetTextColor(di->hDC,0x0000FF);
+		bound_rect.right--;
+		bound_rect.bottom--;
+		DrawFocusRect(di->hDC,&bound_rect);
+	}
 	/*
-	switch(di->itemAction){
-	case ODA_DRAWENTIRE:
-		if(di->itemState&ODS_FOCUS)
-			DrawFocusRect(di->hDC,&di->rcItem); 
-		break;
-	case ODA_FOCUS:
-		if(di->itemState&ODS_FOCUS)
-			DrawFocusRect(di->hDC,&di->rcItem); 
-		break;
-	case ODA_SELECT:
-		if(di->itemState&ODS_FOCUS)
-			DrawFocusRect(di->hDC,&di->rcItem); 
-		break;
+	if(hbrush!=0){
+		DeleteObject(hbrush);
+		hbrush=0;
 	}
 	*/
-	//GetTextExtentPoint32(di->hDC,list_string,strlen(list_string),&size);
-	//set_list_width(size.cx+16);
 	return TRUE;
 }
 
