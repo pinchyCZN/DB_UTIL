@@ -245,25 +245,37 @@ int fit_win_to_data(HWND hlistview,HWND hwnd)
 	}
 
 }
-int copy_cols_clip(HWND hlistview)
+int copy_cols_clip(HWND hlistview,int include_header)
 {
 	int count,cols,buf_size=0x10000,str_size=0x10000;
 	char *buf,*str;
 	int *widths;
+	int rows_copied=0;
 	count=ListView_GetItemCount(hlistview);
 	buf=malloc(buf_size);
 	str=malloc(str_size);
 	cols=lv_get_column_count(hlistview);
 	widths=malloc(cols*sizeof(int));
 	if(buf!=0 && widths!=0 && str!=0){
-		int i;
+		int i,buf_full=FALSE;
+		char *out=buf;
+		int out_len=buf_size;
 		for(i=0;i<cols;i++){
 			int j;
 			widths[i]=0;
 			for(j=0;j<count;j++){
 				int w;
-				buf[0]=0;
+				str[0]=0;
 				ListView_GetItemText(hlistview,j,i,str,str_size);
+				str[str_size-1]=0;
+				w=strlen(str)+2;
+				if(w>widths[i])
+					widths[i]=w;
+			}
+			if(include_header){
+				int w;
+				str[0]=0;
+				lv_get_col_text(hlistview,i,str,str_size);
 				str[str_size-1]=0;
 				w=strlen(str)+2;
 				if(w>widths[i])
@@ -272,15 +284,51 @@ int copy_cols_clip(HWND hlistview)
 		}
 		buf[0]=0;
 		for(i=0;i<count;i++){
-			int j;
+			int j,stored;
+			int selected=FALSE;
+			if(i==0 && include_header){
+				for(j=0;j<cols;j++){
+					str[0]=0;
+					lv_get_col_text(hlistview,j,str,str_size);
+					str[str_size-1]=0;
+					stored=_snprintf(out,out_len,"%-*s%s",widths[j],str,j==(cols-1)?"\n":"");
+					if(stored>0){
+						out+=stored;
+						out_len-=stored;
+						if(out_len<0)
+							out_len=0;
+					}
+					else if(stored<0){
+						out_len=0;
+						buf_full=TRUE;
+					}
+				}
+			}
 			for(j=0;j<cols;j++){
 				if(ListView_GetItemState(hlistview,i,LVIS_SELECTED)==LVIS_SELECTED){
 					str[0]=0;
 					ListView_GetItemText(hlistview,i,j,str,str_size);
 					str[str_size-1]=0;
-					_snprintf(buf,buf_size,"%s%-*s%s",buf,widths[j],str,j==(cols-1)?"\n":"");
+					stored=_snprintf(out,out_len,"%-*s%s",widths[j],str,j==(cols-1)?"\n":"");
+					selected=TRUE;
+					if(stored>0){
+						out+=stored;
+						out_len-=stored;
+						if(out_len<0)
+							out_len=0;
+					}
+					else if(stored<0){
+						out_len=0;
+						buf_full=TRUE;
+					}
 				}
+				else
+					break;
 			}
+			if(selected)
+				rows_copied++;
+			if(buf_full)
+				break;
 		}
 		buf[buf_size-1]=0;
 		copy_str_clipboard(buf);
@@ -291,7 +339,7 @@ int copy_cols_clip(HWND hlistview)
 		free(widths);
 	if(str!=0)
 		free(str);
-	return TRUE;
+	return rows_copied;
 }
 int sort_listview(HWND hlistview,int dir,int column)
 {
@@ -360,7 +408,7 @@ LRESULT CALLBACK col_info_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				case 'C':
 					if(!(GetKeyState(VK_CONTROL)&0x8000))
 						break;
-					copy_cols_clip(hlistview);
+					copy_cols_clip(hlistview,GetKeyState(VK_MENU)&0x8000);
 					break;
 				}
 				}

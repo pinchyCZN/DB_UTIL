@@ -221,15 +221,21 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 								if(GetKeyState(VK_CONTROL)&0x8000){
 									int sel=ListView_GetSelectionMark(win->hlistview);
 									if(sel>=0){
-										char *buf;
-										int buf_size=0x10000;
-										buf=malloc(buf_size);
-										if(buf!=0){
-											ListView_GetItemText(win->hlistview,sel,win->selected_column,buf,buf_size);
-											buf[buf_size-1]=0;
-											copy_str_clipboard(buf);
-											free(buf);
-											set_status_bar_text(ghstatusbar,0,"copied string to clipboard");
+										if(GetKeyState(VK_SHIFT)&0x8000){
+											int count=copy_cols_clip(win->hlistview,GetKeyState(VK_MENU)&0x8000);
+											set_status_bar_text(ghstatusbar,0,"copied %i rows to clipboard",count);
+										}
+										else{
+											char *buf;
+											int buf_size=0x10000;
+											buf=malloc(buf_size);
+											if(buf!=0){
+												ListView_GetItemText(win->hlistview,sel,win->selected_column,buf,buf_size);
+												buf[buf_size-1]=0;
+												copy_str_clipboard(buf);
+												free(buf);
+												set_status_bar_text(ghstatusbar,0,"copied string to clipboard");
+											}
 										}
 									}
 								}

@@ -3,6 +3,7 @@
 #define INI_SETTINGS "SETTINGS"
 
 int trim_trailing=0;
+int left_justify=0;
 
 struct FONT_NAME{
 	int font_num;
@@ -121,6 +122,7 @@ LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
 	static HWND grippy=0;
 	static int font_changed=FALSE;
+	static int justify_changed=FALSE;
 	switch(msg){
 	case WM_INITDIALOG:
 		{
@@ -142,6 +144,10 @@ LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			if(trim_trailing)
 				CheckDlgButton(hwnd,IDC_TRIM_TRAILING,BST_CHECKED);
 
+			get_ini_value(INI_SETTINGS,"LEFT_JUSTIFY",&left_justify);
+			if(left_justify)
+				CheckDlgButton(hwnd,IDC_LEFT_JUSTIFY,BST_CHECKED);
+
 			add_fonts(hwnd,IDC_SQL_FONT);
 			add_fonts(hwnd,IDC_LISTVIEW_FONT);
 			add_fonts(hwnd,IDC_TREEVIEW_FONT);
@@ -149,6 +155,7 @@ LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			select_current_font(hwnd,IDC_LISTVIEW_FONT);
 			select_current_font(hwnd,IDC_TREEVIEW_FONT);
 			font_changed=FALSE;
+			justify_changed=FALSE;
 		}
 		grippy=create_grippy(hwnd);
 		break;
@@ -215,6 +222,22 @@ LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				font_changed=TRUE;
 			}
 			break;
+		case IDC_LEFT_JUSTIFY:
+			if(HIWORD(wparam)==BN_CLICKED){
+				extern int left_justify;
+				int i,max=get_max_table_windows();
+				if(IsDlgButtonChecked(hwnd,IDC_LEFT_JUSTIFY)==BST_CHECKED)
+					left_justify=1;
+				else
+					left_justify=0;
+				for(i=0;i<max;i++){
+					HWND hlistview;
+					if(get_win_hwnds(i,NULL,NULL,&hlistview))
+						InvalidateRect(hlistview,NULL,TRUE);
+				}
+				justify_changed=TRUE;
+			}
+			break;
 		case IDOK:
 			{
 			extern int keep_closed;
@@ -245,6 +268,11 @@ LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				trim_trailing=0;
 			write_ini_value(INI_SETTINGS,"TRIM_TRAILING",trim_trailing);
 
+			if(IsDlgButtonChecked(hwnd,IDC_LEFT_JUSTIFY)==BST_CHECKED)
+				left_justify=1;
+			else
+				left_justify=0;
+			write_ini_value(INI_SETTINGS,"LEFT_JUSTIFY",left_justify);
 
 			for(i=0;i<sizeof(ctrls)/sizeof(int);i++){
 				key[0]=0;
@@ -292,6 +320,15 @@ LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 							SendMessage(ghtreeview,WM_SETFONT,GetStockObject(font),0);
 						}
 					}
+				}
+			}
+			if(justify_changed){
+				int i,max=get_max_table_windows();
+				get_ini_value(INI_SETTINGS,"LEFT_JUSTIFY",&left_justify);
+				for(i=0;i<max;i++){
+					HWND hlistview;
+					if(get_win_hwnds(i,NULL,NULL,&hlistview))
+						InvalidateRect(hlistview,NULL,TRUE);
 				}
 			}
 			EndDialog(hwnd,0);
