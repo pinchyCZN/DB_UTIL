@@ -10,6 +10,7 @@ Features
 --------
 
 Allows you to view a table without leaving the DB connection open
+
 Similar to axbase on sourceforge in functionality
 
 
