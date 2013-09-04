@@ -754,9 +754,16 @@ int execute_sql(TABLE_WINDOW *win,char *sql,int display_results)
 					SetWindowText(ghstatusbar,"fetching results");
 					total=fetch_rows(hstmt,win,cols);
 					if(mark>=0){
+						RECT rect={0};
+						int height,vert;
 						ListView_SetItemState(win->hlistview,mark,LVIS_FOCUSED|LVIS_SELECTED,LVIS_FOCUSED|LVIS_SELECTED);
-						ListView_EnsureVisible(win->hlistview,mark,FALSE);
-						ListView_Scroll(win->hlistview,horz,0);
+						ListView_GetItemRect(win->hlistview,0,&rect,LVIR_BOUNDS);
+						height=rect.bottom-rect.top;
+						if(height<=0)
+							height=14;
+						vert=mark*height;
+						//ListView_EnsureVisible(win->hlistview,mark,FALSE);
+						ListView_Scroll(win->hlistview,horz,vert);
 					}
 					win->rows=total;
 				}

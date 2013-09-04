@@ -278,6 +278,8 @@ int thread(HANDLE event)
 					if(win!=0){
 						char *s=0;
 						int size=0x10000;
+						int x=-1,y=-1;
+						list_get_scrollbar_pos(win,&x,&y);
 						reopen_db(win);
 						mdi_create_abort(win);
 						s=malloc(size);
@@ -293,6 +295,8 @@ int thread(HANDLE event)
 							close_db(db);
 						}
 						set_focus_after_result(win,result);
+						if(x>=0 && y>=0)
+							list_set_scrollbar_pos(win,x,y);
 					}
 					if(!result)
 						set_status_bar_text(ghstatusbar,0,
