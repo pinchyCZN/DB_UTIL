@@ -357,7 +357,15 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 					y=rect.bottom;
 				else
 					y=rect.top;
+				if(hwndTT!=0){
+					destroy_tooltip(hwndTT);
+					hwndTT=0;
+				}
 				create_tooltip(hwnd,"nothing more found",rect.left,y,&hwndTT);
+				if(timer!=0){
+					KillTimer(hwnd,timer);
+					timer=0;
+				}
 				timer=SetTimer(hwnd,0x1337,550,NULL);
 			}
 		}
