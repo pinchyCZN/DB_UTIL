@@ -745,8 +745,8 @@ int execute_sql(TABLE_WINDOW *win,char *sql,int display_results)
 				SQLRowCount(hstmt,&rows);
 				if(display_results){
 					int mark;
-					int horz;
-					horz=GetScrollPos(win->hlistview,SB_HORZ);
+					RECT rect={0};
+					ListView_GetItemRect(win->hlistview,0,&rect,LVIR_BOUNDS);
 					mark=ListView_GetSelectionMark(win->hlistview);
 					SetWindowText(ghstatusbar,"clearing listview");
 					mdi_clear_listview(win);
@@ -754,16 +754,13 @@ int execute_sql(TABLE_WINDOW *win,char *sql,int display_results)
 					SetWindowText(ghstatusbar,"fetching results");
 					total=fetch_rows(hstmt,win,cols);
 					if(mark>=0){
-						RECT rect={0};
-						int height,vert;
+						RECT newrect={0};
+						int dx,dy;
 						ListView_SetItemState(win->hlistview,mark,LVIS_FOCUSED|LVIS_SELECTED,LVIS_FOCUSED|LVIS_SELECTED);
-						ListView_GetItemRect(win->hlistview,0,&rect,LVIR_BOUNDS);
-						height=rect.bottom-rect.top;
-						if(height<=0)
-							height=14;
-						vert=mark*height;
-						//ListView_EnsureVisible(win->hlistview,mark,FALSE);
-						ListView_Scroll(win->hlistview,horz,vert);
+						ListView_GetItemRect(win->hlistview,0,&newrect,LVIR_BOUNDS);
+						dx=-rect.left+newrect.left;
+						dy=-rect.top+newrect.top;
+						ListView_Scroll(win->hlistview,dx,dy);
 					}
 					win->rows=total;
 				}

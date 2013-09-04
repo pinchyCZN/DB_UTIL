@@ -1011,54 +1011,6 @@ int destroy_abort(TABLE_WINDOW *win)
 	return result;
 }
 
-int list_get_scrollbar_pos(TABLE_WINDOW *win,int *horo,int *vert)
-{
-	if(win!=0 && win->hlistview!=0){
-		SCROLLINFO si;
-		si.cbSize=sizeof(si);
-		si.fMask=SIF_POS;
-		if(GetScrollInfo(win->hlistview,SB_HORZ,&si)){
-			if(horo!=0)
-				*horo=si.nPos;
-		}
-		if(GetScrollInfo(win->hlistview,SB_VERT,&si)){
-			if(vert!=0)
-				*vert=si.nPos;
-		}
-		return TRUE;
-	}
-	return FALSE;
-}
-int list_set_scrollbar_pos(TABLE_WINDOW *win,int horo,int vert)
-{
-	return TRUE;
-	if(win!=0 && win->hlistview!=0){
-		SCROLLINFO si;
-		int x=horo,y=vert;
-		RECT rect={0};
-		int height;
-		si.cbSize=sizeof(si);
-		si.fMask=SIF_POS;
-		if(GetScrollInfo(win->hlistview,SB_HORZ,&si))
-			x=si.nPos;
-		if(GetScrollInfo(win->hlistview,SB_VERT,&si))
-			y=si.nPos;
-		ListView_GetItemRect(win->hlistview,0,&rect,LVIR_BOUNDS);
-		height=rect.bottom-rect.top;
-		if(height<=0)
-			height=16;
-		printf("x=%i y=%i horo=%i vert=%i ehight=%i\n",x,y,horo,vert,height);
-		x=horo-x;
-		y=y/height; //(vert-y)*(units>>16);
-		vert=vert/height;
-		y=vert-y;
-		y=(50*14)+0;
-		printf("after x=%i y=%i\n",x,y);
-		ListView_Scroll(win->hlistview,x,y);
-		return TRUE;
-	}
-	return FALSE;
-}
 int set_focus_after_result(TABLE_WINDOW *win,int result)
 {
 	if(win!=0){
