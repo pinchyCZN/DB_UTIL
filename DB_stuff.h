@@ -455,7 +455,21 @@ int sanitize_value(char *str,char *out,int size,int type)
 			case -1:
 			case SQL_VARCHAR:
 			case SQL_CHAR:
-				_snprintf(out,size,"'%s'",tmp);
+				if(strchr(str,'\'')!=0){
+					char *s=0;
+					int ssize=0x1000;
+					int i,len=strlen(str);
+					s=malloc(ssize);
+					if(s!=0){
+						strncpy(s,str,ssize);
+						s[ssize-1]=0;
+						for(i=0;i<size;i++){
+							out[i]=s
+						}
+					}
+				}
+				else
+					_snprintf(out,size,"'%s'",tmp);
 				break;
 			case SQL_DATETIME:
 			case SQL_TYPE_DATE:
