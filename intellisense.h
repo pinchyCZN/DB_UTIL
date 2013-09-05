@@ -225,6 +225,7 @@ int testit(TABLE_WINDOW *win)
 				printf("wordstart=%s\n",s+wordstart);
 		}
 	}
+	return TRUE;
 }
 int replace_current_word(TABLE_WINDOW *win,char *str)
 {

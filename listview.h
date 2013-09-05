@@ -619,12 +619,17 @@ LRESULT APIENTRY sc_lvedit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			{
 				TABLE_WINDOW *win=0;
 				if(find_win_by_hlvedit(hwnd,&win)){
-					int index;
-					char text[1024]={0};
-					index=ListView_GetSelectionMark(win->hlistview);
-					GetWindowText(win->hlvedit,text,sizeof(text));
-					task_update_record(win,index,text,FALSE);
-					PostMessage(win->hwnd,WM_USER,win,MAKELPARAM(IDC_LV_EDIT,IDOK));
+					int sizeof_text=0x4000;
+					char *text=0;
+					text=malloc(sizeof_text);
+					if(text!=0){
+						int index;
+						index=ListView_GetSelectionMark(win->hlistview);
+						GetWindowText(win->hlvedit,text,sizeof_text);
+						task_update_record(win,index,text,FALSE);
+						PostMessage(win->hwnd,WM_USER,win,MAKELPARAM(IDC_LV_EDIT,IDOK));
+						free(text);
+					}
 				}
 			}
 			break;

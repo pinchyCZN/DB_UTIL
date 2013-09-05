@@ -388,7 +388,7 @@ LRESULT CALLBACK recent_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 	}
 	return 0;
 }
-int strstri(const char *s1,const char *s2)
+char * strstri(char *s1,char *s2)
 {
 	int i,j,k;
 	for(i=0;s1[i];i++)

@@ -164,7 +164,7 @@ END
 
 IDD_SEARCH DIALOG DISCARDABLE  0, 0, 206, 60
 STYLE WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
-CAPTION "search text (ctrl/shift+enter srch down)"
+CAPTION "search text (ctrl+enter srch up)"
 FONT 8, "MS Sans Serif"
 BEGIN
     EDITTEXT        IDC_EDIT1,0,2,206,24,ES_AUTOHSCROLL
@@ -225,6 +225,11 @@ BEGIN
         VERTGUIDE, 52
         VERTGUIDE, 110
         VERTGUIDE, 188
+    END
+
+    IDD_SEARCH, DIALOG
+    BEGIN
+        TOPMARGIN, 2
     END
 END
 #endif    // APSTUDIO_INVOKED

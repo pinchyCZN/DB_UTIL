@@ -455,21 +455,47 @@ int sanitize_value(char *str,char *out,int size,int type)
 			case -1:
 			case SQL_VARCHAR:
 			case SQL_CHAR:
-				if(strchr(str,'\'')!=0){
+				{
 					char *s=0;
-					int ssize=0x1000;
-					int i,len=strlen(str);
+					int ssize=size;
+					if(ssize>0x4000)
+						ssize=0x4000;
 					s=malloc(ssize);
-					if(s!=0){
-						strncpy(s,str,ssize);
-						s[ssize-1]=0;
-						for(i=0;i<size;i++){
-							out[i]=s
+					if(s!=0 && ssize>0){
+						if(strchr(str,'\'')!=0){
+							int i,index,len;
+							len=strlen(str);
+							index=0;
+							for(i=0;i<len;i++){
+								char a=str[i];
+								if(i==0) //surround with quote
+									s[index++]='\'';
+
+								if(a=='\''){
+									s[index++]=a;
+									s[index++]=a;
+								}
+								else
+									s[index++]=a;
+								if(i==len-1) //surround with quote
+									s[index++]='\'';
+								if(index>=ssize){
+									index=ssize-1;
+									break;
+								}
+							}
+							s[index]=0;
+							strncpy(out,s,size);
 						}
+						else{
+							strncpy(s,str,ssize);
+							_snprintf(out,size,"'%s'",s);
+						}
+						out[size-1]=0;
 					}
+					if(s!=0)
+						free(s);
 				}
-				else
-					_snprintf(out,size,"'%s'",tmp);
 				break;
 			case SQL_DATETIME:
 			case SQL_TYPE_DATE:
@@ -729,10 +755,16 @@ int update_row(TABLE_WINDOW *win,int row,char *data,int only_copy)
 					result=execute_sql(win,sql,FALSE);
 					if(result)
 						lv_update_data(win->hlistview,row,win->selected_column,data);
+					else
+						copy_str_clipboard(sql);
 					mdi_destroy_abort(win);
 					PostMessage(win->hwnd,WM_USER,win->hlistview,IDC_MDI_CLIENT);
 				}
 			}
+#ifdef _DEBUG
+			copy_str_clipboard(sql);
+#endif
+
 		}
 		if(sql!=0)
 			free(sql);

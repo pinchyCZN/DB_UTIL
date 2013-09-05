@@ -232,7 +232,8 @@ int test_items()
 		}
 	}
 	tree_get_root("root1",&h);
-	TreeView_DeleteItem(ghtreeview,h);	
+	TreeView_DeleteItem(ghtreeview,h);
+	return TRUE;
 }
 int open_selected_table(HWND htreeview)
 {

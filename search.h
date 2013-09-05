@@ -37,9 +37,12 @@ int destroy_tooltip(HWND hwndTT)
 #define UP IDC_SEARCH_UP
 #define FIRST 0
 
-int do_search(TABLE_WINDOW *win,HWND hwnd,char *find,int dir,int col_only)
+int do_search(TABLE_WINDOW *win,HWND hwnd,char *find,int dir,int col_only,int whole_word)
 {
+	extern char * strstri(char *s1,char *s2);
 	int i,j,max,found=FALSE;
+	int sizeof_str=0x4000;
+	char *str=0;
 	static int last_row=0,last_col=0,last_dir=FIRST;
 	if(hwnd==0 && find==0){
 		if(win!=0){
@@ -66,6 +69,13 @@ int do_search(TABLE_WINDOW *win,HWND hwnd,char *find,int dir,int col_only)
 				last_row--;
 		}
 	}
+
+	str=malloc(sizeof_str);
+	if(str==0){
+		set_status_bar_text(ghstatusbar,0,"cant allocate memory!!!");
+		return FALSE;
+	}
+
 	if(dir==DOWN){
 		max=ListView_GetItemCount(win->hlistview);
 
@@ -76,19 +86,29 @@ int do_search(TABLE_WINDOW *win,HWND hwnd,char *find,int dir,int col_only)
 				j=last_col+1;
 			}
 			if(col_only){
-					char str[80]={0};
 					j=win->selected_column;
-					ListView_GetItemText(win->hlistview,i,win->selected_column,str,sizeof(str));
-					if(strstri(str,find)!=0){
+					ListView_GetItemText(win->hlistview,i,win->selected_column,str,sizeof_str);
+					if(whole_word){
+						if(strcmp(str,find)==0){
+							found=TRUE;
+							break;
+						}
+					}
+					else if(strstri(str,find)!=0){
 						found=TRUE;
 						break;
 					}
 			}
 			else{
 				for( ;j<win->columns;j++){
-					char str[80]={0};
-					ListView_GetItemText(win->hlistview,i,j,str,sizeof(str));
-					if(strstri(str,find)!=0){
+					ListView_GetItemText(win->hlistview,i,j,str,sizeof_str);
+					if(whole_word){
+						if(strcmp(str,find)==0){
+							found=TRUE;
+							break;
+						}
+					}
+					else if(strstri(str,find)!=0){
 						found=TRUE;
 						break;
 					}
@@ -117,19 +137,29 @@ int do_search(TABLE_WINDOW *win,HWND hwnd,char *find,int dir,int col_only)
 					break;
 			}
 			if(col_only){
-					char str[80]={0};
 					j=win->selected_column;
-					ListView_GetItemText(win->hlistview,i,win->selected_column,str,sizeof(str));
-					if(strstri(str,find)!=0){
+					ListView_GetItemText(win->hlistview,i,win->selected_column,str,sizeof_str);
+					if(whole_word){
+						if(strcmp(str,find)==0){
+							found=TRUE;
+							break;
+						}
+					}
+					else if(strstri(str,find)!=0){
 						found=TRUE;
 						break;
 					}
 			}
 			else{
 				for( ;j>=0;j--){
-					char str[80]={0};
-					ListView_GetItemText(win->hlistview,i,j,str,sizeof(str));
-					if(strstri(str,find)!=0){
+					ListView_GetItemText(win->hlistview,i,j,str,sizeof_str);
+					if(whole_word){
+						if(strcmp(str,find)==0){
+							found=TRUE;
+							break;
+						}
+					}
+					else if(strstri(str,find)!=0){
 						found=TRUE;
 						break;
 					}
@@ -143,6 +173,11 @@ int do_search(TABLE_WINDOW *win,HWND hwnd,char *find,int dir,int col_only)
 			}
 		}
 	}
+	if(str!=0){
+		free(str);
+		str=0;
+	}
+
 	if(found){
 		RECT rect={0},rect_col={0};
 		int mark;
@@ -207,6 +242,7 @@ int search_fill_lb(HWND hwnd,HWND hlistview,int index)
 			SendDlgItemMessage(hwnd,IDC_COMBO1,CB_ADDSTRING,0,str);
 	}
 	SendDlgItemMessage(hwnd,IDC_COMBO1,CB_SETCURSEL,index,0);
+	return TRUE;
 }
 int get_search_text(char **str)
 {
@@ -222,7 +258,7 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
 
 	static TABLE_WINDOW *win=0;
-	static int col_only=FALSE,timer=0;
+	static int col_only=FALSE,whole_word=FALSE,timer=0;
 	//static char find[80]={0};
 	static HWND hwndTT=0;
 	int search=0;
@@ -272,7 +308,7 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			}
 			hwndTT=0;
 			timer=0;
-			do_search(win,0,0,0,0);
+			do_search(win,0,0,0,0,0);
 		}
 		break;
 	case WM_COMMAND:
@@ -294,22 +330,31 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			break;
 		case IDC_EDIT1:
 			if(HIWORD(wparam)==EN_CHANGE)
-				do_search(win,0,0,0,0);
+				do_search(win,0,0,0,0,0);
 			break;
 		case IDOK:
-			if((GetKeyState(VK_CONTROL)&0x8000) || (GetKeyState(VK_SHIFT)&0x8000))
+			if(GetKeyState(VK_CONTROL)&0x8000)
 				search=UP;
 			else
 				search=DOWN;
+			if(GetKeyState(VK_SHIFT)&0x8000)
+				whole_word=TRUE;
+			else
+				whole_word=FALSE;
 			break;
 		case IDC_SEARCH_UP:
 			search=UP;
 			break;
 		case IDC_SEARCH_DOWN:
-			if((GetKeyState(VK_CONTROL)&0x8000) || (GetKeyState(VK_SHIFT)&0x8000))
+			if(GetKeyState(VK_CONTROL)&0x8000)
 				search=UP;
 			else
 				search=DOWN;
+			if(GetKeyState(VK_SHIFT)&0x8000)
+				whole_word=TRUE;
+			else
+				whole_word=FALSE;
+
 			break;
 		case IDCANCEL:
 			if(timer!=0)
@@ -349,7 +394,7 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		find_len=get_search_text(&find);
 		if(find_len>0){
 			GetWindowText(GetDlgItem(hwnd,IDC_EDIT1),find,find_len);
-			if(do_search(win,hwnd,find,search,col_only)==0){
+			if(do_search(win,hwnd,find,search,col_only,whole_word)==0){
 				RECT rect={0};
 				int y;
 				GetWindowRect(win->hlistview,&rect);

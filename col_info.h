@@ -243,7 +243,7 @@ int fit_win_to_data(HWND hlistview,HWND hwnd)
 		}
 
 	}
-
+	return TRUE;
 }
 int copy_cols_clip(HWND hlistview,int include_header)
 {
