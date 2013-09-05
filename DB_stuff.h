@@ -297,7 +297,7 @@ int trim_trail_space(char *s,int slen)
 	len=strlen(s);
 	if(len>slen)
 		len=slen;
-	for(i=len-1;i>0;i--){
+	for(i=len-1;i>=0;i--){
 		if(s[i]<=' ')
 			s[i]=0;
 		else
