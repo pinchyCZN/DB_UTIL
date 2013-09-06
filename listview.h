@@ -658,13 +658,35 @@ int create_lv_edit_selected(TABLE_WINDOW *win)
 				int str_size=0x10000;
 				create_lv_edit(win,&rect);
 				str=malloc(str_size);
-				if(str!=0){
+				if(win->hlvedit!=0 && str!=0){
+					int len;
+					str[0]=0;
 					ListView_GetItemText(win->hlistview,index,win->selected_column,str,str_size);
-				}
-				if(win->hlvedit!=0){
-					if(str!=0){
-						if(str[0]!=0)
-							SetWindowText(win->hlvedit,str);
+					SetWindowText(win->hlvedit,str);
+					len=strlen(str);
+					if(len>0){
+						int i,lf=0,c=0,max=0;
+						for(i=0;i<len;i++){
+							c++;
+							if(c>max)
+								max=c;
+							if(str[i]=='\n'){
+								lf++;
+								c=0;
+							}
+						}
+						if(lf>0){
+							int w,h;
+							w=rect.right-rect.left;
+							h=rect.bottom-rect.top;
+							if(w<max*8)
+								w=max*8;
+							lf++;if(lf>100)
+								lf=100;
+							SetWindowPos(win->hlvedit,NULL,0,0,
+								w+8,h+8+(lf*h),SWP_NOMOVE|SWP_NOZORDER);
+
+						}
 					}
 					SetFocus(win->hlvedit);
 					result=TRUE;
