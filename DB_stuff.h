@@ -72,6 +72,8 @@ int get_tables(DB_TREE *tree)
 
 				SQLFetch(hstmt);
 				count++;
+				if(GetKeyState(VK_ESCAPE)&0x8000)
+					break;
 			}
 			SQLFreeStmt(hpriv,SQL_CLOSE);
 		}
@@ -314,6 +316,7 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 		f=fopen(fname,"wb");
 	if(hstmt!=0 && win!=0){
 		RECT rect={0};
+		DWORD tick=GetTickCount();
 		int max_width;
 		int buf_size=0x20000;
 		char *buf=malloc(buf_size);
@@ -321,7 +324,6 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 		max_width=rect.right*.95;
 		while(TRUE){
 			int result=0;
-
 			int i;
 			if(win->abort || win->hwnd==0)
 				break;
@@ -383,6 +385,10 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 				}
 			}
 			rows++;
+			if((GetTickCount()-tick) > 750){
+				set_status_bar_text(ghstatusbar,0,"fetching results %i",rows);
+				tick=GetTickCount();
+			}
 		}
 		if(buf!=0)
 			free(buf);

@@ -582,6 +582,41 @@ LRESULT APIENTRY sc_lvedit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			}
 		}
 		break;
+	case WM_SYSKEYDOWN:
+		{
+			int dx=0,dy=0;
+			switch(wparam){
+			case VK_HOME:
+				SetWindowPos(hwnd,NULL,0,0,0,0,SWP_NOSIZE|SWP_NOZORDER);
+				break;
+			case VK_UP:
+				dy=-1;
+				break;
+			case VK_DOWN:
+				dy=1;
+				break;
+			case VK_LEFT:
+				dx=-1;
+				break;
+			case VK_RIGHT:
+				dx=1;
+				break;
+			}
+			if(dx!=0 || dy!=0){
+				RECT rect={0};
+				int height;
+				ListView_GetItemRect(GetParent(hwnd),0,&rect,LVIR_BOUNDS);
+				height=rect.bottom-rect.top;
+				if(height==0)
+					height=8;
+				dx=dx*height;dy=dy*height;
+				rect.left=0;rect.top=0;
+				GetWindowRect(hwnd,&rect);
+				MapWindowPoints(NULL,GetParent(hwnd),&rect,2);
+				SetWindowPos(hwnd,NULL,rect.left+dx,rect.top+dy,0,0,SWP_NOSIZE|SWP_NOZORDER);
+			}
+		}
+		break;
 	case WM_KEYFIRST:
 		switch(wparam){
 		case 'A':
@@ -591,10 +626,13 @@ LRESULT APIENTRY sc_lvedit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		case VK_F1:
 			{
 				RECT rect={0};
-				int w,h;
+				int w,h,x,y;
 				GetWindowRect(hwnd,&rect);
 				w=rect.right-rect.left;
 				h=rect.bottom-rect.top;
+				MapWindowPoints(NULL,GetParent(hwnd),&rect,2);
+				x=rect.left;
+				y=rect.top;
 				GetClientRect(GetParent(hwnd),&rect);
 				if(GetKeyState(VK_CONTROL)&0x8000){
 					w=w*.6;
@@ -606,13 +644,17 @@ LRESULT APIENTRY sc_lvedit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				}
 				if(w>rect.right)
 					w=rect.right;
-				else if(w<10)
-					w=10;
+				else if(w<20)
+					w=20;
 				if(h>rect.bottom)
 					h=rect.bottom;
-				else if(h<10)
-					h=10;
-				SetWindowPos(hwnd,NULL,0,0,w,h,SWP_NOOWNERZORDER|SWP_NOMOVE);
+				else if(h<20)
+					h=20;
+				if(x+w>rect.right)
+					x-=(x+w)-rect.right;
+				if(y+h>rect.bottom)
+					y-=(y+h)-rect.bottom;
+				SetWindowPos(hwnd,NULL,x,y,w,h,SWP_NOOWNERZORDER);
 			}
 			break;
 		case VK_RETURN:
@@ -676,15 +718,30 @@ int create_lv_edit_selected(TABLE_WINDOW *win)
 							}
 						}
 						if(lf>0){
-							int w,h;
+							int w,h,x,y;
 							w=rect.right-rect.left;
 							h=rect.bottom-rect.top;
-							if(w<max*8)
+							x=rect.left-4; //account for border
+							y=rect.top-4;
+							if(w<max*8) //try to fit the widest string
 								w=max*8;
-							lf++;if(lf>100)
+							lf++; //add last line
+							if(lf>100)
 								lf=100;
-							SetWindowPos(win->hlvedit,NULL,0,0,
-								w+8,h+8+(lf*h),SWP_NOMOVE|SWP_NOZORDER);
+							w+=8; //account for border
+							h+=8+(lf*h); //account for border and lines
+							//now move the window up/left if its out of the client area
+							GetClientRect(GetParent(win->hlvedit),&rect);
+							if(x+w>rect.right)
+								x-=(x+w)-rect.right;
+							if(y+h>rect.bottom)
+								y-=(y+h)-rect.bottom;
+							if(x<0)
+								x=0;
+							if(y<0)
+								y=0;
+							SetWindowPos(win->hlvedit,NULL,x,y,
+								w,h,SWP_NOZORDER);
 
 						}
 					}
