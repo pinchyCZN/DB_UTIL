@@ -227,36 +227,7 @@ int close_db(DB_TREE *tree)
 	}
 	return FALSE;
 }
-int select_all_table(DB_TREE *tree,char *table)
-{
-	int result=FALSE;
-	if(tree!=0 && tree->htree!=0 && tree->hroot!=0){
-		int found=FALSE,tables_refreshed=FALSE;
-		while(!found){
-			HTREEITEM hchild=TreeView_GetChild(tree->htree,tree->hroot);
-			while(hchild!=0){
-				char str[80]={0};
-				tree_get_item_text(hchild,str,sizeof(str));
-				if(stricmp(str,table)==0){
-					result=TreeView_SelectItem(tree->htree,hchild);
-					PostMessage(ghdbview,WM_USER,IDC_TABLE_ITEM,0);
-					found=TRUE;
-					break;
-				}
-				hchild=TreeView_GetNextSibling(tree->htree,hchild);
-			}
-			if(!found){
-				if(!tables_refreshed){
-					refresh_tables(tree);
-					tables_refreshed=TRUE;
-				}
-				else
-					break;
-			}
-		}
-	}
-	return result;
-}
+
 int fetch_columns(SQLHSTMT hstmt,TABLE_WINDOW *win)
 {
 	SQLSMALLINT i,cols=0; 
