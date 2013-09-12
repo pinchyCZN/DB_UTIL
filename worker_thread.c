@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <rpc.h>
 
+#include "structs.h"
+
+
 extern HWND ghmainframe,ghmdiclient,ghtreeview,ghdbview,ghstatusbar;
 HANDLE event;
 int task=0;
@@ -142,7 +145,7 @@ int thread(HANDLE event)
 			case TASK_OPEN_DB_AND_TABLE:
 			case TASK_OPEN_DB:
 				{
-					void *db=0;
+					DB_TREE *db=0;
 					SetWindowText(ghstatusbar,"opening DB");
 					if(!wait_for_treeview()){
 						SetWindowText(ghstatusbar,"treeview error");
@@ -168,7 +171,7 @@ int thread(HANDLE event)
 							if(s!=0){
 								s+=sizeof(";TABLE=")-1;
 								ResetEvent(event);
-								select_all_table(db,s);
+								task_open_table(db->name,s);
 								continue;
 							}
 						}
