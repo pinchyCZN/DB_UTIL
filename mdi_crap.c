@@ -417,7 +417,17 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 			return 0;
 			break;
 		case IDC_MDI_LISTVIEW:
-			resize_mdi_window(hwnd,mdi_split);
+			if(GetKeyState(VK_SHIFT)&0x8000){
+				RECT rect={0};
+				int y;
+				GetClientRect(hwnd,&rect);
+				y=rect.bottom-8;
+				if(y<0)
+					y=0;
+				resize_mdi_window(hwnd,y);
+			}
+			else
+				resize_mdi_window(hwnd,mdi_split);
 			break;
 		case IDC_MDI_EDIT:
 			resize_mdi_window(hwnd,2);
