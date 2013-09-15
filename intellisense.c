@@ -112,7 +112,7 @@ int handle_intellisense(TABLE_WINDOW *win,char *str,int pos,int mode)
 int find_word_start(char *str,int pos,int *start)
 {
 	int i,found=FALSE;
-	if(str[pos]<=' '){
+	if(str[pos]<=' ' || (str[pos]>='!' && str[pos]<='/')){
 		pos--;
 		if(pos<0)
 			pos=0;
@@ -275,6 +275,39 @@ int insert_selection(TABLE_WINDOW *win)
 	return FALSE;
 }
 
+int check_LR(TABLE_WINDOW *win,int vkey)
+{
+	int start=0,end=0,line;
+	if(win==0)
+		return FALSE;
+	if(win->hedit==0)
+		return FALSE;
+	SendMessage(win->hedit,EM_GETSEL,&start,&end);
+	if(end<start)
+		start=end;
+	if(vkey==VK_LEFT)
+		start--;
+	else if(vkey==VK_RIGHT)
+		start++;
+	if(start<0)
+		start=0;
+	line=SendMessage(win->hedit,EM_LINEFROMCHAR,start,0);
+	if(line>=0){
+		char s[1024];
+		int len,lindex,linestart;
+		((WORD*)s)[0]=sizeof(s);
+		len=SendMessage(win->hedit,EM_GETLINE,line,s);
+		lindex=SendMessage(win->hedit,EM_LINEINDEX,line,0);
+		linestart=start-lindex;
+		if(linestart>=0 && len>0){
+			s[len-1]=0;
+			printf("current char:%c\n",s[linestart]);
+			if(linestart>0 && s[linestart]<=' ')
+				ShowWindow(win->hintel,SW_HIDE);
+		}
+	}
+	return FALSE;
+}
 
 static WNDPROC wporigtedit=0;
 static LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
@@ -373,7 +406,7 @@ static LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			break;
 		case VK_LEFT:
 		case VK_RIGHT:
-
+			check_LR(win,wparam);			
 			break;
 		default:
 			break;

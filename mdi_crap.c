@@ -496,14 +496,14 @@ int save_mdi_size(HWND hwnd)
 	}
 	return FALSE;
 }
-int move_console()
+int move_console(int x,int y)
 {
 	char title[MAX_PATH]={0};
 	HWND hcon;
 	GetConsoleTitle(title,sizeof(title));
 	if(title[0]!=0){
 		hcon=FindWindow(NULL,title);
-		SetWindowPos(hcon,0,1200,0,800,600,SWP_NOZORDER);
+		SetWindowPos(hcon,0,x,y,800,600,SWP_NOZORDER);
 	}
 	return 0;
 }
