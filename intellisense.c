@@ -1,3 +1,9 @@
+#include <windows.h>
+#include <commctrl.h>
+#include "resource.h"
+#include "structs.h"
+extern HANDLE ghtreeview,ghmdiclient;
+extern 
 
 HANDLE intellisense_event;
 char tab_word[20]={0};
@@ -191,17 +197,7 @@ int get_substr(char *str,int start,char *substr,int size,int *pos)
 	return found;
 }
 
-int find_win_by_hedit(HWND hedit,TABLE_WINDOW **win)
-{
-	int i;
-	for(i=0;i<sizeof(table_windows)/sizeof(TABLE_WINDOW);i++){
-		if(table_windows[i].hedit==hedit){
-			*win=&table_windows[i];
-			return TRUE;
-		}
-	}
-	return FALSE;
-}
+
 int testit(TABLE_WINDOW *win)
 {
 	int start,end;

@@ -27,7 +27,6 @@ static DB_TREE db_tree[20];
 #include "col_info.h"
 #include "treeview.h"
 #include "listview.h"
-#include "intellisense.h"
 
 LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
@@ -731,6 +730,23 @@ int find_win_by_hwnd(HWND hwnd,TABLE_WINDOW **win)
 	}
 	for(i=0;i<sizeof(table_windows)/sizeof(TABLE_WINDOW);i++){
 		if(table_windows[i].hwnd==hwnd){
+			*win=&table_windows[i];
+			w=&table_windows[i];
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+int find_win_by_hedit(HWND hedit,TABLE_WINDOW **win)
+{
+	int i;
+	static TABLE_WINDOW *w=0;
+	if(w!=0 && w->hedit==hedit){
+		*win=w;
+		return TRUE;
+	}
+	for(i=0;i<sizeof(table_windows)/sizeof(TABLE_WINDOW);i++){
+		if(table_windows[i].hedit==hedit){
 			*win=&table_windows[i];
 			w=&table_windows[i];
 			return TRUE;
