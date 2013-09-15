@@ -39,27 +39,38 @@ int intel_mode=0;
 %syntax_error {  
 	printf("Syntax error!\n");
 	set_sql_mode(NO_MODE);
-}   
-   
-main ::= in. {printf("main\n");}
-in ::= . {printf("step 2\n");}
-in ::= in state. {printf("step 3\n");}
+}  
+
+main ::= in. { //printf("main\n");
+			}
+in ::= . { //printf("step 2\n");
+			}
+in ::= in state. { //printf("step 3\n");
+					}
 
 
 
-state ::= SELECT VARIABLE. {printf("--select\n"); set_sql_mode(FIELD_MODE);}
+state ::= SELECT VARIABLE. { //printf("--select\n"); 
+						 set_sql_mode(FIELD_MODE);}
 
-state ::= ORDER BY VARIABLE. {printf("--order by\n"); set_sql_mode(FIELD_MODE);}
+state ::= ORDER BY VARIABLE. { //printf("--order by\n"); 
+						set_sql_mode(FIELD_MODE);}
 
-state ::= VARIABLE. {printf("--variable\n");}
+state ::= VARIABLE. { //printf("--variable\n");
+					}
 
-state ::= NUMBER. {printf("--number\n");}
+state ::= NUMBER. { //printf("--number\n");
+					}
 
-state ::= JUNK. {printf("--junk\n");}
+state ::= JUNK. { //printf("--junk\n");
+				}
 
 
-state ::= FROM VARIABLE . {printf("--from\n"); set_sql_mode(TABLE_MODE);}
-state ::= WHERE VARIABLE. {printf("--where\n"); set_sql_mode(FIELD_MODE);}
+state ::= FROM VARIABLE . { //printf("--from\n"); 
+							set_sql_mode(TABLE_MODE);}
+state ::= WHERE VARIABLE. { //printf("--where\n"); 
+							set_sql_mode(FIELD_MODE);}
 
-state ::= NEWLINE. {printf("--newline\n");}
+state ::= NEWLINE. { //printf("--newline\n");
+					}
 

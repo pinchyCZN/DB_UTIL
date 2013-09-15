@@ -100,6 +100,13 @@ LINK32=Link.exe
 # Begin Source File
 
 SOURCE=.\lemon\example5.c
+
+!IF  "$(CFG)" == "DB_UTIL - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "DB_UTIL - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
@@ -112,7 +119,7 @@ SOURCE=.\lemon\example5.y
 InputPath=.\lemon\example5.y
 InputName=example5
 
-"example5.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+".\lemon\example5.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	echo custom build 
 	.\lemon\lemon .\lemon\$(InputName).y 
 	
@@ -120,8 +127,16 @@ InputName=example5
 
 !ELSEIF  "$(CFG)" == "DB_UTIL - Win32 Debug"
 
-# PROP Exclude_From_Build 1
 # PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\lemon\example5.y
+InputName=example5
+
+".\lemon\example5.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	echo custom build on example5.y 
+	.\lemon\lemon .\lemon\$(InputName).y 
+	
+# End Custom Build
 
 !ENDIF 
 
