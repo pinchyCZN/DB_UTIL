@@ -10,6 +10,26 @@ char tab_word[20]={0};
 int tab_continue=FALSE,tab_pos=0;
 #define TABLE_MODE 1
 #define FIELD_MODE 0
+enum {
+	MSG_ADD_DB,
+	MSG_ADD_TABLE,
+	MSG_ADD_FIELD
+};
+typedef struct{
+	char *table;
+	int field_count;
+	char *fields;
+	void *prev;
+	void *next;
+}TABLE_INFO;
+typedef struct{
+	char *name;
+	int table_count;
+	TABLE_INFO *table_info;
+	void *prev;
+	void *next;
+}DB_INFO;
+DB_INFO *top=0;
 
 int populate_intel(TABLE_WINDOW *win,char *src,int mode,int *width)
 {
@@ -483,7 +503,11 @@ int intellisense_thread(void)
 				}
 				break;
 			case WM_USER+1:
-
+				switch(wparam){
+				case MSG_ADD_DB:
+					add_db_node(lparam);
+					break;
+				}
 				break;
 			default:
 				DispatchMessage(&msg);
@@ -510,6 +534,41 @@ int post_intel_msg(int msg,WPARAM wparam,LPARAM lparam)
 {
 	if(gintellisense_tid!=0)
 		return PostThreadMessage(gintellisense_tid,msg,wparam,lparam);
+	else
+		return 0;
+}
+
+int add_db_node(char *name)
+{
+	int result=FALSE;
+	DB_INFO *db=0;
+	char *n=0;
+	if(name==0 && name[0]==0)
+		return result;
+	db=malloc(sizeof(DB_INFO));
+	n=malloc(strlen(name)+1);
+	if(db!=0 && n!=0){
+		memset(db,0,sizeof(DB_INFO));
+		db->name=n;
+		if(top==0)
+			top=db;
+		else{
+			DB_INFO *node=0;
+			while
+		}
+	}else{
+		if(db!=0)
+			free(db);
+		if(n!=0)
+			free(n);
+	}
+	return result;
+}
+
+int intelli_add_db(char *name)
+{
+	if(gintellisense_tid!=0)
+		return PostThreadMessage(gintellisense_tid,WM_USER+1,MSG_ADD_DB,name);
 	else
 		return 0;
 }

@@ -56,13 +56,13 @@ state ::= SELECT VARIABLE. { //printf("--select\n");
 state ::= ORDER BY VARIABLE. { //printf("--order by\n"); 
 						set_sql_mode(FIELD_MODE);}
 
-state ::= VARIABLE. { //printf("--variable\n");
+state ::= VARIABLE. { printf("--variable\n");
 					}
 
-state ::= NUMBER. { //printf("--number\n");
+state ::= NUMBER. { printf("--number\n");
 					}
 
-state ::= JUNK. { //printf("--junk\n");
+state ::= JUNK. { printf("--junk\n");
 				}
 
 
@@ -71,6 +71,6 @@ state ::= FROM VARIABLE . { //printf("--from\n");
 state ::= WHERE VARIABLE. { //printf("--where\n"); 
 							set_sql_mode(FIELD_MODE);}
 
-state ::= NEWLINE. { //printf("--newline\n");
+state ::= NEWLINE. { printf("--newline\n");
 					}
 
