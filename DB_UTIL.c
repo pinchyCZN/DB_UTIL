@@ -552,17 +552,17 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 	case WM_NCACTIVATE:
 		if(wparam==0){
 			last_focus=GetFocus();
-			printf("main saving focus %08X\n",last_focus);
+			//printf("main saving focus %08X\n",last_focus);
 		}
 		else{
 			PostMessage(hwnd,WM_USER+1,0,0);
-			printf("main ncactivating focus %08X\n",last_focus);
+			//printf("main ncactivating focus %08X\n",last_focus);
 		}
 		break;
 	case WM_ACTIVATEAPP: //close any tooltip on app switch
 		if(wparam){
 			PostMessage(hwnd,WM_USER+1,0,0);
-			printf("main psoting focus %08X\n",last_focus);
+			//printf("main psoting focus %08X\n",last_focus);
 		}
 		break;
 	case WM_KILLFOCUS:

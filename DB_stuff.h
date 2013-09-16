@@ -67,6 +67,7 @@ int get_tables(DB_TREE *tree)
 				}
 				*/
 				hitem=insert_item(table,tree->hroot,IDC_TABLE_ITEM);
+				intelli_add_table(tree->name,table);
 				//if(hitem!=0)
 				//	get_columns(tree,table,hitem);
 

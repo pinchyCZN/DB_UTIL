@@ -40,13 +40,13 @@ int populate_intel(TABLE_WINDOW *win,char *src,int mode,int *width)
 	if(win!=0 && src!=0){
 		SendMessage(win->hintel,LB_RESETCONTENT,0,0);
 		if(mode==TABLE_MODE){
-			HTREEITEM h;
-			h=TreeView_GetChild(ghtreeview,win->hroot);
-
-			while(h!=0){
+			DB_INFO *db=0;
+			TABLE_INFO *t=0;
+			if(find_db_node(win->name,&db))
+				t=db->table_info;
+			while(t!=0){
 				int index;
-				char str[80]={0};
-				tree_get_info(h,str,sizeof(str),0);
+				char *str=t->table;
 				if(strnicmp(str,src,strlen(src))==0){
 					index=SendMessage(win->hintel,LB_FINDSTRINGEXACT,-1,str);
 					if(index==LB_ERR){
@@ -62,7 +62,7 @@ int populate_intel(TABLE_WINDOW *win,char *src,int mode,int *width)
 					if(index!=LB_ERR)
 						SendMessage(win->hintel,LB_DELETESTRING,index,0);
 				}
-				h=TreeView_GetNextSibling(ghtreeview,h);
+				t=t->next;
 			}
 		}
 		else{
@@ -336,7 +336,7 @@ static WNDPROC wporigtedit=0;
 static LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
 	static int last_insert=FALSE;
-	//if(FALSE)
+	if(FALSE)
 	if(msg!=WM_NCMOUSEMOVE&&msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY
 		&&msg!=WM_ERASEBKGND)
 		//if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE)
@@ -515,6 +515,10 @@ int intellisense_thread(void)
 					del_db_node(msg.lParam);
 					free(msg.lParam);
 					break;
+				case MSG_ADD_TABLE:
+					add_table(msg.lParam);
+					free(msg.lParam);
+					break;
 				}
 				break;
 			default:
@@ -546,24 +550,119 @@ int post_intel_msg(int msg,WPARAM wparam,LPARAM lparam)
 		return 0;
 }
 
+
+int find_table(DB_INFO *db,char *table,TABLE_INFO **ti)
+{
+	int result=FALSE;
+	TABLE_INFO *t=0;
+	if(db==0 || table==0 || table[0]==0)
+		return FALSE;
+	t=db->table_info;
+	while(t!=0){
+		if(stricmp(t->table,table)==0){
+			if(ti!=0)
+				*ti=t;
+			result=TRUE;
+			break;
+		}
+		t=t->next;
+	}
+	return result;
+}
+/*
+format: db_name\ntable
+*/
+int add_table(char *str)
+{
+	int result=FALSE;
+	char *db_name=0;
+	char *table=0;
+	if(str==0 || str[0]==0)
+		return result;
+	table=strchr(str,'\n');
+	if(table!=0 && table[1]!=0){
+		DB_INFO *db=0;
+		table[0]=0;
+		table++;
+		db_name=str;
+		if(find_db_node(db_name,&db)){
+			if(find_table(db,table,0))
+				result=TRUE;
+			else{
+				TABLE_INFO *t=0;
+				t=malloc(sizeof(TABLE_INFO));
+				if(t!=0){
+					int len;
+					memset(t,0,sizeof(TABLE_INFO));
+					len=strlen(table)+1;
+					t->table=malloc(len);
+					if(t->table!=0){
+						strncpy(t->table,table,len);
+						t->table[len-1]=0;
+						if(db->table_info==0){
+							db->table_count++;
+							db->table_info=t;
+							result=TRUE;
+						}
+						else{
+							TABLE_INFO *tnode=db->table_info;
+							while(tnode!=0){
+								if(tnode->next==0){
+									db->table_count++;
+									tnode->next=t;
+									t->prev=tnode;
+									result=TRUE;
+									break;
+								}
+								else{
+									tnode=tnode->next;
+								}
+							}
+						}
+						if(result==FALSE){
+							free(t->table);
+							free(t);
+						}
+					}
+					else{
+						free(t);
+						result=FALSE;
+					}
+				}
+			}
+		}
+	}
+	dump_db_nodes();
+
+	return result;
+}
 int dump_db_nodes()
 {
 	DB_INFO *n=top;
 	int i=0;
-	printf("dumping db nodes\n");
+	printf(">>dumping db nodes\n");
 	while(n!=0){
-		printf("%i %s\n",i,n->name);
+		TABLE_INFO *t;
+		printf("\t%i %s\n",i,n->name);
+		t=n->table_info;
+		while(t!=0){
+			printf("\t%s\n",t->table);
+			t=t->next;
+		}
 		n=n->next;
 		i++;
 	}
+	printf("<<\n");
 	return 0;
 }
-int find_db_node(char *name)
+int find_db_node(char *name,DB_INFO **db)
 {
 	DB_INFO *n=top;
 	while(n!=0){
 		if(n->name!=0){
 			if(strcmp(n->name,name)==0){
+				if(db!=0)
+					*db=n;
 				return TRUE;
 			}
 		}
@@ -579,7 +678,7 @@ int add_db_node(char *name)
 	char *n=0;
 	if(name==0 || name[0]==0)
 		return result;
-	if(find_db_node(name))
+	if(find_db_node(name,0))
 		return TRUE;
 	db=malloc(sizeof(DB_INFO));
 	len=strlen(name)+1;
@@ -617,6 +716,7 @@ int free_table_info(TABLE_INFO *t)
 		free(t->table);
 	if(t->fields!=0)
 		free(t->fields);
+	free(t);
 	return TRUE;
 }
 int free_db_info(DB_INFO *db)
@@ -628,8 +728,9 @@ int free_db_info(DB_INFO *db)
 	if(db->table_info!=0){
 		TABLE_INFO *t=db->table_info;
 		while(t!=0){
-			free_table_info(t);
+			TABLE_INFO *current=t;
 			t=t->next;
+			free_table_info(current);
 		}
 	}
 	free(db);
@@ -663,37 +764,58 @@ int del_db_node(char *name)
 	dump_db_nodes();
 	return result;
 }
+static int post_thread_msg(int msg,int wparam,int lparam)
+{
+	int result=FALSE;
+	if(gintellisense_tid!=0){
+		if(PostThreadMessage(gintellisense_tid,msg,wparam,lparam)!=0)
+			result=TRUE;
+	}
+	return result;
+}
+int intelli_string_msg(char *str,int msg)
+{
+	int result=FALSE;
+	if(str==0 || str[0]==0)
+		return result;
+	else{
+		char *s;
+		int len=strlen(str)+1;
+		s=malloc(len);
+		if(s==0)
+			return result;
+		strncpy(s,str,len);
+		s[len-1]=0;
+		if(!post_thread_msg(WM_USER+1,msg,s))
+			free(s);
+		else
+			result=TRUE;
+	}
+	return result;
+}
 int intelli_add_db(char *name)
 {
-	if(name==0 || name[0]==0)
-		return FALSE;
-	if(gintellisense_tid!=0){
-		char *n;
-		int len=strlen(name)+1;
-		n=malloc(len);
-		if(n==0)
-			return FALSE;
-		strncpy(n,name,len);
-		n[len-1]=0;
-		return PostThreadMessage(gintellisense_tid,WM_USER+1,MSG_ADD_DB,n);
-	}
-	else
-		return FALSE;
+	return intelli_string_msg(name,MSG_ADD_DB);
 }
 int intelli_del_db(char *name)
 {
-	if(name==0 || name[0]==0)
-		return FALSE;
-	if(gintellisense_tid!=0){
-		char *n;
-		int len=strlen(name)+1;
-		n=malloc(len);
-		if(n==0)
-			return FALSE;
-		strncpy(n,name,len);
-		n[len-1]=0;
-		return PostThreadMessage(gintellisense_tid,WM_USER+1,MSG_DEL_DB,n);
+	return intelli_string_msg(name,MSG_DEL_DB);
+}
+int intelli_add_table(char *dbname,char *table)
+{
+	char *s;
+	int len;
+	int result=FALSE;
+	if(dbname==0 && dbname[0]==0)
+		return result;
+	if(table==0 && table[0]==0)
+		return result;
+	len=strlen(dbname)+strlen(table)+2;
+	s=malloc(len);
+	if(s!=0){
+		_snprintf(s,len,"%s\n%s",dbname,table);
+		result=intelli_string_msg(s,MSG_ADD_TABLE);
+		free(s);
 	}
-	else
-		return FALSE;
+	return result;
 }
