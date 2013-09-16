@@ -13,7 +13,10 @@ int tab_continue=FALSE,tab_pos=0;
 enum {
 	MSG_ADD_DB,
 	MSG_ADD_TABLE,
-	MSG_ADD_FIELD
+	MSG_ADD_FIELD,
+	MSG_DEL_DB,
+	MSG_DEL_TABLE,
+	MSG_DEL_FIELD
 };
 typedef struct{
 	char *table;
@@ -503,9 +506,14 @@ int intellisense_thread(void)
 				}
 				break;
 			case WM_USER+1:
-				switch(wparam){
+				switch(msg.wParam){
 				case MSG_ADD_DB:
-					add_db_node(lparam);
+					add_db_node(msg.lParam);
+					free(msg.lParam);
+					break;
+				case MSG_DEL_DB:
+					del_db_node(msg.lParam);
+					free(msg.lParam);
 					break;
 				}
 				break;
@@ -538,37 +546,154 @@ int post_intel_msg(int msg,WPARAM wparam,LPARAM lparam)
 		return 0;
 }
 
+int dump_db_nodes()
+{
+	DB_INFO *n=top;
+	int i=0;
+	printf("dumping db nodes\n");
+	while(n!=0){
+		printf("%i %s\n",i,n->name);
+		n=n->next;
+		i++;
+	}
+	return 0;
+}
+int find_db_node(char *name)
+{
+	DB_INFO *n=top;
+	while(n!=0){
+		if(n->name!=0){
+			if(strcmp(n->name,name)==0){
+				return TRUE;
+			}
+		}
+		n=n->next;
+	}
+	return FALSE;
+}
 int add_db_node(char *name)
 {
 	int result=FALSE;
+	int len;
 	DB_INFO *db=0;
 	char *n=0;
-	if(name==0 && name[0]==0)
+	if(name==0 || name[0]==0)
 		return result;
+	if(find_db_node(name))
+		return TRUE;
 	db=malloc(sizeof(DB_INFO));
-	n=malloc(strlen(name)+1);
+	len=strlen(name)+1;
+	n=malloc(len);
 	if(db!=0 && n!=0){
 		memset(db,0,sizeof(DB_INFO));
 		db->name=n;
+		strncpy(n,name,len);
+		n[len-1]=0;
 		if(top==0)
 			top=db;
 		else{
-			DB_INFO *node=0;
-			while
+			DB_INFO *node=top;
+			while(node->next!=0)
+				node=node->next;
+			node->next=db;
+			db->prev=node;
 		}
+		result=TRUE;
 	}else{
 		if(db!=0)
 			free(db);
 		if(n!=0)
 			free(n);
 	}
+	dump_db_nodes();
 	return result;
 }
 
+int free_table_info(TABLE_INFO *t)
+{
+	if(t==0)
+		return FALSE;
+	if(t->table!=0)
+		free(t->table);
+	if(t->fields!=0)
+		free(t->fields);
+	return TRUE;
+}
+int free_db_info(DB_INFO *db)
+{
+	if(db==0)
+		return FALSE;
+	if(db->name!=0)
+		free(db->name);
+	if(db->table_info!=0){
+		TABLE_INFO *t=db->table_info;
+		while(t!=0){
+			free_table_info(t);
+			t=t->next;
+		}
+	}
+	free(db);
+	return TRUE;
+}
+int del_db_node(char *name)
+{
+	int result=FALSE;
+	DB_INFO *node=top;
+	if(name==0 || name[0]==0)
+		return result;
+	if(node==0)
+		return result;
+	do{
+		if(strcmp(node->name,name)==0){
+			DB_INFO *p,*n;
+			p=node->prev;
+			n=node->next;
+			if(p!=0)
+				p->next=n;
+			if(n!=0)
+				n->prev=p;
+			free_db_info(node);
+			if(node==top)
+				top=n;
+			result=TRUE;
+			break;
+		}
+		node=node->next;
+	}while(node!=0);
+	dump_db_nodes();
+	return result;
+}
 int intelli_add_db(char *name)
 {
-	if(gintellisense_tid!=0)
-		return PostThreadMessage(gintellisense_tid,WM_USER+1,MSG_ADD_DB,name);
+	if(name==0 || name[0]==0)
+		return FALSE;
+	if(gintellisense_tid!=0){
+		char *n;
+		int len=strlen(name)+1;
+		n=malloc(len);
+		if(n==0)
+			return FALSE;
+		strncpy(n,name,len);
+		n[len-1]=0;
+		return PostThreadMessage(gintellisense_tid,WM_USER+1,MSG_ADD_DB,n);
+	}
 	else
-		return 0;
+		return FALSE;
+}
+int intelli_del_db(char *name)
+{
+	if(name==0 || name[0]==0)
+		return FALSE;
+	if(gintellisense_tid!=0){
+		char *n;
+		int len=strlen(name)+1;
+		n=malloc(len);
+		if(n==0)
+			return FALSE;
+		strncpy(n,name,len);
+		n[len-1]=0;
+		return PostThreadMessage(gintellisense_tid,WM_USER+1,MSG_DEL_DB,n);
+	}
+	else
+		return FALSE;
 }

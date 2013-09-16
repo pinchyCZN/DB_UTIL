@@ -133,8 +133,9 @@ int thread(HANDLE event)
 			switch(task){
 			case TASK_CLOSE_DB:
 				{
-					void *db=0;
+					DB_TREE *db=0;
 					if(find_db_tree(localinfo,&db)){
+						intelli_del_db(db->name);
 						mdi_remove_db(db);
 						set_status_bar_text(ghstatusbar,0,"closed %s",localinfo);
 					}
@@ -162,6 +163,7 @@ int thread(HANDLE event)
 						set_focus_after_open(db);
 					}
 					else{
+						intelli_add_db(db->name);
 						load_tables_if_empty(db);
 						set_focus_after_open(db);
 						reassign_tables(db);
