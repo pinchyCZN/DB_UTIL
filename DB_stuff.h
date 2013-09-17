@@ -244,14 +244,13 @@ int fetch_columns(SQLHSTMT hstmt,TABLE_WINDOW *win)
 				win->columns++;
 				width=lv_add_column(win->hlistview,str,i);
 				SQLColAttribute(hstmt,i+1,SQL_DESC_TYPE,NULL,0,NULL,&sqltype);
+				if(sqltype==0)
+					SQLColAttribute(hstmt,i+1,2,NULL,0,NULL,&sqltype);
 
-				{
-					char err[256]={0};
-					char str[256]={0};
-				SQLColAttribute(hstmt,i+1,2,str,sizeof(str),NULL,&sqltype);
-				get_error_msg(hstmt,SQL_HANDLE_STMT,err,sizeof(err));
-				}
-				SQLColAttribute(hstmt,i+1,SQL_DESC_LENGTH,NULL,0,NULL,&sqllength); //SQL_DESC_DISPLAY_SIZE 
+				SQLColAttribute(hstmt,i+1,SQL_DESC_LENGTH,NULL,0,NULL,&sqllength);
+				if(sqllength==0)
+					SQLColAttribute(hstmt,i+1,3,NULL,0,NULL,&sqllength);
+
 				mem=realloc(win->col_attr,(sizeof(COL_ATTR))*win->columns);
 				if(mem!=0){
 					win->col_attr=mem;
@@ -259,6 +258,7 @@ int fetch_columns(SQLHSTMT hstmt,TABLE_WINDOW *win)
 					win->col_attr[win->columns-1].length=sqllength;
 					win->col_attr[win->columns-1].col_width=width;
 				}
+				intelli_add_field(win->name,win->table,str);
 			}
 		}
 		return cols;

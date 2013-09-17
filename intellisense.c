@@ -65,31 +65,55 @@ int populate_intel(TABLE_WINDOW *win,char *src,int mode,int *width)
 				t=t->next;
 			}
 		}
-		else{
-			int i,count;
-			count=lv_get_column_count(win->hlistview);
-			for(i=0;i<count;i++){
+		else{ //field mode
+			DB_INFO *db=0;
+			TABLE_INFO *t=0;
+			if(find_db_node(win->name,&db))
+				t=db->table_info;
+			while(t!=0){
+				if(win->table==0 || win->table[0]==0){
+					t=0;
+					break;
+				}
+				if(stricmp(t->table,win->table)==0)
+					break;
+				t=t->next;
+			}
+			if(t!=0 && t->fields!=0){
+				int i,len,index;
+				char *sptr=t->fields;
 				char str[80]={0};
-				lv_get_col_text(win->hlistview,i,str,sizeof(str));
-				if(str[0]!=0){
-					int index;
-					if(strnicmp(str,src,strlen(src))==0){
-						index=SendMessage(win->hintel,LB_FINDSTRINGEXACT,-1,str);
-						if(index==LB_ERR){
-							int w;
-							SendMessage(win->hintel,LB_ADDSTRING,0,str);
-							w=get_str_width(win->hintel,str);
-							if(w>max_width)
-								max_width=w;
+				len=safe_strlen(sptr);
+				index=0;
+				for(i=0;i<len;i++){
+					if(sptr[i]!='\n')
+						if(index < (sizeof(str)-1))
+							str[index++]=sptr[i];
+
+					if(sptr[i]=='\n' || sptr[i+1]==0){
+						int lbindex;
+						str[index]=0;
+						if(index==0)
+							continue;
+						else
+							index=0;
+						if(strnicmp(str,src,strlen(src))==0){
+							lbindex=SendMessage(win->hintel,LB_FINDSTRINGEXACT,-1,str);
+							if(lbindex==LB_ERR){
+								int w;
+								SendMessage(win->hintel,LB_ADDSTRING,0,str);
+								w=get_str_width(win->hintel,str);
+								if(w>max_width)
+									max_width=w;
+							}
+						}
+						else{
+							lbindex=SendMessage(win->hintel,LB_FINDSTRINGEXACT,-1,str);
+							if(lbindex!=LB_ERR)
+								SendMessage(win->hintel,LB_DELETESTRING,lbindex,0);
 						}
 					}
-					else{
-						index=SendMessage(win->hintel,LB_FINDSTRINGEXACT,-1,str);
-						if(index!=LB_ERR)
-							SendMessage(win->hintel,LB_DELETESTRING,index,0);
-					}
 				}
-
 			}
 		}
 		if(SendMessage(win->hintel,LB_GETCOUNT,0,0)<=0)
@@ -469,11 +493,11 @@ int intellisense_thread(void)
 	while(TRUE){
 		MSG msg;
 		int result;
-		printf("intellisense_thread waiting for msg\n");
+		//printf("intellisense_thread waiting for msg\n");
 		result=GetMessage(&msg,NULL,0,0);
 		if(result>0){
-			printf("int");
-			print_msg(msg.message,msg.lParam,msg.wParam,msg.hwnd);
+			//printf("int");
+			//print_msg(msg.message,msg.lParam,msg.wParam,msg.hwnd);
 			switch(msg.message){
 			case WM_USER:
 				{
@@ -519,6 +543,13 @@ int intellisense_thread(void)
 					add_table(msg.lParam);
 					free(msg.lParam);
 					break;
+				case MSG_ADD_FIELD:
+					add_field(msg.lParam);
+					free(msg.lParam);
+					break;
+				default:
+					if(msg.lParam!=0)
+						free(msg.lParam);
 				}
 				break;
 			default:
@@ -567,6 +598,84 @@ int find_table(DB_INFO *db,char *table,TABLE_INFO **ti)
 		}
 		t=t->next;
 	}
+	return result;
+}
+// str format field1\nfield2\nfield3\n etc...
+int find_field(char *str,char *field)
+{
+	int result=FALSE;
+	int i,len,flen,index;
+	if(str==0 || str[0]==0)
+		return result;
+	if(field==0 || field[0]==0)
+		return result;
+	len=strlen(str);
+	flen=strlen(field);
+	index=0;
+	for(i=0;i<len;i++){
+		if(field[index]==str[i])
+			index++;
+		else
+			index=0;
+		if(index>=flen){
+			result=TRUE;
+			break;
+		}
+		if(str[i]=='\n')
+			index=0;
+	}
+	return result;
+}
+int safe_strlen(char *str)
+{
+	if(str==0 || str[0]==0)
+		return 0;
+	else
+		return strlen(str);
+}
+/*
+str format: db_name\ntable\nfield
+*/
+int add_field(char *str)
+{
+	int result=FALSE;
+	char *db_name=0;
+	char *table=0;
+	char *field=0;
+	if(str==0 || str[0]==0)
+		return result;
+	table=strchr(str,'\n');
+	if(table!=0){
+		table[0]=0;
+		table++;
+		field=strchr(table,'\n');
+		if(field!=0){
+			field[0]=0;
+			field++;
+		}
+		db_name=str;
+	}
+	if(table!=0 && table[0]!=0 && field!=0 && field[0]!=0){
+		DB_INFO *db=0;
+		TABLE_INFO *ti=0;
+		if(find_db_node(db_name,&db) && find_table(db,table,&ti)){
+			if(!find_field(ti->fields,field)){
+				char *sptr=0;
+				int len=safe_strlen(ti->fields)+1+strlen(field)+1;
+				sptr=realloc(ti->fields,len);
+				if(sptr!=0){
+					if(ti->fields==0)
+						sptr[0]=0;
+					_snprintf(sptr,len,"%s\n%s",sptr,field);
+					sptr[len-1]=0;
+					ti->fields=sptr;
+					ti->field_count++;
+					result=TRUE;
+				}
+			}
+		}
+	}
+//	dump_db_nodes();
 	return result;
 }
 /*
@@ -632,8 +741,7 @@ int add_table(char *str)
 			}
 		}
 	}
-	dump_db_nodes();
-
+//	dump_db_nodes();
 	return result;
 }
 int dump_db_nodes()
@@ -647,6 +755,8 @@ int dump_db_nodes()
 		t=n->table_info;
 		while(t!=0){
 			printf("\t%s\n",t->table);
+			if(t->fields!=0)
+				printf("\tfields:\n%s\n",t->fields);
 			t=t->next;
 		}
 		n=n->next;
@@ -704,7 +814,7 @@ int add_db_node(char *name)
 		if(n!=0)
 			free(n);
 	}
-	dump_db_nodes();
+//	dump_db_nodes();
 	return result;
 }
 
@@ -716,6 +826,7 @@ int free_table_info(TABLE_INFO *t)
 		free(t->table);
 	if(t->fields!=0)
 		free(t->fields);
+	t->field_count=0;
 	free(t);
 	return TRUE;
 }
@@ -731,6 +842,7 @@ int free_db_info(DB_INFO *db)
 			TABLE_INFO *current=t;
 			t=t->next;
 			free_table_info(current);
+			db->table_count--;
 		}
 	}
 	free(db);
@@ -761,7 +873,7 @@ int del_db_node(char *name)
 		}
 		node=node->next;
 	}while(node!=0);
-	dump_db_nodes();
+//	dump_db_nodes();
 	return result;
 }
 static int post_thread_msg(int msg,int wparam,int lparam)
@@ -810,7 +922,7 @@ int intelli_add_table(char *dbname,char *table)
 		return result;
 	if(table==0 && table[0]==0)
 		return result;
-	len=strlen(dbname)+strlen(table)+2;
+	len=strlen(dbname)+1+strlen(table)+1;
 	s=malloc(len);
 	if(s!=0){
 		_snprintf(s,len,"%s\n%s",dbname,table);
@@ -818,4 +930,25 @@ int intelli_add_table(char *dbname,char *table)
 		free(s);
 	}
 	return result;
+}
+int intelli_add_field(char *dbname,char *table,char *field)
+{
+	char *s;
+	int len;
+	int result=FALSE;
+	if(dbname==0 && dbname[0]==0)
+		return result;
+	if(table==0 && table[0]==0)
+		return result;
+	if(field==0 && field[0]==0)
+		return result;
+	len=strlen(dbname)+1+strlen(table)+1+strlen(field)+1;
+	s=malloc(len);
+	if(s!=0){
+		_snprintf(s,len,"%s\n%s\n%s",dbname,table,field);
+		result=intelli_string_msg(s,MSG_ADD_FIELD);
+		free(s);
+	}
+	return result;
+
 }
