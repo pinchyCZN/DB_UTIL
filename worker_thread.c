@@ -125,8 +125,10 @@ int thread(HANDLE event)
 	if(event==0)
 		return 0;
 	while(TRUE){
+		stop_thread_menu(FALSE);
 		id=WaitForSingleObject(event,INFINITE);
 		if(id==WAIT_OBJECT_0){
+			stop_thread_menu(TRUE);
 			strncpy(localinfo,taskinfo,sizeof(localinfo));
 			printf("db=%s\n",localinfo);
 			switch(task){

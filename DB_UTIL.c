@@ -487,6 +487,16 @@ int process_cmd_line(char *cmd)
 	return FALSE;
 }
 
+int stop_thread_menu(int create)
+{
+	if(create){
+		DeleteMenu(ghmenu,IDM_STOP_THREAD,MF_BYCOMMAND);
+		InsertMenu(ghmenu,IDM_STOP_THREAD,MF_BYCOMMAND|MF_STRING,IDM_STOP_THREAD,"Cancel thread");
+	}
+	else
+		DeleteMenu(ghmenu,IDM_STOP_THREAD,MF_BYCOMMAND);
+	DrawMenuBar(ghmainframe);
+}
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
 	static HWND last_focus=0;
@@ -632,6 +642,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 			break;
 		case IDM_RECENT:
 			DialogBox(ghinstance,MAKEINTRESOURCE(IDD_RECENT),hwnd,recent_proc);
+			break;
+		case IDM_STOP_THREAD:
+			stop_thread_menu(FALSE);
 			break;
 		case IDM_QUERY:
 			task_new_query();
