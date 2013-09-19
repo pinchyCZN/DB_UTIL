@@ -475,12 +475,24 @@ int process_cmd_line(char *cmd)
 			get_ext(fname,ext,sizeof(ext));
 			if(stricmp(ext,".DBF")==0 && table[0]!=0){
 				char connect[1024]={0};
-				_snprintf(connect,sizeof(connect),
-					"DSN=Visual FoxPro Tables;UID=;PWD=;SourceDB=%s;SourceType=DBF;Exclusive=No;BackgroundFetch=Yes;Collate=Machine;Null=Yes;Deleted=Yes;TABLE=%s",path,table);
+				char *cstr="DSN=Visual FoxPro Tables;UID=;PWD=;SourceDB=%s;SourceType=DBF;Exclusive=No;BackgroundFetch=Yes;Collate=Machine;Null=Yes;Deleted=Yes;TABLE=%s";
+				//char *cstr="CollatingSequence=ASCII;DefaultDir=%s;Deleted=0;Driver={Microsoft dBASE Driver (*.dbf)};DriverId=533;Exclusive=0;FIL=dBase 5.0;MaxBufferSize=2048;MaxScanRows=8;PageTimeout=5;SafeTransactions=0;Statistics=0;Threads=3;UID=admin;UserCommitSync=Yes;TABLE=%s";
+				_snprintf(connect,sizeof(connect),cstr,path,table);
 				task_open_db_and_table(connect);
 				return TRUE;
 			}
 
+		}
+		else if(strstri(cmd,".MDB")!=0){
+			char fname[MAX_PATH+4]={0};
+			char connect[1024]={0};
+			char *cstr="Driver={Microsoft Access Driver (*.mdb)};Dbq=%s";
+			_snprintf(fname,sizeof(fname),"%s",cmd);
+			fname[sizeof(fname)-1]=0;
+			remove_quotes(fname,sizeof(fname));
+			_snprintf(connect,sizeof(connect),cstr,fname);
+			task_open_db_and_table(connect);
+			return TRUE;
 		}
 //		task_open_db_and_table("UID=dba;PWD=sql;DSN=Journal;TABLE=PATIENT");
 	}
@@ -496,6 +508,7 @@ int stop_thread_menu(int create)
 	else
 		DeleteMenu(ghmenu,IDM_STOP_THREAD,MF_BYCOMMAND);
 	DrawMenuBar(ghmainframe);
+	return 0;
 }
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
