@@ -13,6 +13,7 @@
 #define IDD_SEARCH                      111
 #define IDD_INSERT                      112
 #define IDD_FIND_TABLE                  113
+#define IDD_FILE_ASSOCIATIONS           115
 #define IDC_STATUS                      1003
 #define IDC_TABLES                      1004
 #define IDC_MDI_LISTVIEW                1005
@@ -44,6 +45,7 @@
 #define IDC_TRIM_TRAILING               1034
 #define IDC_LEFT_JUSTIFY                1035
 #define IDM_STOP_THREAD                 1036
+#define IDC_EDIT2                       1038
 #define IDM_SETTINGS                    40002
 #define IDM_OPEN                        40006
 #define IDM_CLOSE                       40007
@@ -56,9 +58,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        115
+#define _APS_NEXT_RESOURCE_VALUE        116
 #define _APS_NEXT_COMMAND_VALUE         40013
-#define _APS_NEXT_CONTROL_VALUE         1037
+#define _APS_NEXT_CONTROL_VALUE         1039
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

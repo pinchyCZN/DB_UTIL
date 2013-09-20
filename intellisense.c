@@ -530,26 +530,28 @@ int intellisense_thread(void)
 				}
 				break;
 			case WM_USER+1:
+				if(msg.lParam==0)
+					break;
 				switch(msg.wParam){
 				case MSG_ADD_DB:
 					add_db_node(msg.lParam);
-					free(msg.lParam);
+					free((void*)msg.lParam);
 					break;
 				case MSG_DEL_DB:
 					del_db_node(msg.lParam);
-					free(msg.lParam);
+					free((void*)msg.lParam);
 					break;
 				case MSG_ADD_TABLE:
 					add_table(msg.lParam);
-					free(msg.lParam);
+					free((void*)msg.lParam);
 					break;
 				case MSG_ADD_FIELD:
 					add_field(msg.lParam);
-					free(msg.lParam);
+					free((void*)msg.lParam);
 					break;
 				default:
 					if(msg.lParam!=0)
-						free(msg.lParam);
+						free((void*)msg.lParam);
 				}
 				break;
 			default:
