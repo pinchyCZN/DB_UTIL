@@ -51,6 +51,41 @@ int get_ext(char *fname,char *ext,int size)
 		ext[size-1]=0;
 	return TRUE;
 }
+int find_association(char *ext,char *connect,int clen)
+{
+	int i,result=FALSE;
+	char *section="FILE_EXTENSIONS";
+	if(ext==0 || connect==0 || clen<=0)
+		return result;
+	if(ext[0]=='.')
+		ext++;
+
+	for(i=0;i<20;i++){
+		char key[20];
+		char str[MAX_PATH]={0};
+		_snprintf(key,sizeof(key),"EXT%02i",i);
+		get_ini_str(section,key,str,sizeof(str));
+		if(str[0]!=0){
+			if(stricmp(str,ext)==0){
+				connect[0]=0;
+				_snprintf(key,sizeof(key),"CONNECT%02i",i);
+				get_ini_str(section,key,connect,clen);
+				if(connect[0]!=0)
+					result=TRUE;
+				break;
+			}
+		}
+	}
+	return result;
+}
+int replace_params(char *connect,int clen,char *fname)
+{
+	int result=FALSE;
+	if(connect==0 || clen<=0 || fname==0)
+		return result;
+
+
+}
 int process_cmd_line(char *cmd)
 {
 	char fname[MAX_PATH+4]={0};

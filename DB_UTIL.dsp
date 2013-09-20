@@ -100,13 +100,6 @@ LINK32=Link.exe
 # Begin Source File
 
 SOURCE=.\lemon\example5.c
-
-!IF  "$(CFG)" == "DB_UTIL - Win32 Release"
-
-!ELSEIF  "$(CFG)" == "DB_UTIL - Win32 Debug"
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
@@ -169,6 +162,10 @@ InputPath=.\lemon\lexer.l
 
 # End Source File
 # End Group
+# Begin Source File
+
+SOURCE=.\cmd_line.c
+# End Source File
 # Begin Source File
 
 SOURCE=.\DB_UTIL.c
