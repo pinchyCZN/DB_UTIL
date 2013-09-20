@@ -148,6 +148,12 @@ int thread(HANDLE event)
 			case TASK_OPEN_DB:
 				{
 					DB_TREE *db=0;
+					char *table;
+					table=strstr(localinfo,";TABLE=");
+					if(table!=0){
+						table[0]=0;
+						table++;
+					}
 					SetWindowText(ghstatusbar,"opening DB");
 					if(!wait_for_treeview()){
 						SetWindowText(ghstatusbar,"treeview error");
@@ -169,12 +175,10 @@ int thread(HANDLE event)
 						set_focus_after_open(db);
 						reassign_tables(db);
 						if(task==TASK_OPEN_DB_AND_TABLE){
-							char *s=0;
-							s=strstr(localinfo,";TABLE=");
-							if(s!=0){
-								s+=sizeof(";TABLE=")-1;
+							if(table!=0 && strncmp(table,"TABLE=",sizeof("TABLE=")-1)==0){
+								table+=sizeof("TABLE=")-1;
 								ResetEvent(event);
-								task_open_table(db->name,s);
+								task_open_table(db->name,table);
 								continue;
 							}
 						}

@@ -17,6 +17,7 @@ int create_tooltip(HWND hwnd,char *msg,int x, int y,HWND *hwndTT)
 			ti.lpszText = msg;
 			SendMessage(*hwndTT,TTM_ADDTOOL,0,&ti);
 			SendMessage(*hwndTT,TTM_UPDATETIPTEXTA,0,&ti);
+			SendMessage(hwndTT,TTM_SETMAXTIPWIDTH,0,640); //makes multiline tooltips
 			SendMessage(*hwndTT,TTM_TRACKPOSITION,0,MAKELONG(x,y)); 
 			SendMessage(*hwndTT,TTM_TRACKACTIVATE,TRUE,&ti);
 			result=TRUE;

@@ -2,6 +2,9 @@
 #include "resource.h"
 #define INI_SETTINGS "SETTINGS"
 
+extern LRESULT CALLBACK file_assoc_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam);
+extern HINSTANCE ghinstance;
+
 int trim_trailing=0;
 int left_justify=0;
 
@@ -170,6 +173,9 @@ LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				open_console();
 			else
 				hide_console();
+			break;
+		case IDC_FILE_ASSOCIATIONS:
+			DialogBoxParam(ghinstance,IDD_FILE_ASSOCIATIONS,hwnd,file_assoc_proc,0);
 			break;
 		case IDC_OPEN_INI:
 			open_ini(hwnd,FALSE);

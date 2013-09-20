@@ -466,6 +466,38 @@ short insert_dlg_anchors[]={
 		CONTROL_FINISH,-1,
 	RESIZE_FINISH
 };
+short file_assoc_dlg_anchors[]={
+
+	CONTROL_ID,IDC_DRIVER_LIST,
+		XPOS,291,YPOS,0,
+		SIZE_WIDTH_OFF,-120,
+		SIZE_HEIGHT_OFF,-100,
+		CONTROL_FINISH,-1,
+	CONTROL_ID,IDC_CONNECT_EDIT,
+		XPOS,0,YPOS,4,
+		HUG_CTRL_Y,IDC_DRIVER_LIST,
+		SIZE_WIDTH_OFF,0,
+		SIZE_HEIGHT_OFF,-90,
+		CONTROL_FINISH,-1,
+	CONTROL_ID,IDOK,
+		XPOS,0,YPOS,2,
+		WIDTH,75,HEIGHT,23,
+		HUG_CTRL_Y,IDC_CONNECT_EDIT,
+		CONTROL_FINISH,-1,
+	CONTROL_ID,IDC_DELETE,
+		XPOS,10,YPOS,2,
+		WIDTH,75,HEIGHT,23,
+		HUG_CTRL_Y,IDC_CONNECT_EDIT,
+		HUG_CTRL_X,IDOK,
+		CONTROL_FINISH,-1,
+	CONTROL_ID,IDCANCEL,
+		XPOS,250,YPOS,2,
+		WIDTH,75,HEIGHT,23,
+		HUG_CTRL_Y,IDC_CONNECT_EDIT,
+		HUG_CTRL_X,IDOK,
+		CONTROL_FINISH,-1,
+	RESIZE_FINISH
+};
 int reposition_controls(HWND hwnd, short *list)
 {
 	RECT	rect;
@@ -559,4 +591,15 @@ int resize_mdi_window(HWND hwnd,int edit_height)
 	}
 	reposition_controls(hwnd,mdi_anchors);
 	return TRUE;
+}
+
+int resize_file_assoc(hwnd)
+{
+	static int once=TRUE;
+	if(once){
+		dump_sizes(hwnd,file_assoc_dlg_anchors);
+		once=FALSE;
+	}
+	modify_list(file_assoc_dlg_anchors);
+	return reposition_controls(hwnd,file_assoc_dlg_anchors);
 }
