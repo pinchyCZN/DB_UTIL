@@ -132,7 +132,7 @@ int replace_params(char *connect,int con_size,char *full_name,char *path,char *n
 	strncpy(tmp,connect,con_size);
 	tmp[con_size-1]=0;
 	if(full_name!=0);
-		str_replace(&tmp,"%FNAME%",full_name);
+		str_replace(&tmp,"%FPATH%",full_name);
 	if(path!=0)
 		str_replace(&tmp,"%PATH%",path);
 	if(name!=0)
@@ -222,20 +222,24 @@ int populate_drivers(HWND hwnd)
 }
 int populate_assoc(HWND hwnd)
 {
-	int i,first_entry=-1;
+	int i,first_entry=-1,lowest_index=MAXLONG;
 	char key[20];
+	char ext[MAX_EXTENSION_LENGTH]={0};
 	char *section=SECTION_NAME;
 	SendDlgItemMessage(hwnd,IDC_EXT_COMBO,CB_RESETCONTENT,0,0);
 	SetDlgItemText(hwnd,IDC_CONNECT_EDIT,"");
 	for(i=0;i<20;i++){
-		char str[MAX_EXTENSION_LENGTH]={0};
 		_snprintf(key,sizeof(key),"EXT%02i",i);
-		get_ini_str(section,key,str,sizeof(str));
-		if(str[0]!=0){
-			if(CB_ERR==SendDlgItemMessage(hwnd,IDC_EXT_COMBO,CB_FINDSTRINGEXACT,-1,str)){
-				SendDlgItemMessage(hwnd,IDC_EXT_COMBO,CB_ADDSTRING,0,str);
-				if(first_entry == -1)
+		ext[0]=0;
+		get_ini_str(section,key,ext,sizeof(ext));
+		if(ext[0]!=0){
+			if(CB_ERR==SendDlgItemMessage(hwnd,IDC_EXT_COMBO,CB_FINDSTRINGEXACT,-1,ext)){
+				int index;
+				index=SendDlgItemMessage(hwnd,IDC_EXT_COMBO,CB_ADDSTRING,0,ext);
+				if(index>=0 && index<=lowest_index){
+					lowest_index=index;
 					first_entry=i;
+				}
 			}
 		}
 	}
@@ -244,7 +248,11 @@ int populate_assoc(HWND hwnd)
 		_snprintf(key,sizeof(key),"CONNECT%02i",first_entry);
 		get_ini_str(section,key,connect,sizeof(connect));
 		SetDlgItemText(hwnd,IDC_CONNECT_EDIT,connect);
-		SendDlgItemMessage(hwnd,IDC_EXT_COMBO,CB_SETCURSEL,first_entry,0);
+		_snprintf(key,sizeof(key),"EXT%02i",first_entry);
+		ext[0]=0;
+		get_ini_str(section,key,ext,sizeof(ext));
+		SendDlgItemMessage(hwnd,IDC_EXT_COMBO,CB_SETCURSEL,lowest_index,0);
+		SetDlgItemText(hwnd,IDC_EXT_COMBO,ext);
 	}
 	return first_entry>=0;
 }
@@ -262,6 +270,8 @@ int add_update_ext(HWND hwnd,char *ext,char *connect)
 	i=SendDlgItemMessage(hwnd,IDC_EXT_COMBO,CB_FINDSTRINGEXACT,-1,ext);
 	if(i!=CB_ERR)
 		SendDlgItemMessage(hwnd,IDC_EXT_COMBO,CB_SETCURSEL,i,0);
+	else
+		SendDlgItemMessage(hwnd,IDC_EXT_COMBO,CB_ADDSTRING,0,ext);
 
 	for(i=0;i<MAX_EXTENSIONS;i++){
 		_snprintf(key,sizeof(key),"EXT%02i",i);
@@ -315,7 +325,6 @@ int ext_sel_changed(HWND hwnd)
 	
 	i=SendDlgItemMessage(hwnd,IDC_EXT_COMBO,CB_GETCURSEL,0,0);
 	if(i==CB_ERR){
-		SetDlgItemText(hwnd,IDC_EXT_COMBO,"");
 		SetDlgItemText(hwnd,IDC_CONNECT_EDIT,"");
 		return FALSE;
 	}
@@ -379,11 +388,17 @@ LRESULT CALLBACK file_assoc_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
 	static HWND grippy=0,tooltip=0;
 	static int help_busy=FALSE;
+	static char *help_str="example cmd line: C:\\temp\\mydatabase.dbf\r\n"
+				"%FPATH%=C:\\temp\\mydatabase.dbf\r\n"
+				"%PATH%=C:\\temp\\\r\n"
+				"%NAME%=mydatabase\r\n\r\n"
+				"example connect: Driver={Microsoft dBASE Driver (*.dbf)};DBQ=%FPATH%;TABLE=%NAME%";
 
 	switch(msg){
 	case WM_INITDIALOG:
 		SendDlgItemMessage(hwnd,IDC_EXT_COMBO,CB_LIMITTEXT,MAX_EXTENSION_LENGTH-1,0);
 		SendDlgItemMessage(hwnd,IDC_CONNECT_EDIT,EM_LIMITTEXT,MAX_CONNECT_LENGTH-1,0);
+		SetDlgItemText(hwnd,IDC_STATIC_HELP,help_str);
 		populate_assoc(hwnd);
 		populate_drivers(hwnd);
 		grippy=create_grippy(hwnd);
@@ -400,21 +415,22 @@ LRESULT CALLBACK file_assoc_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		tooltip=0;
 		break;
 	case WM_HELP:
+		resize_file_assoc(hwnd);
+		break;
 		if(!help_busy){
 			help_busy=TRUE;
-			MessageBox(hwnd,"example cmd line: C:\\temp\\mydatabase.dbf\r\n"
-				"%FPATH%=C:\\temp\\mydatabase.dbf\r\n"
-				"%PATH%=C:\\temp\\\r\n"
-				"%NAME%=mydatabase\r\n\r\n"
-				"example connect: Driver={Microsoft dBASE Driver (*.dbf)};DBQ=%FPATH%;TABLE=%NAME%","HELP",MB_OK);
+			MessageBox(hwnd,help_str,"HELP",MB_OK);
 			help_busy=FALSE;
 		}
 		break;
 	case WM_COMMAND:
 		switch(LOWORD(wparam)){
 		case IDC_EXT_COMBO:
-			if(HIWORD(wparam)==CBN_SELCHANGE)
+			switch(HIWORD(wparam)){
+			case CBN_SELCHANGE:
 				ext_sel_changed(hwnd);
+				break;
+			}
 			break;
 		case IDC_DRIVER_LIST:
 			if(HIWORD(wparam)==LBN_DBLCLK){
@@ -424,9 +440,10 @@ LRESULT CALLBACK file_assoc_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 					char str[MAX_PATH]={0};
 					SendDlgItemMessage(hwnd,IDC_DRIVER_LIST,LB_GETTEXT,sel,str);
 					if(str[0]!=0){
-						SendDlgItemMessage(hwnd,IDC_CONNECT_EDIT,EM_REPLACESEL,TRUE,"Driver={");
-						SendDlgItemMessage(hwnd,IDC_CONNECT_EDIT,EM_REPLACESEL,TRUE,str);
-						SendDlgItemMessage(hwnd,IDC_CONNECT_EDIT,EM_REPLACESEL,TRUE,"};");
+						char tmp[MAX_PATH];
+						_snprintf(tmp,sizeof(tmp),"%s%s%s","Driver={",str,"};");
+						tmp[sizeof(tmp)-1]=0;
+						SendDlgItemMessage(hwnd,IDC_CONNECT_EDIT,EM_REPLACESEL,TRUE,tmp);
 					}
 				}
 			}
@@ -452,21 +469,53 @@ LRESULT CALLBACK file_assoc_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			break;
 		case IDOK:
 			{
-				char ext[MAX_EXTENSION_LENGTH]={0};
-				char connect[MAX_CONNECT_LENGTH]={0};
-				GetDlgItemText(hwnd,IDC_EXT_COMBO,ext,sizeof(ext));
-				ext[sizeof(ext)-1]=0;
-				GetDlgItemText(hwnd,IDC_CONNECT_EDIT,connect,sizeof(connect));
-				connect[sizeof(connect)-1]=0;
-				if(add_update_ext(hwnd,ext,connect))
-					tooltip_message(hwnd,&tooltip,"added extension");
-				else
-					tooltip_message(hwnd,&tooltip,"failed to add extension");
+				HWND focus=GetFocus();
+				if(focus==GetDlgItem(hwnd,IDOK) || focus==GetDlgItem(hwnd,IDC_CONNECT_EDIT)){
+					char ext[MAX_EXTENSION_LENGTH]={0};
+					char connect[MAX_CONNECT_LENGTH]={0};
+					GetDlgItem(hwnd,IDOK);
+					GetDlgItemText(hwnd,IDC_EXT_COMBO,ext,sizeof(ext));
+					ext[sizeof(ext)-1]=0;
+					GetDlgItemText(hwnd,IDC_CONNECT_EDIT,connect,sizeof(connect));
+					connect[sizeof(connect)-1]=0;
+					if(add_update_ext(hwnd,ext,connect))
+						tooltip_message(hwnd,&tooltip,"added extension");
+					else
+						tooltip_message(hwnd,&tooltip,"failed to add extension");
+				}else if(focus==GetDlgItem(hwnd,IDC_DRIVER_LIST)){
+					SendMessage(hwnd,WM_COMMAND,MAKEWPARAM(IDC_DRIVER_LIST,LBN_DBLCLK),0);
+				}
+				else{
+					ext_sel_changed(hwnd);
+					tooltip_message(hwnd,&tooltip,"refreshed");
+					break;
+				}
 			}
 			break;
 		}
 		break;
 	}
 	return 0;
+}
 
+int process_drop(HWND hwnd,HANDLE hdrop)
+{
+	int i,count,is_file=FALSE;
+	char str[MAX_PATH];
+
+	count=DragQueryFile(hdrop,-1,NULL,0);
+	for(i=0;i<count;i++){
+		str[0]=0;
+		DragQueryFile(hdrop,i,str,sizeof(str));
+		if(str[0]==0)
+			continue;
+		if(!is_path_directory(str)){
+			is_file=TRUE;
+			break;
+		}
+	}
+	DragFinish(hdrop);
+	if(is_file)
+		process_cmd_line(str);
+	return 0;
 }

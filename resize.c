@@ -222,6 +222,41 @@ int get_word(char *str,int num,char *out,int olen)
 	}
 	return TRUE;
 }
+int find_resource_id(char *id,int *val)
+{
+	FILE *f;
+	int found=FALSE;
+	f=fopen("resource.h","rb");
+	if(f!=0){
+		while(TRUE){
+			char str[1024]={0};
+			char *s=0;
+			if(0==fgets(str,sizeof(str),f))
+				break;
+			if(str[0]==0)
+				continue;
+			s=strstr(str,id);
+			if(s!=0){
+				s+=strlen(id);
+				*val=atoi(s);
+				found=TRUE;
+				break;
+			}
+		}
+		fclose(f);
+	}
+	if(!found){
+		if(strstr(id,"IDOK")!=0){
+			*val=IDOK;
+			found=TRUE;
+		}
+		else if(strstr(id,"IDCANCEL")!=0){
+			*val=IDCANCEL;
+			found=TRUE;
+		}
+	}
+	return found;
+}
 int modify_list(short *list)
 {
 	FILE *f;
@@ -275,47 +310,60 @@ int modify_list(short *list)
 				if(strlen(word)==0)
 					break;
 				if(strlen(word)>0){
-					for(j=0;j<100;j++){
+					for(j=0;j<sizeof(tags)/sizeof(char *);j++){
 						if(tags[j]==0)
 							break;
 						if(strcmp(word,tags[j])==0){
-							int val;
 							if(strcmp(word,"CONTROL_ID")==0){
 								char w2[40]={0};
+								int val=0;
+								list[index++]=j;
 								get_word(str,i+1,w2,sizeof(w2));
-								printf("%s,%s\n",word,w2);
-								index+=2;
+								if(find_resource_id(w2,&val)){
+									printf("%s,%s (%i)\n",word,w2,val);
+									list[index++]=val;
+								}
+								else{
+									printf("%s,%s (****unkown)\n",word,w2);
+									index++;
+								}
 								break;
 							}
 							if(strcmp(word,"CONTROL_FINISH")==0){
-								index+=2;
+								list[index++]=j;
+								list[index++]=-1;
+								printf("\tCONTROL_FINISH\n");
 								break;
 							}
 							if(strcmp(word,"RESIZE_FINISH")==0){
-								done=TRUE;
-								break;
-							}
-							if(list[index]==RESIZE_FINISH){
+								list[index++]=j;
+								list[index++]=-1;
+								printf("\tRESIZE_FINISH\n");
 								done=TRUE;
 								break;
 							}
 							list[index++]=j;
-							printf("%s,",word);
+							printf("\t%s,",word);
 							word[0]=0;
 							get_word(str,i+1,word,sizeof(word));
 							if(strlen(word)>0){
+								int val=0;
 								if(!isalpha(word[0])){
 									val=atoi(word);
 									list[index++]=val;
 									printf("%s\n",word);
 								}
+								else if(find_resource_id(word,&val)){
+									printf("%s (%i)\n",word,val);
+									list[index++]=val;
+								}
 								else{
-									printf("skipped %s\n",word);
+									printf("****skipped %s\n",word);
 									index++;
 								}
 							}
 							else{
-								printf("missing word\n");
+								printf("****missing word\n");
 								index++;
 								index=index;
 							}
@@ -470,14 +518,16 @@ short file_assoc_dlg_anchors[]={
 
 	CONTROL_ID,IDC_DRIVER_LIST,
 		XPOS,291,YPOS,0,
-		SIZE_WIDTH_OFF,-120,
-		SIZE_HEIGHT_OFF,-100,
+		SIZE_WIDTH_OFF,-290,
+		SIZE_HEIGHT_PER,700,
 		CONTROL_FINISH,-1,
 	CONTROL_ID,IDC_CONNECT_EDIT,
-		XPOS,0,YPOS,4,
+		XPOS,0,YPOS,12,
+		HEIGHT,1,
 		HUG_CTRL_Y,IDC_DRIVER_LIST,
 		SIZE_WIDTH_OFF,0,
-		SIZE_HEIGHT_OFF,-90,
+		SIZE_HEIGHT_PER,300,
+		HEIGHT,-40,
 		CONTROL_FINISH,-1,
 	CONTROL_ID,IDOK,
 		XPOS,0,YPOS,2,
@@ -497,6 +547,7 @@ short file_assoc_dlg_anchors[]={
 		HUG_CTRL_X,IDOK,
 		CONTROL_FINISH,-1,
 	RESIZE_FINISH
+	,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 };
 int reposition_controls(HWND hwnd, short *list)
 {

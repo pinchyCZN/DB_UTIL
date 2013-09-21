@@ -50,6 +50,7 @@
 #define IDC_FILE_ASSOCIATIONS           1039
 #define IDC_EXT_COMBO                   1040
 #define IDC_DRIVER_LIST                 1042
+#define IDC_STATIC_HELP                 1043
 #define IDM_SETTINGS                    40002
 #define IDM_OPEN                        40006
 #define IDM_CLOSE                       40007
@@ -64,7 +65,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        116
 #define _APS_NEXT_COMMAND_VALUE         40013
-#define _APS_NEXT_CONTROL_VALUE         1043
+#define _APS_NEXT_CONTROL_VALUE         1044
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

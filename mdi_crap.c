@@ -648,7 +648,7 @@ int create_mainwindow(void *wndproc,HMENU hmenu,HINSTANCE hinstance,char *class_
 	wndclass.lpszClassName=class_name;
 
 	if(RegisterClass(&wndclass)!=0){
-		hframe = CreateWindow(class_name,title,
+		hframe = CreateWindowEx(WS_EX_ACCEPTFILES,class_name,title,
 			WS_CLIPSIBLINGS|WS_CLIPCHILDREN|WS_OVERLAPPEDWINDOW, //0x6CF0000
 			0,0,
 			400,300,

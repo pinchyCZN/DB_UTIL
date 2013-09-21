@@ -445,6 +445,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 			load_icon(hwnd);
 		}
 		break;
+	case WM_DROPFILES:
+		process_drop(hwnd,wparam);
+		break;
 	case WM_COPYDATA:
 		if(lparam!=0){
 			COPYDATASTRUCT *cd=lparam;
@@ -602,17 +605,21 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 	static char *class_name="DB_UTIL_CLASS";
 	int first_instance=TRUE;
 	int debug=0;
-#ifdef _DEBUG
-	debug=1;
-#endif
+
 	first_instance=set_single_instance(TRUE);
 
 	ghinstance=hInstance;
 	init_ini_file();
+
+#ifdef _DEBUG
+	debug=1;
+#else
 	get_ini_value("SETTINGS","DEBUG",&debug);
+#endif
 	if(debug!=0){
 		open_console();
 	}
+
 	{
 		int val=0;
 		get_ini_value("SETTINGS","SINGLE_INSTANCE",&val);
