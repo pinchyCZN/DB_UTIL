@@ -39,7 +39,8 @@ int populate_intel(TABLE_WINDOW *win,char *src,int mode,int *width)
 	int max_width=0;
 	if(win!=0 && src!=0){
 		SendMessage(win->hintel,LB_RESETCONTENT,0,0);
-		if(mode==TABLE_MODE){
+		//if(mode==TABLE_MODE)
+		{
 			DB_INFO *db=0;
 			TABLE_INFO *t=0;
 			if(find_db_node(win->name,&db))
@@ -65,7 +66,8 @@ int populate_intel(TABLE_WINDOW *win,char *src,int mode,int *width)
 				t=t->next;
 			}
 		}
-		else{ //field mode
+		//else
+		{ //field mode
 			DB_INFO *db=0;
 			TABLE_INFO *t=0;
 			if(find_db_node(win->name,&db))
@@ -116,6 +118,30 @@ int populate_intel(TABLE_WINDOW *win,char *src,int mode,int *width)
 				}
 			}
 		}
+		//if nothing so far add reserved words if they match
+		if(SendMessage(win->hintel,LB_GETCOUNT,0,0)<=0){
+			static char *sql_major_words[]={
+				"SELECT","FROM","WHERE","INNER","JOIN","ORDER","UPDATE","INSERT"
+			};
+			int i;
+			for(i=0;i<sizeof(sql_major_words)/sizeof(char *);i++){
+				char *str=sql_major_words[i];
+				if(str==0)
+					continue;
+				if(strnicmp(str,src,strlen(src))==0){
+					int lbindex;
+					lbindex=SendMessage(win->hintel,LB_FINDSTRINGEXACT,-1,str);
+					if(lbindex==LB_ERR){
+						int w;
+						SendMessage(win->hintel,LB_ADDSTRING,0,str);
+						w=get_str_width(win->hintel,str);
+						if(w>max_width)
+							max_width=w;
+					}
+				}
+			}
+			
+		}
 		if(SendMessage(win->hintel,LB_GETCOUNT,0,0)<=0)
 			ShowWindow(win->hintel,SW_HIDE);
 		else{
@@ -141,7 +167,13 @@ int handle_intellisense(TABLE_WINDOW *win,char *str,int pos,int mode)
 			int width=80;
 			if(populate_intel(win,tab_word,mode,&width)){
 				POINT p={0};
-				SendMessage(win->hedit,EM_POSFROMCHAR,&p,tab_pos);
+				int cpos=0;
+				SendMessage(win->hedit,EM_GETSEL,&cpos,0);
+				cpos-=pos-tab_pos;
+				if(cpos<0)
+					cpos=0;
+				SendMessage(win->hedit,EM_POSFROMCHAR,&p,cpos);
+				
 				if(width<100 || width>640)
 					width=100;
 				else
@@ -159,7 +191,7 @@ int handle_intellisense(TABLE_WINDOW *win,char *str,int pos,int mode)
 int find_word_start(char *str,int pos,int *start)
 {
 	int i,found=FALSE;
-	if(str[pos]<=' ' || (str[pos]>='!' && str[pos]<='/')){
+	if(is_word_boundary(str[pos])){
 		pos--;
 		if(pos<0)
 			pos=0;
@@ -168,9 +200,7 @@ int find_word_start(char *str,int pos,int *start)
 	if(str[pos]<=' ')
 		return FALSE;
 	for(i=pos;i>=0;i--){
-		if(str[i]<=' ')
-			break;
-		else if(str[i]>='!' && str[i]<='/')
+		if(is_word_boundary(str[i]))
 			break;
 		else
 			found=TRUE;
@@ -185,9 +215,7 @@ int find_word_end(char *str,int pos,int *end)
 {
 	int i;
 	for(i=pos;i<pos+255;i++){
-		if(str[i]<=' ')
-			break;
-		if(str[i]>='!' && str[i]<='/')
+		if(is_word_boundary(str[i]))
 			break;
 	}
 	*end=i;
@@ -488,7 +516,9 @@ int assert()
 }
 int intellisense_thread(void)
 {
-	void *pParser=ParseAlloc(malloc);
+	void *pParser=0; //ParseAlloc(malloc);
+#define sizeof_str MAXWORD  //largest em_getline allows
+	static char str[sizeof_str];
 
 	while(TRUE){
 		MSG msg;
@@ -501,24 +531,36 @@ int intellisense_thread(void)
 			switch(msg.message){
 			case WM_USER:
 				{
-				char str[1024]={0};
-				int pos=0;
+				int line=0,pos=0;
 				TABLE_WINDOW *win=msg.wParam;
 				//wparam=win lparam=key
-				SendMessage(win->hedit,WM_GETTEXT,sizeof(str),str);
+				str[0]=0;
 				SendMessage(win->hedit,EM_GETSEL,&pos,NULL);
-				if(pos<sizeof(str))
-					str[pos]=0;
+				line=SendMessage(win->hedit,EM_LINEFROMCHAR,pos,NULL);
+				((WORD*)str)[0]=sizeof_str;
+				SendMessage(win->hedit,EM_GETLINE,line,str);
+				str[sizeof_str-1]=0;
+				line=SendMessage(win->hedit,EM_LINEINDEX,-1,0);
+				pos=pos-line;
+				if(pos<0)
+					pos=0;
+				else if(pos>=sizeof_str)
+					pos=sizeof_str-1;
+
+
+
 				if(str[0]!=0){
 					int yv,mode;
 					printf("str=%s\n",str);
-					strupr(str);
-					yy_scan_string(str);
-					Parse(pParser,0,0);
-					while( (yv=yylex()) != 0){
+					if(pParser!=0){
+						strupr(str);
+						yy_scan_string(str);
+						Parse(pParser,0,0);
+						while( (yv=yylex()) != 0){
+							Parse(pParser,yv,0);
+						}
 						Parse(pParser,yv,0);
 					}
-					Parse(pParser,yv,0);
 					mode=get_sql_mode();
 					if(mode==0){
 						handle_intellisense(win,str,pos,mode);
