@@ -517,7 +517,7 @@ int assert()
 int intellisense_thread(void)
 {
 	void *pParser=0; //ParseAlloc(malloc);
-#define sizeof_str MAXWORD  //largest em_getline allows
+#define sizeof_str 0x7FFF //MAXWORD largest em_getline allows
 	static char str[sizeof_str];
 
 	while(TRUE){
@@ -537,14 +537,14 @@ int intellisense_thread(void)
 				str[0]=0;
 				SendMessage(win->hedit,EM_GETSEL,&pos,NULL);
 				line=SendMessage(win->hedit,EM_LINEFROMCHAR,pos,NULL);
-				((WORD*)str)[0]=sizeof_str;
+				((WORD*)str)[0]=sizeof_str; //MAXWORD is largest allowed
 				SendMessage(win->hedit,EM_GETLINE,line,str);
 				str[sizeof_str-1]=0;
 				line=SendMessage(win->hedit,EM_LINEINDEX,-1,0);
 				pos=pos-line;
 				if(pos<0)
 					pos=0;
-				else if(pos>=sizeof_str)
+				else if(pos>=sizeof_str-1)
 					pos=sizeof_str-1;
 
 
