@@ -107,12 +107,13 @@ int str_replace(char **instr,char *find,char *replace)
 		b=strlen(replace);
 		if(b>a)
 			delta=b-a;
-		tmpstr=malloc(len+delta+1);
+		len=len+delta+1;
+		tmpstr=malloc(len);
 		if(tmpstr!=0){
 			s[0]=0;
 			tmpstr[0]=0;
-			_snprintf(tmpstr,len+delta+1,"%s%s%s",str,replace,s+a);
-			tmpstr[len+delta]=0;
+			_snprintf(tmpstr,len,"%s%s%s",str,replace,s+a);
+			tmpstr[len-1]=0;
 			free(*instr);
 			*instr=tmpstr;
 			return TRUE;
@@ -384,6 +385,7 @@ static int tooltip_message(HWND hwnd,HWND *tooltip,char *fmt,...)
 	}
 	return timer_id;
 }
+
 LRESULT CALLBACK file_assoc_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
 	static HWND grippy=0,tooltip=0;

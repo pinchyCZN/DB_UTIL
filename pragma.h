@@ -8,3 +8,15 @@
 #pragma warning(error:4700) //local variable 'x' used without having been initialized
 #pragma warning(error:4020) //too many actual parameters
 #pragma warning(error:4101) //unreferenced local variable
+
+#ifdef _DEBUG
+#define free  my_free
+void my_free(void *);
+
+#define malloc  my_alloc
+void * my_alloc(unsigned int);
+
+#define realloc  my_realloc
+void * my_realloc(void *,unsigned int);
+
+#endif //_DEBUG

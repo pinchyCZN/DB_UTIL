@@ -196,6 +196,10 @@ SOURCE=.\mdi_crap.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\memtest.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\resize.c
 # End Source File
 # Begin Source File
