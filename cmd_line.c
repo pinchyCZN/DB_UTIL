@@ -318,19 +318,22 @@ int delete_ext(HWND hwnd,char *ext)
 	}
 	return FALSE;
 }
-int ext_sel_changed(HWND hwnd)
+int ext_sel_changed(HWND hwnd,int use_edit_ctrl)
 {
 	int i;
 	char ext[MAX_EXTENSION_LENGTH]={0};
 	char *section=SECTION_NAME;
-	
-	i=SendDlgItemMessage(hwnd,IDC_EXT_COMBO,CB_GETCURSEL,0,0);
-	if(i==CB_ERR){
-		SetDlgItemText(hwnd,IDC_CONNECT_EDIT,"");
-		return FALSE;
-	}
 
-	SendDlgItemMessage(hwnd,IDC_EXT_COMBO,CB_GETLBTEXT,i,ext); 
+	if(use_edit_ctrl)
+		GetDlgItemText(hwnd,IDC_EXT_COMBO,ext,sizeof(ext));
+	else{
+		i=SendDlgItemMessage(hwnd,IDC_EXT_COMBO,CB_GETCURSEL,0,0);
+		if(i==CB_ERR){
+			SetDlgItemText(hwnd,IDC_CONNECT_EDIT,"");
+			return FALSE;
+		}
+		SendDlgItemMessage(hwnd,IDC_EXT_COMBO,CB_GETLBTEXT,i,ext);
+	}
 	ext[sizeof(ext)-1]=0;
 
 	if(ext[0]==0)
@@ -350,6 +353,7 @@ int ext_sel_changed(HWND hwnd)
 			return TRUE;
 		}
 	}
+	SetDlgItemText(hwnd,IDC_CONNECT_EDIT,"");
 	return TRUE;
 }
 static int print_error()
@@ -430,7 +434,7 @@ LRESULT CALLBACK file_assoc_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		case IDC_EXT_COMBO:
 			switch(HIWORD(wparam)){
 			case CBN_SELCHANGE:
-				ext_sel_changed(hwnd);
+				ext_sel_changed(hwnd,FALSE);
 				break;
 			}
 			break;
@@ -488,7 +492,7 @@ LRESULT CALLBACK file_assoc_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 					SendMessage(hwnd,WM_COMMAND,MAKEWPARAM(IDC_DRIVER_LIST,LBN_DBLCLK),0);
 				}
 				else{
-					ext_sel_changed(hwnd);
+					ext_sel_changed(hwnd,TRUE);
 					tooltip_message(hwnd,&tooltip,"refreshed");
 					break;
 				}

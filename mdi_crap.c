@@ -781,7 +781,7 @@ int acquire_table_window(TABLE_WINDOW **win,char *tname)
 int grab_param(const char *search,char *str,char *out,int olen)
 {
 	char *p;
-	p=strstr(str,search);
+	p=strstri(str,search);
 	if(p!=0){
 		int i,len,index;
 		p+=strlen(search);
@@ -803,29 +803,21 @@ int grab_param(const char *search,char *str,char *out,int olen)
 int compare_connect_str(char *c1,char *c2)
 {
 	char s1[512],s2[512];
-	int match=FALSE;
-	if(grab_param("DSN=",c1,s1,sizeof(s1)) &&
-		grab_param("DSN=",c2,s2,sizeof(s2))){
-		if(stricmp(s1,s2)==0)
-			match=TRUE;
-		else
-			match=FALSE;
-	}
-	if(match)
-	if(grab_param("SourceDB",c1,s1,sizeof(s1)) &&
-		grab_param("SourceDB",c2,s2,sizeof(s2))){
-		if(stricmp(s1,s2)==0)
-			match=TRUE;
-		else
-			match=FALSE;
-	}
-	if(match)
-	if(grab_param("SourceType",c1,s1,sizeof(s1)) &&
-		grab_param("SourceType",c2,s2,sizeof(s2))){
-		if(stricmp(s1,s2)==0)
-			match=TRUE;
-		else
-			match=FALSE;
+	int i,match=FALSE;
+	const char *params[]={"DSN=","Driver=","DATABASE=","DBQ=","SourceDB=","SourceType="};
+	for(i=0;i<sizeof(params)/sizeof(char *);i++){
+		s1[0]=0;
+		s2[0]=0;
+		if(grab_param(params[i],c1,s1,sizeof(s1)) &&
+			grab_param(params[i],c2,s2,sizeof(s2))){
+			if(stricmp(s1,s2)==0)
+				match=TRUE;
+			else
+				match=FALSE;
+		}
+		if(i==1 && match==FALSE) //dont try anymore if u cant find DNS or driver
+			break;
+
 	}
 	return match;
 }

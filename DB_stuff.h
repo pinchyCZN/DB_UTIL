@@ -73,7 +73,7 @@ int get_tables(DB_TREE *tree)
 
 				SQLFetch(hstmt);
 				count++;
-				if(GetKeyState(VK_ESCAPE)&0x8000)
+				if(GetAsyncKeyState(VK_ESCAPE)&0x8000)
 					break;
 			}
 			SQLFreeStmt(hpriv,SQL_CLOSE);
@@ -82,41 +82,45 @@ int get_tables(DB_TREE *tree)
 	SQLFreeStmt(hstmt,SQL_CLOSE);
 	return count;
 }
-
+int copy_param(char *str,char *search,char *out,int olen)
+{
+	int found=FALSE;
+	char *s;
+	s=strstri(str,search);
+	if(s!=0){
+		int i,index,len=strlen(s);
+		index=0;
+		for(i=0;i<len;i++){
+			if(index >= olen-1)
+				break;
+			if(s[i]==';')
+				break;
+			out[index++]=s[i];
+		}
+		found=TRUE;
+		out[index]=0;
+	}
+	return found;
+}
 int extract_db_name(DB_TREE *tree)
 {
-	int i,len,index=0;
-	char *s=0;
-	s=strstr(tree->connect_str,"SourceDB=");
-	if(s!=0){
-		len=strlen(s);
-		for(i=0;i<len;i++){
-			if(s[i]==';')
-				break;
-			if(index>=sizeof(tree->name)-1)
-				break;
-			tree->name[index++]=s[i];
+	int i,found=FALSE;
+	char tmp[512];
+	char *params[]={"SourceDB=","DSN=","Driver=","UID=","PWD="};
+	if(tree==0)
+		return FALSE;
+	tree->name[0]=0;
+	for(i=0;i<sizeof(params)/sizeof(char *);i++){
+		tmp[0]=0;
+		if(copy_param(tree->connect_str,params[i],tmp,sizeof(tmp))){
+			char *semi=";";
+			if(!found)
+				semi="";
+			_snprintf(tree->name,sizeof(tree->name),"%s%s%s",tree->name,semi,tmp);
+			found=TRUE;
 		}
 	}
-	s=strstr(tree->connect_str,"DSN=");
-	if(s!=0){
-		if(index>0 && index<sizeof(tree->name)-1)
-			tree->name[index++]=';';
-		len=strlen(s);
-		for(i=0;i<len;i++){
-			if(s[i]==';')
-				break;
-			if(index>=sizeof(tree->name)-1)
-				break;
-			tree->name[index++]=s[i];
-		}
-	}
-	if(s!=0){
-		tree->name[index]=0;
-		if(index>=0)
-			return TRUE;
-	}
-	return FALSE;
+	return found;
 }
 int open_db(DB_TREE *tree)
 {
@@ -381,7 +385,11 @@ int is_dbf(TABLE_WINDOW *win)
 	int result=FALSE;
 	if(win!=0){
 		if(win->name!=0){
-			if(strstri(win->name,"DSN=visual foxpro")!=0)
+			if(strstri(win->name,"visual foxpro")!=0)
+				result=TRUE;
+			else if(strstri(win->name,"=DBF;")!=0)
+				result=TRUE;
+			else if(strstri(win->name,"*.DBF")!=0)
 				result=TRUE;
 		}
 	}
@@ -693,7 +701,7 @@ int update_row(TABLE_WINDOW *win,int row,char *data,int only_copy)
 			sql[0]=0;
 			tmp[0]=0;
 			sanitize_value(data,tmp,tmp_size,get_column_type(win,win->selected_column));
-			_snprintf(sql,sql_size,"UPDATE [%s] SET %s%s%s=%s WHERE ",win->table,lbrack,col_name,rbrack,tmp[0]==0?"''":tmp);
+			_snprintf(sql,sql_size,"UPDATE [%s]\r\nSET %s%s%s=%s\r\nWHERE\r\n",win->table,lbrack,col_name,rbrack,tmp[0]==0?"''":tmp);
 			for(i=0;i<count;i++){
 				char *v=0,*eq="=";
 				col_name[0]=0;

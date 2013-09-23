@@ -547,7 +547,6 @@ short file_assoc_dlg_anchors[]={
 		HUG_CTRL_X,IDOK,
 		CONTROL_FINISH,-1,
 	RESIZE_FINISH
-	,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 };
 int reposition_controls(HWND hwnd, short *list)
 {
