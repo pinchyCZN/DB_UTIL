@@ -106,7 +106,7 @@ int extract_db_name(DB_TREE *tree)
 {
 	int i,found=FALSE;
 	char tmp[512];
-	char *params[]={"SourceDB=","DSN=","Driver=","UID=","PWD="};
+	char *params[]={"SourceDB=","DSN=","DBQ","Driver=","UID=","PWD="};
 	if(tree==0)
 		return FALSE;
 	tree->name[0]=0;

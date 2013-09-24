@@ -815,7 +815,7 @@ int compare_connect_str(char *c1,char *c2)
 			else
 				match=FALSE;
 		}
-		if(i==1 && match==FALSE) //dont try anymore if u cant find DNS or driver
+		if(i==1 && match==FALSE) //dont try anymore if u cant find DSN or driver
 			break;
 
 	}

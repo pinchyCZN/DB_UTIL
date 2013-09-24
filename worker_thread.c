@@ -326,7 +326,7 @@ int thread(HANDLE event)
 			case TASK_REFRESH_TABLES:
 				{
 					int result=FALSE;
-					void *db=0;
+					DB_TREE *db=0;
 					SetWindowText(ghstatusbar,"refreshing tables");
 					if(acquire_db_tree(localinfo,&db)){
 						if(!mdi_open_db(db)){
@@ -334,6 +334,7 @@ int thread(HANDLE event)
 							SetWindowText(ghstatusbar,"error opening DB");
 						}
 						else{
+							intelli_add_db(db->name);
 							result=refresh_tables(db);
 							if(keep_closed)
 								close_db(db);
