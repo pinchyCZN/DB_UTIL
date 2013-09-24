@@ -804,7 +804,7 @@ int compare_connect_str(char *c1,char *c2)
 {
 	char s1[512],s2[512];
 	int i,match=FALSE;
-	const char *params[]={"DSN=","Driver=","DATABASE=","DBQ=","SourceDB=","SourceType="};
+	const char *params[]={"DSN=","Driver=","DATABASE=","DBQ=","SourceDB=","SourceType=","UID=","PWD="};
 	for(i=0;i<sizeof(params)/sizeof(char *);i++){
 		s1[0]=0;
 		s2[0]=0;
@@ -812,10 +812,14 @@ int compare_connect_str(char *c1,char *c2)
 			grab_param(params[i],c2,s2,sizeof(s2))){
 			if(stricmp(s1,s2)==0)
 				match=TRUE;
-			else
+			else{
 				match=FALSE;
+				break;
+			}
 		}
 		if(i==1 && match==FALSE) //dont try anymore if u cant find DSN or driver
+			break;
+		if(i>1 && match==FALSE) //DATABASE etc must match 
 			break;
 
 	}
