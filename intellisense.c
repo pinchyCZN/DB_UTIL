@@ -121,7 +121,7 @@ int populate_intel(TABLE_WINDOW *win,char *src,int mode,int *width)
 		//if nothing so far add reserved words if they match
 		if(SendMessage(win->hintel,LB_GETCOUNT,0,0)<=0){
 			static char *sql_major_words[]={
-				"SELECT","FROM","WHERE","INNER","JOIN","ORDER","UPDATE","INSERT"
+				"SELECT","FROM","WHERE","INNER","JOIN","ORDER","UPDATE","INSERT","DELETE"
 			};
 			int i;
 			for(i=0;i<sizeof(sql_major_words)/sizeof(char *);i++){
