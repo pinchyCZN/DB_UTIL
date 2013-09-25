@@ -82,46 +82,7 @@ int get_tables(DB_TREE *tree)
 	SQLFreeStmt(hstmt,SQL_CLOSE);
 	return count;
 }
-int copy_param(char *str,char *search,char *out,int olen)
-{
-	int found=FALSE;
-	char *s;
-	s=strstri(str,search);
-	if(s!=0){
-		int i,index,len=strlen(s);
-		index=0;
-		for(i=0;i<len;i++){
-			if(index >= olen-1)
-				break;
-			if(s[i]==';')
-				break;
-			out[index++]=s[i];
-		}
-		found=TRUE;
-		out[index]=0;
-	}
-	return found;
-}
-int extract_db_name(DB_TREE *tree)
-{
-	int i,found=FALSE;
-	char tmp[512];
-	char *params[]={"SourceDB=","DSN=","DBQ","Driver=","UID=","PWD="};
-	if(tree==0)
-		return FALSE;
-	tree->name[0]=0;
-	for(i=0;i<sizeof(params)/sizeof(char *);i++){
-		tmp[0]=0;
-		if(copy_param(tree->connect_str,params[i],tmp,sizeof(tmp))){
-			char *semi=";";
-			if(!found)
-				semi="";
-			_snprintf(tree->name,sizeof(tree->name),"%s%s%s",tree->name,semi,tmp);
-			found=TRUE;
-		}
-	}
-	return found;
-}
+
 int open_db(DB_TREE *tree)
 {
     SQLHENV     hEnv = NULL;
@@ -157,7 +118,6 @@ int open_db(DB_TREE *tree)
 				}
 				if(str[0]!=0){
 					strncpy(tree->connect_str,str,sizeof(tree->connect_str));
-					extract_db_name(tree);
 					printf("connect str=%s\n",str);
 					add_connect_str(str);
 				}

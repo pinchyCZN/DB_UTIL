@@ -778,66 +778,26 @@ int acquire_table_window(TABLE_WINDOW **win,char *tname)
 	}
 	return FALSE;
 }
-int grab_param(const char *search,char *str,char *out,int olen)
-{
-	char *p;
-	p=strstri(str,search);
-	if(p!=0){
-		int i,len,index;
-		p+=strlen(search);
-		len=strlen(p);
-		if(len>=olen-1)
-			len=olen-1;
-		index=0;
-		for(i=0;i<len;i++){
-			if(p[i]==';')
-				break;
-			out[index++]=p[i];
-		}
-		out[index]=0;
-		if(index>0)
-			return TRUE;
-	}
-	return FALSE;
-}
-int compare_connect_str(char *c1,char *c2)
-{
-	char s1[512],s2[512];
-	int i,match=FALSE;
-	const char *params[]={"DSN=","Driver=","DATABASE=","DBQ=","SourceDB=","SourceType=","UID=","PWD="};
-	for(i=0;i<sizeof(params)/sizeof(char *);i++){
-		s1[0]=0;
-		s2[0]=0;
-		if(grab_param(params[i],c1,s1,sizeof(s1)) &&
-			grab_param(params[i],c2,s2,sizeof(s2))){
-			if(stricmp(s1,s2)==0)
-				match=TRUE;
-			else{
-				match=FALSE;
-				break;
-			}
-		}
-		if(i==1 && match==FALSE) //dont try anymore if u cant find DSN or driver
-			break;
-		if(i>1 && match==FALSE) //DATABASE etc must match 
-			break;
 
-	}
-	return match;
-}
 int find_db_tree(char *name,DB_TREE **tree)
 {
 	int i;
+	HANDLE hroot=0;
+	if(name==0 || tree==0)
+		return FALSE;
+	if(!tree_get_root(name,&hroot)){
+		char alt_name[512]={0};
+		extract_short_db_name(name,alt_name,sizeof(alt_name));
+		if(!tree_get_root(alt_name,&hroot))
+			return FALSE;
+	}
+	if(hroot==0)
+		return FALSE;
 	for(i=0;i<sizeof(db_tree)/sizeof(DB_TREE);i++){
-		if(db_tree[i].hroot!=0)
-			if(stricmp(name,db_tree[i].name)==0){
-				*tree=&db_tree[i];
-				return TRUE;
-			}
-			else if(compare_connect_str(name,db_tree[i].connect_str)){
-				*tree=&db_tree[i];
-				return TRUE;
-			}
+		if(db_tree[i].hroot==hroot){
+			*tree=&db_tree[i];
+			return TRUE;
+		}
 	}
 	return FALSE;
 }
@@ -860,6 +820,51 @@ int find_selected_tree(DB_TREE **tree)
 	}
 	return FALSE;
 }
+int copy_param(char *str,char *search,char *out,int olen)
+{
+	int found=FALSE;
+	char *s;
+	s=strstri(str,search);
+	if(s!=0){
+		int i,index,len=strlen(s);
+		index=0;
+		for(i=0;i<len;i++){
+			if(index >= olen-1)
+				break;
+			if(s[i]==';')
+				break;
+			out[index++]=s[i];
+		}
+		found=TRUE;
+		out[index]=0;
+	}
+	return found;
+}
+//get a tree list friendly name of the connect string
+int extract_short_db_name(char *name,char *out,int olen)
+{
+	int i,found=FALSE;
+	const char *params[]={"SourceDB=","DSN=","DBQ","Driver=","UID=","PWD="};
+	if(name==0 || out==0 || olen<=0)
+		return FALSE;
+	out[0]=0;
+	for(i=0;i<sizeof(params)/sizeof(char *);i++){
+		char tmp[512]={0};
+		if(copy_param(name,params[i],tmp,sizeof(tmp))){
+			char *semi=";";
+			if(!found)
+				semi="";
+			_snprintf(out,olen,"%s%s%s",out,semi,tmp);
+			found=TRUE;
+		}
+	}
+	if(!found){
+		strncpy(out,name,olen);
+		found=TRUE;
+	}
+	out[olen-1]=0;
+	return found;
+}
 int acquire_db_tree(char *name,DB_TREE **tree)
 {
 	int i;
@@ -867,8 +872,13 @@ int acquire_db_tree(char *name,DB_TREE **tree)
 		return TRUE;
 	for(i=0;i<sizeof(db_tree)/sizeof(DB_TREE);i++){
 		if(db_tree[i].hroot==0){
+			char node_name[512]={0};
 			strncpy(db_tree[i].name,name,sizeof(db_tree[i].name));
-			db_tree[i].hroot=insert_root(name,IDC_DB_ITEM);
+			//give the node name something easier to read
+			//may cause problems elsewhere when searching by node name
+			extract_short_db_name(name,node_name,sizeof(node_name));
+			db_tree[i].hroot=insert_root(node_name,IDC_DB_ITEM);
+			//db_tree[i].hroot=insert_root(name,IDC_DB_ITEM);
 			db_tree[i].htree=ghtreeview;
 			*tree=&db_tree[i];
 			return TRUE;
@@ -885,7 +895,6 @@ int refresh_tables(DB_TREE *tree)
 {
 	int result=FALSE;
 	if(tree!=0 && tree->hroot!=0){
-		rename_tree_item(tree->hroot,tree->name);
 		tree_delete_all_child(tree->hroot);
 		set_status_bar_text(ghstatusbar,0,"retrieving tables:%s",tree->name);
 		get_tables(tree);

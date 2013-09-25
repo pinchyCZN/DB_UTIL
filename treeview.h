@@ -36,18 +36,6 @@ int insert_item(char *name,HTREEITEM hparent,int lparam)
 	tvins.item=tvi;
  	return TreeView_InsertItem(ghtreeview,&tvins);
 }
-int rename_tree_item(HTREEITEM hitem,char *str)
-{
-	TV_ITEM tvi;
-	if(hitem!=0 && str!=0){
-		memset(&tvi,0,sizeof(tvi));
-		tvi.hItem=hitem;
-		tvi.mask=TVIF_TEXT;
-		tvi.pszText=str;
-		return TreeView_SetItem(ghtreeview,&tvi);
-	}
-	return FALSE;
-}
 int tree_get_item_text(HTREEITEM hitem,char *str,int len)
 {
 	TV_ITEM tvi;
@@ -64,6 +52,9 @@ int tree_get_item_text(HTREEITEM hitem,char *str,int len)
 int tree_get_root(char *name,HANDLE *hroot)
 {
 	HTREEITEM h;
+	if(hroot==0)
+		return FALSE;
+	*hroot=0;
 	h=TreeView_GetRoot(ghtreeview);
 	while(h!=0){
 		char str[MAX_PATH]={0};
@@ -75,8 +66,6 @@ int tree_get_root(char *name,HANDLE *hroot)
 		}
 		h=TreeView_GetNextSibling(ghtreeview,h);
 	}
-	if(hroot!=0)
-		*hroot=0;
 	return FALSE;
 }
 int tree_find_focused_root(HANDLE *hroot)
@@ -216,25 +205,7 @@ int create_treeview_menus()
 	}
 	return TRUE;
 }
-int test_items()
-{
-	HTREEITEM h;
-	int i,j;
-	for(j=0;j<10;j++){
-		char str[80];
-		sprintf(str,"root%i",j);
-		insert_root(str,IDC_DB_ITEM);
-		for(i=0;i<4;i++){
-			sprintf(str,"root%i",j);
-			tree_get_root(str,&h);
-			sprintf(str,"item%i",i);
-			insert_item(str,h,IDC_TABLE_ITEM);
-		}
-	}
-	tree_get_root("root1",&h);
-	TreeView_DeleteItem(ghtreeview,h);
-	return TRUE;
-}
+
 int open_selected_table(HWND htreeview)
 {
 	HTREEITEM hitem=0;
