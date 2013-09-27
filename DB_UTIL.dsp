@@ -56,7 +56,7 @@ LINK32=Link.exe
 # ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib comctl32.lib Ws2_32.lib RPCRT4.LIB /nologo /subsystem:windows /machine:I386
 # Begin Special Build Tool
 SOURCE="$(InputPath)"
-PostBuild_Cmds=copy_program.bat
+PostBuild_Cmds=upx ./release/db_util.exe	copy_program.bat
 # End Special Build Tool
 
 !ELSEIF  "$(CFG)" == "DB_UTIL - Win32 Debug"
