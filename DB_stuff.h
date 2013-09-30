@@ -13,7 +13,10 @@ int get_error_msg(SQLHANDLE handle,int handle_type,char *err,int len)
 	SQLINTEGER  error=0;
 	SQLSMALLINT msglen;
 	SQLGetDiagRec(handle_type,handle,1,state,&error,msg,sizeof(msg),&msglen);
-	_snprintf(err,len,"%s %s",msg,state);
+	state[sizeof(state)-1]=0;
+	msg[sizeof(msg)-1]=0;
+	_snprintf(err,len,"%s\r\nSTATE=%s",msg,state);
+	err[len-1]=0;
 	return atoi(state);
 }
 
