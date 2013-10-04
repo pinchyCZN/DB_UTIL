@@ -410,10 +410,14 @@ static LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		case VK_ESCAPE:
 			break;
 		default:
-			PostMessage(hwnd,WM_USER,wparam,lparam);
-			if(wparam==VK_SPACE && (GetKeyState(VK_CONTROL)&0x8000))
+			{
+			int ctrl=GetKeyState(VK_CONTROL)&0x8000;
+			if((!ctrl) || wparam==VK_SPACE)
+				PostMessage(hwnd,WM_USER,wparam,lparam);
+			if(wparam==VK_SPACE && ctrl)
 				return 0;
 			break;
+			}
 		}
 		break;
 	case WM_KEYUP:
