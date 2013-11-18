@@ -155,7 +155,8 @@ int init_ini_file()
 		GetCurrentDirectory(sizeof(path),path);
 	_snprintf(str,sizeof(str)-1,"%s\\"PORTABLE_FNAME,path);
 	if(does_file_exist(str)){
-		if(!does_file_exist(INI_FNAME))
+		_snprintf(str,sizeof(str)-1,"%s\\" INI_FNAME,path);
+		if(!does_file_exist(str))
 			goto install;
 	}
 	else{
@@ -187,7 +188,10 @@ int init_ini_file()
 		}else{
 			char str[MAX_PATH*3];
 install:
-			GetCurrentDirectory(sizeof(path),path);
+			GetModuleFileName(NULL,path,sizeof(path));
+			extract_folder(path,sizeof(path));
+			if(path[0]==0)
+				GetCurrentDirectory(sizeof(path),path);
 			memset(str,0,sizeof(str));
 			_snprintf(str,sizeof(str)-1,
 				"OK=Install INI in current directory %s\r\n\r\n"
