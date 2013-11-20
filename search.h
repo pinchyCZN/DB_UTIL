@@ -295,6 +295,7 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		{
 			char *find=0;
 			int find_len;
+			int x,y;
 			RECT rect={0};
 			if(lparam==0)
 				EndDialog(hwnd,-1);
@@ -304,8 +305,13 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				SendDlgItemMessage(hwnd,IDC_EDIT1,EM_SETLIMITTEXT,find_len,0);
 				SetWindowText(GetDlgItem(hwnd,IDC_EDIT1),find);
 			}
-			GetWindowRect(win->hwnd,&rect);
-			SetWindowPos(hwnd,NULL,rect.left,rect.top,0,0,SWP_NOSIZE|SWP_NOZORDER);
+			GetWindowRect(GetParent(win->hwnd),&rect);
+			x=(rect.left+rect.right)/2;
+			y=(rect.top+rect.bottom)/2;
+			GetWindowRect(hwnd,&rect);
+			x-=(rect.right-rect.left)/2;
+			y-=(rect.bottom-rect.top)/2;
+			SetWindowPos(hwnd,NULL,x,y,0,0,SWP_NOSIZE|SWP_NOZORDER);
 			SendDlgItemMessage(hwnd,IDC_EDIT1,EM_SETSEL,0,-1);
 			SetFocus(GetDlgItem(hwnd,IDC_EDIT1));
 
@@ -413,9 +419,9 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			if(do_search(win,hwnd,find,search,col_only,whole_word)==0){
 				RECT rect={0};
 				int y;
-				GetWindowRect(win->hlistview,&rect);
+				GetWindowRect(GetParent(win->hwnd),&rect);
 				if(search==DOWN)
-					y=rect.bottom;
+					y=rect.bottom-23;
 				else
 					y=rect.top;
 				if(hwndTT!=0){
