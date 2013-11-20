@@ -44,6 +44,7 @@ int do_search(TABLE_WINDOW *win,HWND hwnd,char *find,int dir,int col_only,int wh
 	int i,j,max,found=FALSE;
 	int sizeof_str=0x4000;
 	char *str=0;
+	DWORD tick=0;
 	static int last_row=0,last_col=0,last_dir=FIRST;
 	if(hwnd==0 && find==0){
 		if(win!=0){
@@ -81,6 +82,13 @@ int do_search(TABLE_WINDOW *win,HWND hwnd,char *find,int dir,int col_only,int wh
 		max=ListView_GetItemCount(win->hlistview);
 
 		for(i=last_row;i<max;i++){
+			if((GetTickCount()-tick)>250){
+				tick=GetTickCount();
+				if(GetAsyncKeyState(VK_ESCAPE)&0x8000){
+					set_status_bar_text(ghstatusbar,0,"aborted search");
+					break;
+				}
+			}
 			if(last_dir==FIRST)
 				j=0;
 			else{
@@ -126,6 +134,13 @@ int do_search(TABLE_WINDOW *win,HWND hwnd,char *find,int dir,int col_only,int wh
 	//UP ------------------------------
 	else{
 		for(i=last_row;i>=0;i--){
+			if((GetTickCount()-tick)>250){
+				tick=GetTickCount();
+				if(GetAsyncKeyState(VK_ESCAPE)&0x8000){
+					set_status_bar_text(ghstatusbar,0,"aborted search");
+					break;
+				}
+			}
 			if(last_dir==FIRST)
 				j=win->columns-1;
 			else{
