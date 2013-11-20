@@ -131,6 +131,7 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 							ListView_RedrawItems(nmhdr->hwndFrom,lvhit.iItem,lvhit.iItem);
 							UpdateWindow(nmhdr->hwndFrom);
 							set_status_bar_text(ghstatusbar,1,"row=%3i col=%2i",lvhit.iItem+1,lvhit.iSubItem+1);
+							do_search(win,0,0,0,0,0); //reset search position
 						}
 					}
 					printf("item = %i\n",lvhit.iSubItem);
