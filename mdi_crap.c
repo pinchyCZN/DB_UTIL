@@ -215,7 +215,7 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 											whole_word=TRUE;
 										set_status_bar_text(ghstatusbar,0,"searching for %s",find);
 										result=do_search(win,NULL,find,dir,0,whole_word);
-										set_status_bar_text(ghstatusbar,0,"searched for:%s%s",find,result?", found":", nothing found");
+										set_status_bar_text(ghstatusbar,0,"searched for:%s%s%s",find,whole_word?",(whole word)":"",result?", found":", nothing found");
 									}
 								}
 								break;
@@ -248,7 +248,15 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 								break;
 							}
 							if(dir!=0){
-								win->selected_column+=dir;
+								int ctrl=GetKeyState(VK_CONTROL)&0x8000;
+								if(ctrl){
+									if(dir>0)
+										win->selected_column=win->columns-1;
+									else
+										win->selected_column=0;
+								}
+								else
+									win->selected_column+=dir;
 								if(win->selected_column<0)
 									win->selected_column=0;
 								if(win->selected_column>=win->columns)
