@@ -439,7 +439,7 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				}
 				timer=SetTimer(hwnd,0x1337,550,NULL);
 			}else{
-				destroy_tooltip(&hwndTT);
+				destroy_tooltip(hwndTT);
 				hwndTT=0;
 			}
 
