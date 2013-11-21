@@ -262,6 +262,8 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 								if(win->selected_column>=win->columns)
 									win->selected_column=win->columns-1;
 								lv_scroll_column(win->hlistview,win->selected_column);
+								set_status_bar_text(ghstatusbar,1,"row=%3i col=%2i",ListView_GetSelectionMark(win->hlistview)+1,win->selected_column+1);
+
 							}
 						}
 					}

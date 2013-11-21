@@ -497,11 +497,13 @@ int draw_item(DRAWITEMSTRUCT *di,TABLE_WINDOW *win)
 			ListView_GetItemText(di->hwndItem,di->itemID,i,text,sizeof(text));
 			text[sizeof(text)-1]=0;
 
-			if((di->itemState&ODS_SELECTED) && win!=0 && win->selected_column==i){
-				FillRect(di->hDC,&rect,hbrush);
+			if(win!=0 && win->selected_column==i){
 				bound_rect=rect;
 				bound_rect.bottom++;
 				bound_rect.right++;
+			}
+			if( (di->itemState&(ODS_FOCUS|ODS_SELECTED))==(ODS_FOCUS|ODS_SELECTED) && win!=0 && win->selected_column==i){
+				FillRect(di->hDC,&rect,hbrush);
 			}
 			else{
 				FillRect(di->hDC,&rect,di->itemState&ODS_SELECTED ? COLOR_HIGHLIGHT+1:COLOR_WINDOW+1);
@@ -527,7 +529,7 @@ int draw_item(DRAWITEMSTRUCT *di,TABLE_WINDOW *win)
 			}
 		}
 	}
-	if(di->itemState&ODS_SELECTED){
+	if(di->itemState&ODS_FOCUS){
 		SetTextColor(di->hDC,0x0000FF);
 		bound_rect.right--;
 		bound_rect.bottom--;
