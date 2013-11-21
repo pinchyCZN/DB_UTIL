@@ -17,7 +17,7 @@ int create_tooltip(HWND hwnd,char *msg,int x, int y,HWND *hwndTT)
 			ti.lpszText = msg;
 			SendMessage(*hwndTT,TTM_ADDTOOL,0,&ti);
 			SendMessage(*hwndTT,TTM_UPDATETIPTEXTA,0,&ti);
-			SendMessage(hwndTT,TTM_SETMAXTIPWIDTH,0,640); //makes multiline tooltips
+			SendMessage(*hwndTT,TTM_SETMAXTIPWIDTH,0,640); //makes multiline tooltips
 			SendMessage(*hwndTT,TTM_TRACKPOSITION,0,MAKELONG(x,y)); 
 			SendMessage(*hwndTT,TTM_TRACKACTIVATE,TRUE,&ti);
 			result=TRUE;
@@ -84,7 +84,7 @@ int do_search(TABLE_WINDOW *win,HWND hwnd,char *find,int dir,int col_only,int wh
 		for(i=last_row;i<max;i++){
 			if((GetTickCount()-tick)>250){
 				tick=GetTickCount();
-				if(GetAsyncKeyState(VK_ESCAPE)&0x8000){
+				if(GetAsyncKeyState(VK_ESCAPE)&0x8001){
 					set_status_bar_text(ghstatusbar,0,"aborted search");
 					break;
 				}
@@ -136,7 +136,7 @@ int do_search(TABLE_WINDOW *win,HWND hwnd,char *find,int dir,int col_only,int wh
 		for(i=last_row;i>=0;i--){
 			if((GetTickCount()-tick)>250){
 				tick=GetTickCount();
-				if(GetAsyncKeyState(VK_ESCAPE)&0x8000){
+				if(GetAsyncKeyState(VK_ESCAPE)&0x8001){
 					set_status_bar_text(ghstatusbar,0,"aborted search");
 					break;
 				}
@@ -415,11 +415,15 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		int find_len;
 		find_len=get_search_text(&find);
 		if(find_len>0){
+			RECT rect={0};
+			int x,y;
+			GetWindowRect(GetParent(win->hwnd),&rect);
+			x=(rect.left+rect.right)/2;
+			y=(rect.top+rect.bottom)/2;
+			create_tooltip(hwnd,"searching\r\npress escape to abort",x,y,&hwndTT);
 			GetWindowText(GetDlgItem(hwnd,IDC_EDIT1),find,find_len);
 			if(do_search(win,hwnd,find,search,col_only,whole_word)==0){
-				RECT rect={0};
-				int y;
-				GetWindowRect(GetParent(win->hwnd),&rect);
+				x=rect.left;
 				if(search==DOWN)
 					y=rect.bottom-23;
 				else
@@ -428,13 +432,17 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 					destroy_tooltip(hwndTT);
 					hwndTT=0;
 				}
-				create_tooltip(hwnd,"nothing more found",rect.left,y,&hwndTT);
+				create_tooltip(hwnd,"nothing more found",x,y,&hwndTT);
 				if(timer!=0){
 					KillTimer(hwnd,timer);
 					timer=0;
 				}
 				timer=SetTimer(hwnd,0x1337,550,NULL);
+			}else{
+				destroy_tooltip(&hwndTT);
+				hwndTT=0;
 			}
+
 		}
 	}
 

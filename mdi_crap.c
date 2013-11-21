@@ -31,7 +31,7 @@ static DB_TREE db_tree[20];
 LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
 	static int split_drag=FALSE,mdi_split=60;
-	static HWND last_focus=0;
+	static HWND last_focus=0,hwndTT=0;
 	if(FALSE)
 	if(msg!=WM_NCMOUSEMOVE&&msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY
 		&&msg!=WM_ERASEBKGND&&msg!=WM_DRAWITEM) 
@@ -224,8 +224,17 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 									int sel=ListView_GetSelectionMark(win->hlistview);
 									if(sel>=0){
 										if(GetKeyState(VK_SHIFT)&0x8000){
-											int count=copy_cols_clip(win->hlistview,GetKeyState(VK_MENU)&0x8000);
+											RECT rect={0};
+											int x,y,count;
+											const char *busymsg="Busy copying to clipboard";
+											GetWindowRect(GetParent(hwnd),&rect);
+											x=((rect.left+rect.right)/2)-(get_str_width(win->hlistview,busymsg)/2);
+											y=(rect.top+rect.bottom)/2;
+											create_tooltip(win->hlistview,busymsg,x,y,&hwndTT);
+											count=copy_cols_clip(win->hlistview,GetKeyState(VK_MENU)&0x8000);
 											set_status_bar_text(ghstatusbar,0,"copied %i rows to clipboard",count);
+											destroy_tooltip(hwndTT);
+											hwndTT=0;
 										}
 										else{
 											char *buf;
@@ -239,6 +248,15 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 												set_status_bar_text(ghstatusbar,0,"copied string to clipboard");
 											}
 										}
+									}
+								}
+								break;
+							case 'A':
+								if(GetKeyState(VK_CONTROL)&0x8000){
+									int i,count;
+									count=ListView_GetItemCount(win->hlistview);
+									for(i=0;i<count;i++){
+										ListView_SetItemState(win->hlistview,i,LVIS_SELECTED,LVIS_SELECTED);
 									}
 								}
 								break;
@@ -311,6 +329,8 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 		break;
 	case WM_CLOSE:
 		save_mdi_size(hwnd);
+		destroy_tooltip(hwndTT);
+		hwndTT=0;
 		{
 			TABLE_WINDOW *win=0;
 			if(find_win_by_hwnd(hwnd,&win)){

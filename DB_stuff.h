@@ -76,7 +76,7 @@ int get_tables(DB_TREE *tree)
 
 				SQLFetch(hstmt);
 				count++;
-				if(GetAsyncKeyState(VK_ESCAPE)&0x8000)
+				if(GetAsyncKeyState(VK_ESCAPE)&0x8001)
 					break;
 			}
 			SQLFreeStmt(hpriv,SQL_CLOSE);
