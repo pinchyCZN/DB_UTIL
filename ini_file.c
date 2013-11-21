@@ -16,20 +16,6 @@ int is_path_directory(char *path)
 	else
 		return FALSE;
 }
-int get_ini_path(char *path,int size)
-{
-	char drive[_MAX_DRIVE],dir[_MAX_DIR];
-	if((ini_file[0]==0) || (size<=0)){
-		if(size>0)
-			path[0]=0;
-		return FALSE;
-	}
-	_splitpath(ini_file,drive,dir,NULL,NULL);
-	_snprintf(path,size,"%s%s",drive,dir);
-	add_trail_slash(path,size);
-	path[size-1]=0;
-	return TRUE;
-}
 int get_ini_value(char *section,char *key,int *val)
 {
 	char str[255];
@@ -120,6 +106,11 @@ int create_portable_file()
 		return TRUE;
 	}
 	return FALSE;
+}
+int write_new_list_ini()
+{
+	write_ini_str(APP_NAME,"installed","TRUE");
+	return TRUE;
 }
 //no trailing slash
 int extract_folder(char *f,int size)
@@ -231,7 +222,20 @@ install:
 	}
 	return 0;
 }
-
+int get_ini_path(char *path,int size)
+{
+	char drive[_MAX_DRIVE],dir[_MAX_DIR];
+	if((ini_file[0]==0) || (size<=0)){
+		if(size>0)
+			path[0]=0;
+		return FALSE;
+	}
+	_splitpath(ini_file,drive,dir,NULL,NULL);
+	_snprintf(path,size,"%s%s",drive,dir);
+	add_trail_slash(path,size);
+	path[size-1]=0;
+	return TRUE;
+}
 int open_ini(HWND hwnd,int explore)
 {
 	WIN32_FIND_DATA fd;
@@ -253,11 +257,5 @@ int open_ini(HWND hwnd,int explore)
 		_snprintf(str,sizeof(str)-1,"cant locate ini file:\r\n%s",ini_file);
 		MessageBox(hwnd,str,"Error",MB_OK);
 	}
-	return TRUE;
-}
-
-int write_new_list_ini()
-{
-	write_ini_str(APP_NAME,"installed","TRUE");
 	return TRUE;
 }
