@@ -5,8 +5,6 @@
 #include <Shlobj.h>
 
 #define APP_NAME "DB_UTIL"
-#define INI_FNAME  APP_NAME".ini"
-#define PORTABLE_FNAME APP_NAME"_portable"
 
 char ini_file[MAX_PATH]={0};
 int is_path_directory(char *path)
@@ -116,7 +114,7 @@ int get_appdata_folder(char *path,int size)
 int create_portable_file()
 {
 	FILE *f;
-	f=fopen(PORTABLE_FNAME,"wb");
+	f=fopen(APP_NAME "_portable","wb");
 	if(f!=0){
 		fclose(f);
 		return TRUE;
@@ -142,6 +140,19 @@ int extract_folder(char *f,int size)
 	}
 	return TRUE;
 }
+//returns no trailing slash
+int set_module_dir()
+{
+	char path[MAX_PATH]={0};
+	GetModuleFileName(NULL,path,sizeof(path));
+	extract_folder(path,sizeof(path));
+	if(path[0]!=0 && is_path_directory(path)){
+		SetCurrentDirectory(path);
+		return TRUE;
+	}
+	return FALSE;
+
+}
 int init_ini_file()
 {
 	char path[MAX_PATH],str[MAX_PATH];
@@ -149,21 +160,19 @@ int init_ini_file()
 	memset(ini_file,0,sizeof(ini_file));
 	memset(path,0,sizeof(path));
 	memset(str,0,sizeof(str));
-	GetModuleFileName(NULL,path,sizeof(path));
-	extract_folder(path,sizeof(path));
-	if(path[0]==0)
-		GetCurrentDirectory(sizeof(path),path);
-	_snprintf(str,sizeof(str)-1,"%s\\"PORTABLE_FNAME,path);
+	set_module_dir();
+	GetCurrentDirectory(sizeof(path),path);
+	_snprintf(str,sizeof(str)-1,"%s\\" APP_NAME "_portable",path);
 	if(does_file_exist(str)){
-		_snprintf(str,sizeof(str)-1,"%s\\" INI_FNAME,path);
+		_snprintf(str,sizeof(str)-1,"%s\\" APP_NAME ".ini",path);
 		if(!does_file_exist(str))
 			goto install;
 	}
 	else{
 		if(get_appdata_folder(path,sizeof(path))){
 			add_trail_slash(path,sizeof(path));
-			strcat(path,APP_NAME"\\");
-			_snprintf(str,sizeof(str)-1,"%s%s",path,INI_FNAME);
+			strcat(path,APP_NAME "\\");
+			_snprintf(str,sizeof(str)-1,"%s%s",path,APP_NAME ".ini");
 			if((!is_path_directory(path)) || (!does_file_exist(str))){
 				char str[MAX_PATH*3],cdir[MAX_PATH];
 				memset(str,0,sizeof(str));memset(cdir,0,sizeof(cdir));
@@ -178,6 +187,7 @@ int init_ini_file()
 					break;
 				case IDYES:
 					CreateDirectory(path,NULL);
+					SetCurrentDirectory(path);
 					break;
 				case IDNO:
 					GetCurrentDirectory(sizeof(path),path);
@@ -188,10 +198,7 @@ int init_ini_file()
 		}else{
 			char str[MAX_PATH*3];
 install:
-			GetModuleFileName(NULL,path,sizeof(path));
-			extract_folder(path,sizeof(path));
-			if(path[0]==0)
-				GetCurrentDirectory(sizeof(path),path);
+			GetCurrentDirectory(sizeof(path),path);
 			memset(str,0,sizeof(str));
 			_snprintf(str,sizeof(str)-1,
 				"OK=Install INI in current directory %s\r\n\r\n"
@@ -209,7 +216,7 @@ install:
 
 	}
 	add_trail_slash(path,sizeof(path));
-	_snprintf(ini_file,sizeof(ini_file)-1,"%s%s",path,INI_FNAME);
+	_snprintf(ini_file,sizeof(ini_file)-1,"%s%s",path,APP_NAME ".ini");
 	f=fopen(ini_file,"rb");
 	if(f==0){
 		f=fopen(ini_file,"wb");
