@@ -420,6 +420,8 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			GetWindowRect(GetParent(win->hwnd),&rect);
 			x=(rect.left+rect.right)/2;
 			y=(rect.top+rect.bottom)/2;
+			destroy_tooltip(hwndTT);
+			hwndTT=0;
 			create_tooltip(hwnd,"searching\r\npress escape to abort",x,y,&hwndTT);
 			GetWindowText(GetDlgItem(hwnd,IDC_EDIT1),find,find_len);
 			if(do_search(win,hwnd,find,search,col_only,whole_word)==0){
