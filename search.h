@@ -328,6 +328,12 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				ListView_SetItemState(win->hlistview,0,LVIS_SELECTED|LVIS_FOCUSED,LVIS_SELECTED|LVIS_FOCUSED);
 				InvalidateRect(win->hlistview,NULL,TRUE);
 			}
+			if(win->table!=0 && win->table[0]!=0){
+				char str[80]={0};
+				_snprintf(str,sizeof(str),"search %s (ctrl+enter srch up)",win->table);
+				str[sizeof(str)-1]=0;
+				SetWindowText(hwnd,str);
+			}
 			hwndTT=0;
 			timer=0;
 			do_search(win,0,0,0,0,0);
