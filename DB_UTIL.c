@@ -233,24 +233,39 @@ int add_connect_str(char *connect)
 					get_ini_entry(section,i,entries[i],max_len);
 				}
 			}
+			// entries that start with > are meant to stay at the top
 			for(i=0;i<max_entries;i++){
 				if(entries[i]!=0){
-					if(entries[i][0]!=0){
-						if(stricmp(entries[i],connect)==0)
-							entries[i][0]=0;
+					if(entries[i][0]=='>'){
+						if(strnicmp(entries[i]+1,connect,max_len-1)==0){
+							index=max_entries+1; //go ahead and bail, dont dupe this entry
+							break;
+						}
+					}
+					else{
+						index=i;
+						break;
 					}
 				}
-				set_ini_entry(section,i,"");
 			}
-			set_ini_entry(section,index,connect);
-			index++;
-			for(i=0;i<max_entries;i++){
-				if(entries[i]!=0 && entries[i][0]!=0){
-					set_ini_entry(section,index,entries[i]);
-					index++;
+			if(index<max_entries){
+				for(i=index;i<max_entries;i++){
+					if(entries[i]!=0){
+						if(entries[i][0]!=0){
+							if(strnicmp(entries[i],connect,max_len)==0)
+								entries[i]=0;
+						}
+					}
 				}
-				if(index>=max_entries)
-					break;
+				set_ini_entry(section,index,connect);
+				for(i=index;i<max_entries-1;i++){
+					if(entries[i]!=0){
+						if(entries[i][0]!=0){
+							set_ini_entry(section,index+1,entries[i]);
+							index++;
+						}
+					}
+				}
 			}
 		}
 		if(entries!=0){
@@ -374,7 +389,10 @@ LRESULT CALLBACK recent_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				if(item>=0){
 					SendDlgItemMessage(hwnd,IDC_LIST1,LB_GETTEXT,item,str);
 					if(str[0]!=0){
-						task_open_db(str);
+						char *s=str;
+						if(str[0]=='>')
+							s++;
+						task_open_db(s);
 						EndDialog(hwnd,0);
 					}
 
