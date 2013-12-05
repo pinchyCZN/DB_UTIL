@@ -58,6 +58,7 @@
 #define IDC_EXECUTE_SQL                 40009
 #define IDM_RECENT                      40010
 #define ID_WINDOW_LIST                  40012
+#define IDM_WINDOW_TILE                 40012
 
 // Next default values for new objects
 // 

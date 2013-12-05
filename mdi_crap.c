@@ -1042,6 +1042,22 @@ int mdi_set_title(TABLE_WINDOW *win,char *title)
 		SetWindowText(win->hwnd,title);
 	return TRUE;
 }
+int mdi_tile_windows_vert()
+{
+	int i,y=0,height;
+	height=GetSystemMetrics(SM_CYCAPTION);
+	height+=GetSystemMetrics(SM_CXEDGE)*2;
+	if(height==0)
+		height=19+4;
+	for(i=0;i<sizeof(table_windows)/sizeof(TABLE_WINDOW);i++){
+		TABLE_WINDOW *win=&table_windows[i];
+		if(win->hwnd!=0){
+			SetWindowPos(win->hwnd,NULL,0,y,0,0,SWP_NOSIZE);
+			y+=height;
+		}
+	}
+	return TRUE;
+}
 int create_abort(TABLE_WINDOW *win)
 {
 	if(win==0 || win->hwnd==0 || win->habort!=0)

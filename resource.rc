@@ -70,7 +70,7 @@ BEGIN
     MENUITEM "Recent",                      IDM_RECENT
     POPUP "Window"
     BEGIN
-        MENUITEM "List",                        ID_WINDOW_LIST
+        MENUITEM "Tile",                        IDM_WINDOW_TILE
     END
 END
 
@@ -227,6 +227,7 @@ END
 
 IDR_ACCELERATOR1 ACCELERATORS DISCARDABLE 
 BEGIN
+    "T",            IDM_WINDOW_TILE,        VIRTKEY, CONTROL, NOINVERT
     VK_F5,          IDC_EXECUTE_SQL,        VIRTKEY, NOINVERT
 END
 

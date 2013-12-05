@@ -171,7 +171,6 @@ int thread(HANDLE event)
 					}
 					else{
 						intelli_add_db(db->name);
-						load_tables_if_empty(db);
 						set_focus_after_open(db);
 						reassign_tables(db);
 						if(task==TASK_OPEN_DB_AND_TABLE){
@@ -183,6 +182,7 @@ int thread(HANDLE event)
 							}
 						}
 						else{
+							load_tables_if_empty(db);
 							if(keep_closed)
 								close_db(db);
 							set_status_bar_text(ghstatusbar,0,"open DB done %s",keep_closed?"(closed DB)":"");
@@ -372,6 +372,7 @@ int thread(HANDLE event)
 								mdi_create_abort(win);
 								result=execute_sql(win,sql,TRUE);
 								mdi_destroy_abort(win);
+								load_tables_if_empty(db);
 								set_focus_after_result(win,result);
 								if(keep_closed)
 									close_db(db);
