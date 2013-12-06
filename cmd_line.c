@@ -421,8 +421,6 @@ LRESULT CALLBACK file_assoc_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		tooltip=0;
 		break;
 	case WM_HELP:
-		resize_file_assoc(hwnd);
-		break;
 		if(!help_busy){
 			help_busy=TRUE;
 			MessageBox(hwnd,help_str,"HELP",MB_OK);

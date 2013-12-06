@@ -378,7 +378,28 @@ int modify_list(short *list)
 	}
 	return TRUE;
 }
-
+int get_idc_name(int idc,char *name,int len)
+{
+	int found=FALSE;
+	FILE *f;
+	char str[1024];
+	f=fopen("..\\resource.h","rt");
+	if(f!=0){
+		memset(str,0,sizeof(str));
+		while(fgets(str,sizeof(str)-1,f)){
+			int id=0;
+			char t[256]={0};
+			sscanf(str,"#define %s %i",t,&id);
+			if(idc==id){
+				strncpy(name,t,len);
+				found=TRUE;
+				break;
+			}
+		}
+		fclose(f);
+	}
+	return found;
+}
 int dump_sizes(HWND hwnd,short *IDC)
 {
 	int i;
@@ -388,6 +409,7 @@ int dump_sizes(HWND hwnd,short *IDC)
 		POINT p={0};
 		int width,height;
 		int cw,ch;
+		char name[256];
 		if(IDC[i]==RESIZE_FINISH)
 			break;
 		if(IDC[i]==CONTROL_ID)
@@ -396,7 +418,9 @@ int dump_sizes(HWND hwnd,short *IDC)
 			i++;
 			continue;
 		}
-		printf("CONTROL_ID,%i,\n",IDC[i]);
+		sprintf(name,"%i",IDC[i]);
+		get_idc_name(IDC[i],name,sizeof(name));
+		printf("CONTROL_ID,%s,\n",name);
 		GetWindowRect(GetDlgItem(hwnd,IDC[i]),&win);
 		p.x=win.left;
 		p.y=win.top;
@@ -548,6 +572,24 @@ short file_assoc_dlg_anchors[]={
 		CONTROL_FINISH,-1,
 	RESIZE_FINISH
 };
+short install_dlg_anchors[]={
+	CONTROL_ID,IDC_INSTALL_INFO,
+			XPOS,0,YPOS,10, /*x.off=-537 y.off=-140*/
+			WIDTH,0,HEIGHT,23, /*w.off=-1 h.off=-127*/
+			SIZE_WIDTH_OFF,0,
+			CONTROL_FINISH,-1,
+	CONTROL_ID,IDC_TXT_LOCAL,
+			XPOS,92,YPOS,49, /*x.off=-445 y.off=-101*/
+			WIDTH,0,HEIGHT,23, /*w.off=-93 h.off=-127*/
+			SIZE_WIDTH_OFF,-92,
+			CONTROL_FINISH,-1,
+	CONTROL_ID,IDC_TXT_APPDATA,
+			XPOS,92,YPOS,85, /*x.off=-445 y.off=-65*/
+			WIDTH,0,HEIGHT,23, /*w.off=-93 h.off=-127*/
+			SIZE_WIDTH_OFF,-92,
+			CONTROL_FINISH,-1,
+	RESIZE_FINISH
+};
 int reposition_controls(HWND hwnd, short *list)
 {
 	RECT	rect;
@@ -643,13 +685,20 @@ int resize_mdi_window(HWND hwnd,int edit_height)
 	return TRUE;
 }
 
-int resize_file_assoc(hwnd)
+int resize_file_assoc(HWND hwnd)
 {
+	/*
 	static int once=TRUE;
 	if(once){
 		dump_sizes(hwnd,file_assoc_dlg_anchors);
 		once=FALSE;
 	}
 	modify_list(file_assoc_dlg_anchors);
+	*/
 	return reposition_controls(hwnd,file_assoc_dlg_anchors);
+}
+
+int resize_install_dlg(HWND hwnd)
+{
+	return reposition_controls(hwnd,install_dlg_anchors);
 }
