@@ -103,10 +103,11 @@ int get_appdata_folder(char *path,int size)
 	ITEMIDLIST *pidl;
 	IMalloc	*palloc;
 	HWND hwindow=0;
-	if(size<MAX_PATH)
+	if(path==0 || size<MAX_PATH)
 		return found;
 	if(SHGetSpecialFolderLocation(hwindow,CSIDL_APPDATA,&pidl)==NOERROR){
 		if(SHGetPathFromIDList(pidl,path)){
+			_snprintf(path,size,"%s\\%s",path,APP_NAME);
 			found=TRUE;
 		}
 		if(SHGetMalloc(&palloc)==NOERROR){
@@ -192,8 +193,10 @@ LRESULT CALLBACK install_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			EndDialog(hwnd,1);
 			break;
 		case IDC_USE_APPDATA:
-			if(path_param!=0)
+			if(path_param!=0){
+				CreateDirectory(appdata_path,NULL);
 				strncpy(path_param,appdata_path,MAX_PATH);
+			}
 			EndDialog(hwnd,2);
 			break;
 		case IDCANCEL:
@@ -279,7 +282,9 @@ int open_ini(HWND hwnd,int explore)
 		}
 		else{
 			if(ini_file[0]!=0)
-				ShellExecute(hwnd,"open","notepad.exe",ini_file,NULL,SW_SHOWNORMAL);
+				if(ShellExecute(hwnd,"open","notepad.exe",ini_file,NULL,SW_SHOWNORMAL)<=32)
+					ShellExecute(hwnd,"open",ini_file,NULL,NULL,SW_SHOWNORMAL);
+
 		}
 	}
 	else if(hwnd!=0){
