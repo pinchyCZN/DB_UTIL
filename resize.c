@@ -564,6 +564,12 @@ short file_assoc_dlg_anchors[]={
 		HUG_CTRL_Y,IDC_CONNECT_EDIT,
 		HUG_CTRL_X,IDOK,
 		CONTROL_FINISH,-1,
+	CONTROL_ID,IDC_SHELL_ASSOC,
+		XPOS,10,YPOS,2,
+		WIDTH,75,HEIGHT,23,
+		HUG_CTRL_Y,IDC_CONNECT_EDIT,
+		HUG_CTRL_X,IDC_DELETE,
+		CONTROL_FINISH,-1,
 	CONTROL_ID,IDCANCEL,
 		XPOS,250,YPOS,2,
 		WIDTH,75,HEIGHT,23,
@@ -572,6 +578,30 @@ short file_assoc_dlg_anchors[]={
 		CONTROL_FINISH,-1,
 	RESIZE_FINISH
 };
+short shell_assoc_dlg_anchors[]={
+	CONTROL_ID,IDC_EXT_COMBO,
+			XPOS,60,YPOS,7,
+			WIDTH,0,HEIGHT,21,
+			SIZE_WIDTH_OFF,-71,
+			CONTROL_FINISH,-1,
+	CONTROL_ID,IDC_EDIT1,
+			XPOS,63,YPOS,36,
+			WIDTH,0,HEIGHT,23,
+			SIZE_WIDTH_OFF,-64,
+			CONTROL_FINISH,-1,
+	CONTROL_ID,IDC_EDIT2,
+			XPOS,65,YPOS,63,
+			WIDTH,0,HEIGHT,23,
+			SIZE_WIDTH_OFF,-65,
+			CONTROL_FINISH,-1,
+	CONTROL_ID,IDC_EDIT3,
+			XPOS,65,YPOS,89,
+			WIDTH,0,HEIGHT,23,
+			SIZE_WIDTH_OFF,-65,
+			CONTROL_FINISH,-1,
+	RESIZE_FINISH
+};
+
 short install_dlg_anchors[]={
 	CONTROL_ID,IDC_INSTALL_INFO,
 			XPOS,0,YPOS,10,
@@ -697,7 +727,11 @@ int resize_file_assoc(HWND hwnd)
 	*/
 	return reposition_controls(hwnd,file_assoc_dlg_anchors);
 }
-
+int resize_shell_assoc(HWND hwnd)
+{
+//	return 		dump_sizes(hwnd,shell_assoc_dlg_anchors);
+	return reposition_controls(hwnd,shell_assoc_dlg_anchors);
+}
 int resize_install_dlg(HWND hwnd)
 {
 	return reposition_controls(hwnd,install_dlg_anchors);

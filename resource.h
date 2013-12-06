@@ -15,6 +15,7 @@
 #define IDD_FIND_TABLE                  113
 #define IDD_FILE_ASSOCIATIONS           115
 #define IDD_INSTALL_DIALOG              116
+#define IDD_SHELL_ASSOC                 117
 #define IDC_STATUS                      1003
 #define IDC_TABLES                      1004
 #define IDC_MDI_LISTVIEW                1005
@@ -58,6 +59,8 @@
 #define IDC_TXT_LOCAL                   1047
 #define IDC_INSTALL_INFO                1048
 #define IDC_TXT_APPDATA                 1049
+#define IDC_SHELL_ASSOC                 1050
+#define IDC_EDIT3                       1051
 #define IDM_SETTINGS                    40002
 #define IDM_OPEN                        40006
 #define IDM_CLOSE                       40007
@@ -71,9 +74,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        117
+#define _APS_NEXT_RESOURCE_VALUE        118
 #define _APS_NEXT_COMMAND_VALUE         40013
-#define _APS_NEXT_CONTROL_VALUE         1050
+#define _APS_NEXT_CONTROL_VALUE         1052
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

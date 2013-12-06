@@ -193,7 +193,7 @@ int populate_drivers(HWND hwnd)
 {
 	HKEY hkey=0;
 	SendDlgItemMessage(hwnd,IDC_DRIVER_LIST,LB_RESETCONTENT,0,0);
-	RegOpenKey(HKEY_LOCAL_MACHINE,"SOFTWARE\\ODBC\\ODBCINST.INI\\ODBC Drivers",&hkey);
+	RegOpenKeyEx(HKEY_LOCAL_MACHINE,"SOFTWARE\\ODBC\\ODBCINST.INI\\ODBC Drivers",NULL,KEY_READ,&hkey);
 	if(hkey!=0){
 		int i,count=0;
 		RegQueryInfoKey(
@@ -229,7 +229,7 @@ int populate_assoc(HWND hwnd)
 	char *section=SECTION_NAME;
 	SendDlgItemMessage(hwnd,IDC_EXT_COMBO,CB_RESETCONTENT,0,0);
 	SetDlgItemText(hwnd,IDC_CONNECT_EDIT,"");
-	for(i=0;i<20;i++){
+	for(i=0;i<MAX_EXTENSIONS;i++){
 		_snprintf(key,sizeof(key),"EXT%02i",i);
 		ext[0]=0;
 		get_ini_str(section,key,ext,sizeof(ext));
@@ -389,9 +389,200 @@ static int tooltip_message(HWND hwnd,HWND *tooltip,char *fmt,...)
 	}
 	return timer_id;
 }
+int reg_query_set_text(HWND hwnd,int idc_control,HKEY hkey,char *key,char *data,int data_size)
+{
+	int len=data_size;
+	int type=REG_SZ;
+	if(hwnd==0 || hkey==0 || key==0)
+		return FALSE;
+	if(RegQueryValueEx(hkey,key,NULL,&type,data,&len)==ERROR_SUCCESS){
+		SetWindowText(GetDlgItem(hwnd,idc_control),data);
+		return TRUE;
+	}
+	return FALSE;
+}
+int shell_editctrl_update(HWND hwnd,char *ext)
+{
+	char key[MAX_PATH]={0};
+	HKEY hkey=0;
+	if(hwnd==0 || ext==0 || ext[0]==0)
+		return FALSE;
+	_snprintf(key,sizeof(key),"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\.%s",ext);
+	key[sizeof(key)-1]=0;
+	RegOpenKeyEx(HKEY_CURRENT_USER,key,NULL,KEY_READ,&hkey);
+	if(hkey!=0){
+		char data[1024]={0};
+		if(reg_query_set_text(hwnd,IDC_EDIT1,hkey,"Application",data,sizeof(data))){
+			HKEY appkey=0;
+			_snprintf(key,sizeof(key),"Applications\\%s\\shell\\open\\command",data);
+			key[sizeof(key)-1]=0;
+			RegOpenKeyEx(HKEY_CLASSES_ROOT,key,NULL,KEY_READ,&appkey);
+			if(appkey!=0){
+				data[0]=0;
+				reg_query_set_text(hwnd,IDC_EDIT3,appkey,"",data,sizeof(data));
+				RegCloseKey(appkey);
+			}
+		}
+		data[0]=0;
+		if(reg_query_set_text(hwnd,IDC_EDIT2,hkey,"ProgID",data,sizeof(data))){
+			HKEY appkey=0;
+			_snprintf(key,sizeof(key),"%s\\shell\\open\\command",data);
+			key[sizeof(key)-1]=0;
+			RegOpenKeyEx(HKEY_CLASSES_ROOT,key,NULL,KEY_READ,&appkey);
+			if(appkey!=0){
+				data[0]=0;
+				reg_query_set_text(hwnd,IDC_EDIT3,appkey,"",data,sizeof(data));
+				RegCloseKey(appkey);
+			}
+		}
+		RegCloseKey(hkey);
+	}
+	return TRUE;
+}
+int shell_update_assoc(char *ext)
+{
+	int result=FALSE;
+	int dispo=0;
+	char key[MAX_PATH]={0};
+	HKEY hkey=0;
+	if(ext==0 || ext[0]==0)
+		return result;
+	_snprintf(key,sizeof(key),"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\.%s",ext);
+	key[sizeof(key)-1]=0;
+	RegCreateKeyEx(HKEY_CURRENT_USER,key,NULL,"REG_SZ",REG_OPTION_NON_VOLATILE,KEY_WRITE,NULL,&hkey,&dispo);
+	if(hkey!=0){
+		const char *app="DB_UTIL.exe";
+		int len=strlen(app);
+		RegDeleteValue(hkey,"ProgID");
+		if(ERROR_SUCCESS==RegSetValueEx(hkey,"Application",NULL,REG_SZ,app,len))
+			result=TRUE;
+		RegCloseKey(hkey);
+	}
+	if(!result)
+		return result;
+	result=FALSE;
+	hkey=0;
+	RegCreateKeyEx(HKEY_CLASSES_ROOT,"Applications\\DB_UTIL.exe\\shell\\open\\command",
+		NULL,"REG_SZ",REG_OPTION_NON_VOLATILE,KEY_WRITE,NULL,&hkey,&dispo);
+	if(hkey!=0){
+		char path[MAX_PATH]={0};
+		char app[MAX_PATH*2]={0};
+		int len;
+		GetModuleFileName(NULL,path,sizeof(path));
+		_snprintf(app,sizeof(app),"\"%s\" \"%%1\"",path);
+		app[sizeof(app)-1]=0;
+		len=strlen(app);
+		if(ERROR_SUCCESS==RegSetValueEx(hkey,"",NULL,REG_SZ,app,len))
+			result=TRUE;
+		RegCloseKey(hkey);
+	}
+	return result;
+}
+LRESULT CALLBACK shell_assoc_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
+{
+	static HWND grippy=0,tooltip=0;
+	static int help_active=FALSE;
+	switch(msg){
+	case WM_INITDIALOG:
+		{
+			int i;
+			char ext[MAX_EXTENSION_LENGTH]={0};
+			SendDlgItemMessage(hwnd,IDC_EXT_COMBO,CB_LIMITTEXT,MAX_EXTENSION_LENGTH-1,0);
+			for(i=0;i<MAX_EXTENSIONS;i++){
+				char *section=SECTION_NAME;
+				char key[20];
+				_snprintf(key,sizeof(key),"EXT%02i",i);
+				ext[0]=0;
+				get_ini_str(section,key,ext,sizeof(ext));
+				if(ext[0]!=0){
+					if(CB_ERR==SendDlgItemMessage(hwnd,IDC_EXT_COMBO,CB_FINDSTRINGEXACT,-1,ext))
+						SendDlgItemMessage(hwnd,IDC_EXT_COMBO,CB_ADDSTRING,0,ext);
+				}
+			}
+			SendDlgItemMessage(hwnd,IDC_EXT_COMBO,CB_SETCURSEL,0,0);
+			ext[0]=0;
+			GetDlgItemText(hwnd,IDC_EXT_COMBO,ext,sizeof(ext));
+			shell_editctrl_update(hwnd,ext);
+			grippy=create_grippy(hwnd);
+			resize_shell_assoc(hwnd);
+			tooltip=0;
+			help_active=FALSE;
+		}
+		break;
+	case WM_HELP:
+		if(!help_active){
+			help_active=TRUE;
+			MessageBox(hwnd,"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\r\n"
+				"HKEY_CLASSES_ROOT\\Applications\\DB_UTIL.exe\\shell\\open\\command\r\n","registry info",MB_OK|MB_APPLMODAL);
+			help_active=FALSE;
 
+		}
+		return 1;
+		break;
+	case WM_SIZE:
+		resize_shell_assoc(hwnd);
+		grippy_move(hwnd,grippy);
+		break;
+	case WM_TIMER:
+		KillTimer(hwnd,TIMER_ID);
+		destroy_tooltip(tooltip);
+		tooltip=0;
+		break;
+	case WM_COMMAND:
+		switch(LOWORD(wparam)){
+		case IDC_EXT_COMBO:
+			switch(HIWORD(wparam)){
+			case CBN_EDITCHANGE:
+			case CBN_SELCHANGE:
+				{
+					char ext[MAX_EXTENSION_LENGTH]={0};
+					SetWindowText(GetDlgItem(hwnd,IDC_EDIT1),"");
+					SetWindowText(GetDlgItem(hwnd,IDC_EDIT2),"");
+					SetWindowText(GetDlgItem(hwnd,IDC_EDIT3),"");
+					GetDlgItemText(hwnd,IDC_EXT_COMBO,ext,sizeof(ext));
+					if(ext[0]!=0){
+						shell_editctrl_update(hwnd,ext);
+					}
+				}
+				break;
+			}
+			break;
+		case IDOK:
+			{
+				char ext[MAX_EXTENSION_LENGTH]={0};
+				GetDlgItemText(hwnd,IDC_EXT_COMBO,ext,sizeof(ext));
+				if(ext[0]!=0){
+					char msg[1024]={0};
+					char path[MAX_PATH]={0};
+					int click;
+					GetModuleFileName(NULL,path,sizeof(path));
+					_snprintf(msg,sizeof(msg),"Are you sure you want extension:\r\n%s\r\n"
+						"to be associated with:\r\n%s ?",ext,path);
+					click=MessageBox(hwnd,msg,"Warning updating registry",MB_OKCANCEL|MB_SYSTEMMODAL);
+					if(click==IDOK){
+						if(shell_update_assoc(ext))
+							tooltip_message(hwnd,&tooltip,"shell updated");
+						else
+							tooltip_message(hwnd,&tooltip,"update failed");
+						shell_editctrl_update(hwnd,ext);
+					}
+				}
+			}
+			break;
+		case IDCANCEL:
+			destroy_tooltip(tooltip);
+			tooltip=0;
+			KillTimer(hwnd,TIMER_ID);
+			EndDialog(hwnd,0);
+			break;
+		}
+		break;
+	}
+	return 0;
+}
 LRESULT CALLBACK file_assoc_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
+	extern HINSTANCE ghinstance;
 	static HWND grippy=0,tooltip=0;
 	static int help_busy=FALSE;
 	static char *help_str="example cmd line: C:\\temp\\mydatabase.dbf\r\n"
@@ -426,6 +617,7 @@ LRESULT CALLBACK file_assoc_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			MessageBox(hwnd,help_str,"HELP",MB_OK);
 			help_busy=FALSE;
 		}
+		return 1;
 		break;
 	case WM_COMMAND:
 		switch(LOWORD(wparam)){
@@ -435,6 +627,12 @@ LRESULT CALLBACK file_assoc_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				ext_sel_changed(hwnd,FALSE);
 				break;
 			}
+			break;
+		case IDC_SHELL_ASSOC:
+			KillTimer(hwnd,TIMER_ID);
+			destroy_tooltip(tooltip);
+			tooltip=0;
+			DialogBoxParam(ghinstance,IDD_SHELL_ASSOC,hwnd,shell_assoc_proc,0);
 			break;
 		case IDC_DRIVER_LIST:
 			if(HIWORD(wparam)==LBN_DBLCLK){
@@ -482,7 +680,11 @@ LRESULT CALLBACK file_assoc_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 					ext[sizeof(ext)-1]=0;
 					GetDlgItemText(hwnd,IDC_CONNECT_EDIT,connect,sizeof(connect));
 					connect[sizeof(connect)-1]=0;
-					if(add_update_ext(hwnd,ext,connect))
+					if(ext[0]==0)
+						tooltip_message(hwnd,&tooltip,"no extension");
+					else if(connect[0]==0)
+						tooltip_message(hwnd,&tooltip,"no connect string");
+					else if(add_update_ext(hwnd,ext,connect))
 						tooltip_message(hwnd,&tooltip,"added extension");
 					else
 						tooltip_message(hwnd,&tooltip,"failed to add extension");
