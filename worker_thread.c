@@ -23,7 +23,8 @@ enum{
 	TASK_UPDATE_ROW_COPY,
 	TASK_DELETE_ROW,
 	TASK_INSERT_ROW,
-	TASK_GET_COL_INFO
+	TASK_GET_COL_INFO,
+	TASK_GET_INDEX_INFO
 };
 
 int task_open_db(char *name)
@@ -118,6 +119,13 @@ int	task_get_col_info(void *db,char *table)
 	SetEvent(event);
 	return TRUE;
 }
+int	task_get_index_info(void *db,char *table)
+{
+	task=TASK_GET_INDEX_INFO;
+	_snprintf(taskinfo,sizeof(taskinfo),"DB=0x%08X;TABLE=%s",db,table);
+	SetEvent(event);
+	return TRUE;
+}
 
 int thread(HANDLE event)
 {
@@ -190,6 +198,24 @@ int thread(HANDLE event)
 					}
 				}
 				break;
+			case TASK_GET_INDEX_INFO:
+				{
+					void *db=0;
+					char table[80]={0};
+					sscanf(localinfo,"DB=0x%08X;TABLE=%79[ -~]",&db,table);
+					table[sizeof(table)-1]=0;
+					if(db!=0){
+						int result;
+						set_status_bar_text(ghstatusbar,0,"getting index info for %s",table);
+						result=get_index_info(db,table);
+						if(keep_closed)
+							close_db(db);
+						if(result)
+							set_status_bar_text(ghstatusbar,0,"index info done, %s",keep_closed?"(closed DB)":"");
+						set_focus_after_open(db);
+					}
+				}
+				break;
 			case TASK_GET_COL_INFO:
 				{
 					void *db=0;
@@ -197,11 +223,13 @@ int thread(HANDLE event)
 					sscanf(localinfo,"DB=0x%08X;TABLE=%79[ -~]",&db,table);
 					table[sizeof(table)-1]=0;
 					if(db!=0){
+						int result;
 						set_status_bar_text(ghstatusbar,0,"getting col info for %s",table);
-						get_col_info(db,table);
+						result=get_col_info(db,table);
 						if(keep_closed)
 							close_db(db);
-						set_status_bar_text(ghstatusbar,0,"col info done, %s",keep_closed?"(closed DB)":"");
+						if(result)
+							set_status_bar_text(ghstatusbar,0,"col info done, %s",keep_closed?"(closed DB)":"");
 						set_focus_after_open(db);
 					}
 				}

@@ -100,13 +100,31 @@ int populate_col_info(HWND hwnd,HWND hlistview,LPARAM lparam)
 	}
 	else if(lparam!=0){
 		char *str=lparam;
-		int len=strlen(lparam);
+		int len=0;
 		int index=0;
 		int count=0;
 		int found=FALSE;
 		int col_row=TRUE;
 		int *widths;
 		int num_cols;
+		{
+			char tmp[80]={0};
+			char *title="Info";
+			for(i=0;i<sizeof(tmp)-1;i++){
+				if(str[i]==0 || str[i]=='\n')
+					break;
+				tmp[i]=str[i];
+			}
+			tmp[i]=0;
+			if(strlen(tmp)==0)
+				SetWindowText(hwnd,title);
+			else
+				SetWindowText(hwnd,tmp);
+			title=strchr(str,'\n');
+			if(title!=0)
+				str=title+1;
+		}
+		len=strlen(str);
 		num_cols=find_num_cols(str);
 		widths=malloc(num_cols*sizeof(int));
 		if(widths!=0)

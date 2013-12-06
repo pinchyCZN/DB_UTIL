@@ -181,7 +181,7 @@ int process_cmd_line(char *cmd)
 		if(fname[0]!=0){
 			char *cstr="Driver={Microsoft Access Driver (*.mdb)};Dbq=%s";
 			_snprintf(connect,sizeof(connect),cstr,fname);
-			task_open_db_and_table(connect);
+			task_open_db(connect);
 			return TRUE;
 		}
 //		task_open_db_and_table("UID=dba;PWD=sql;DSN=Journal;TABLE=PATIENT");

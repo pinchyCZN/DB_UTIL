@@ -814,10 +814,11 @@ int reopen_db(TABLE_WINDOW *win)
 }
 int get_col_info(DB_TREE *tree,char *table)
 {
-	if(tree==0)
-		return FALSE;
+	int result=FALSE;
+	if(tree==0 || table==0 || table[0]==0)
+		return result;
 	if(open_db(tree)){
-		HSTMT hstmt;
+		HSTMT hstmt=0;
 		if(SQLAllocStmt(tree->hdbc, &hstmt)==SQL_SUCCESS){
 			if(SQLColumns(hstmt,NULL,SQL_NTS,NULL,SQL_NTS,table,SQL_NTS,NULL,SQL_NTS)==SQL_SUCCESS){
 				char *buf;
@@ -850,6 +851,7 @@ int get_col_info(DB_TREE *tree,char *table)
 					};
 					int i,col=0;
 					memset(buf,0,buf_size);
+					_snprintf(buf,buf_size,"%s - column info\n",table);
 					for(i=0;i<sizeof(info)/sizeof(struct INFO);i++){
 						_snprintf(buf,buf_size,"%s%s%s",buf,i>0?"\t":"",info[i].col_name);
 					}
@@ -897,11 +899,112 @@ int get_col_info(DB_TREE *tree,char *table)
 					DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_COL_INFO),tree->htree,col_info_proc,buf);
 					free(buf);
 				}
+			}else{
+				set_status_bar_text(ghstatusbar,0,"failed to open table %s",table);
 			}
 		}
-		SQLFreeStmt(hstmt,SQL_CLOSE);	
+		if(hstmt!=0)
+			SQLFreeStmt(hstmt,SQL_CLOSE);	
+	}else{
+		set_status_bar_text(ghstatusbar,0,"failed SQLColumns for table:%s",table);
 	}
-	return 0;
+	return result;
+}
+int get_index_info(DB_TREE *tree,char *table)
+{
+	int result=FALSE;
+	if(tree==0 || table==0 || table[0]==0)
+		return result;
+	if(open_db(tree)){
+		HSTMT hstmt=0;
+		if(SQLAllocStmt(tree->hdbc, &hstmt)==SQL_SUCCESS){
+			if(SQLStatistics(hstmt,NULL,SQL_NTS,NULL,SQL_NTS,table,SQL_NTS,SQL_INDEX_ALL,SQL_QUICK)==SQL_SUCCESS){
+				char *buf;
+				int buf_size=0x10000;
+				buf=malloc(buf_size);
+				if(buf!=0){
+					struct INFO{
+						char *col_name;
+						int col_number;
+						int col_type;
+					};
+					struct INFO info[]={ 
+						{"non unique",4,SQL_C_SHORT},
+						{"index qualifier",5,SQL_C_CHAR},
+						{"INDEX NAME",6,SQL_C_CHAR},
+						{"type #",7,SQL_C_SHORT},
+						{"position",8,SQL_C_SHORT},
+						{"column name",9,SQL_C_CHAR},
+						{"asc or desc",10,SQL_C_CHAR},
+						{"cardinality",11,SQL_C_LONG},
+						{"pages",12,SQL_C_LONG},
+						{"filter condition",13,SQL_C_CHAR},
+						{"catalog",1,SQL_C_CHAR},
+						{"schema",2,SQL_C_CHAR},
+					};
+					int i,col=0;
+					memset(buf,0,buf_size);
+					_snprintf(buf,buf_size,"%s - index info\n",table);
+					for(i=0;i<sizeof(info)/sizeof(struct INFO);i++){
+						_snprintf(buf,buf_size,"%s%s%s",buf,i>0?"\t":"",info[i].col_name);
+					}
+					_snprintf(buf,buf_size,"%s\n",buf);
+					while(SQLFetch(hstmt)==SQL_SUCCESS){
+						int len;
+						char str[256];
+						short short_data;
+						long long_data;
+						for(i=0;i<sizeof(info)/sizeof(struct INFO);i++){
+							const char *delim;
+							if(i==0)
+								delim="";
+							else
+								delim="\t";
+							switch(info[i].col_type){
+							case SQL_C_CHAR:
+								str[0]=0;
+								len=0;
+								SQLGetData(hstmt,info[i].col_number,info[i].col_type,str,sizeof(str),&len);
+								str[sizeof(str)-1]=0;
+								_snprintf(buf,buf_size,"%s%s%s",buf,delim,str);
+								break;
+							case SQL_C_SHORT:
+								short_data=0;
+								len=0;
+								SQLGetData(hstmt,info[i].col_number,info[i].col_type,&short_data,sizeof(short_data),&len);
+								_snprintf(buf,buf_size,"%s%s%i",buf,delim,short_data);
+								break;
+							case SQL_C_LONG:
+								long_data=0;
+								len=0;
+								SQLGetData(hstmt,info[i].col_number,info[i].col_type,&long_data,sizeof(long_data),&len);
+								_snprintf(buf,buf_size,"%s%s%i",buf,delim,long_data);
+								break;
+							default:
+								_snprintf(buf,buf_size,"%s%s%i",buf,delim,col);
+								break;
+							}
+						}
+						_snprintf(buf,buf_size,"%s\n",buf);
+						col++;
+					}
+					buf[buf_size-1]=0;
+					DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_COL_INFO),tree->htree,col_info_proc,buf);
+					free(buf);
+					result=TRUE;
+				}
+			}
+			else{
+				set_status_bar_text(ghstatusbar,0,"failed SQLStatistics for table:%s",table);
+			}
+		}
+		if(hstmt!=0)
+			SQLFreeStmt(hstmt,SQL_CLOSE);	
+	}
+	else{
+		set_status_bar_text(ghstatusbar,0,"failed to open table %s",table);
+	}
+	return result;
 }
 int assign_db_to_table(DB_TREE *db,TABLE_WINDOW *win,char *table)
 {

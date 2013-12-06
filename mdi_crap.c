@@ -1045,14 +1045,19 @@ int mdi_set_title(TABLE_WINDOW *win,char *title)
 int mdi_tile_windows_vert()
 {
 	int i,y=0,height;
+	RECT rect={0};
 	height=GetSystemMetrics(SM_CYCAPTION);
 	height+=GetSystemMetrics(SM_CXEDGE)*2;
 	if(height==0)
 		height=19+4;
+	GetClientRect(ghmdiclient,&rect);
 	for(i=0;i<sizeof(table_windows)/sizeof(TABLE_WINDOW);i++){
 		TABLE_WINDOW *win=&table_windows[i];
 		if(win->hwnd!=0){
-			SetWindowPos(win->hwnd,NULL,0,y,0,0,SWP_NOSIZE);
+			int flags=0;
+			if(rect.right==0 || rect.bottom==0)
+				flags=SWP_NOSIZE;
+			SetWindowPos(win->hwnd,NULL,0,y,rect.right,rect.bottom,flags);
 			y+=height;
 		}
 	}
