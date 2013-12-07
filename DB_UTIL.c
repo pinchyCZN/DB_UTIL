@@ -253,7 +253,7 @@ int add_connect_str(char *connect)
 					if(entries[i]!=0){
 						if(entries[i][0]!=0){
 							if(strnicmp(entries[i],connect,max_len)==0)
-								entries[i]=0;
+								entries[i][0]=0;
 						}
 					}
 				}
