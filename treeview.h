@@ -7,7 +7,8 @@ enum {
 	CMD_DB_REFRESH_TABLES,
 	CMD_VIEWTABLE,
 	CMD_TABLE_STRUCT,
-	CMD_TABLE_INDEXES
+	CMD_TABLE_INDEXES,
+	CMD_TABLE_FOREIGN_KEYS
 };
 int insert_root(char *name,int lparam)
 {
@@ -201,6 +202,7 @@ int create_treeview_menus()
 		InsertMenu(table_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_VIEWTABLE,"View Table");
 		InsertMenu(table_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_TABLE_STRUCT,"Table Structure");
 		InsertMenu(table_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_TABLE_INDEXES,"Table Indexes");
+		InsertMenu(table_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_TABLE_FOREIGN_KEYS,"Table Foreign keys");
 		InsertMenu(table_menu,0xFFFFFFFF,MF_BYPOSITION|MF_SEPARATOR,0,0);
 		InsertMenu(table_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_DB_REFRESH_TABLES,"Refresh tables");
 		InsertMenu(table_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_CLOSEDB,"close DB");
@@ -374,6 +376,18 @@ LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 			break;
 		case CMD_VIEWTABLE:
 			open_selected_table(ghtreeview);
+			break;
+		case CMD_TABLE_FOREIGN_KEYS:
+			{
+				DB_TREE *db=0;
+				if(find_selected_tree(&db)){
+					char str[80]={0};
+					int type=0;
+					tree_get_info(TreeView_GetSelection(ghtreeview),str,sizeof(str),&type);
+					if(type==IDC_TABLE_ITEM)
+						task_get_foreign_keys(db,str);
+				}
+			}
 			break;
 		case CMD_TABLE_INDEXES:
 			{

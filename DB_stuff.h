@@ -900,13 +900,15 @@ int get_col_info(DB_TREE *tree,char *table)
 					free(buf);
 				}
 			}else{
-				set_status_bar_text(ghstatusbar,0,"failed to open table %s",table);
+				char err[256]={0};
+				get_error_msg(hstmt,SQL_HANDLE_STMT,err,sizeof(err));
+				set_status_bar_text(ghstatusbar,0,"error:SQLColumns:%s",err);
 			}
 		}
 		if(hstmt!=0)
 			SQLFreeStmt(hstmt,SQL_CLOSE);	
 	}else{
-		set_status_bar_text(ghstatusbar,0,"failed SQLColumns for table:%s",table);
+		set_status_bar_text(ghstatusbar,0,"failed to open table %s",table);
 	}
 	return result;
 }
@@ -995,7 +997,113 @@ int get_index_info(DB_TREE *tree,char *table)
 				}
 			}
 			else{
-				set_status_bar_text(ghstatusbar,0,"failed SQLStatistics for table:%s",table);
+				char err[256]={0};
+				get_error_msg(hstmt,SQL_HANDLE_STMT,err,sizeof(err));
+				set_status_bar_text(ghstatusbar,0,"error:SQLStatistics:%s",err);
+			}
+		}
+		if(hstmt!=0)
+			SQLFreeStmt(hstmt,SQL_CLOSE);	
+	}
+	else{
+		set_status_bar_text(ghstatusbar,0,"failed to open table %s",table);
+	}
+	return result;
+}
+int get_foreign_keys(DB_TREE *tree,char *table)
+{
+	int result=FALSE;
+	if(tree==0 || table==0 || table[0]==0)
+		return result;
+	if(open_db(tree)){
+		HSTMT hstmt=0;
+		if(SQLAllocStmt(tree->hdbc, &hstmt)==SQL_SUCCESS){
+			if(SQLForeignKeys(hstmt,
+				NULL,0,
+				NULL,0,
+				table,SQL_NTS,
+				NULL,0,
+				NULL,SQL_NTS,
+				NULL,SQL_NTS
+				)
+				==SQL_SUCCESS){
+				char *buf;
+				int buf_size=0x10000;
+				buf=malloc(buf_size);
+				if(buf!=0){
+					struct INFO{
+						char *col_name;
+						int col_number;
+						int col_type;
+					};
+					struct INFO info[]={ 
+						{"primary table",3,SQL_C_CHAR},
+						{"primary col",4,SQL_C_CHAR},
+						{"foreign table",7,SQL_C_CHAR},
+						{"foreign col",8,SQL_C_CHAR},
+						{"foreign key",12,SQL_C_CHAR},
+						{"primary key",13,SQL_C_CHAR},
+						{"key seq",9,SQL_C_SHORT},
+						{"update rule",10,SQL_C_SHORT},
+						{"delete rule",11,SQL_C_SHORT},
+						{"deferrability",14,SQL_C_SHORT},
+					};
+					int i,col=0;
+					memset(buf,0,buf_size);
+					_snprintf(buf,buf_size,"%s - foreign keys info\n",table);
+					for(i=0;i<sizeof(info)/sizeof(struct INFO);i++){
+						_snprintf(buf,buf_size,"%s%s%s",buf,i>0?"\t":"",info[i].col_name);
+					}
+					_snprintf(buf,buf_size,"%s\n",buf);
+					while(SQLFetch(hstmt)==SQL_SUCCESS){
+						int len;
+						char str[256];
+						short short_data;
+						long long_data;
+						for(i=0;i<sizeof(info)/sizeof(struct INFO);i++){
+							const char *delim;
+							if(i==0)
+								delim="";
+							else
+								delim="\t";
+							switch(info[i].col_type){
+							case SQL_C_CHAR:
+								str[0]=0;
+								len=0;
+								SQLGetData(hstmt,info[i].col_number,info[i].col_type,str,sizeof(str),&len);
+								str[sizeof(str)-1]=0;
+								_snprintf(buf,buf_size,"%s%s%s",buf,delim,str);
+								break;
+							case SQL_C_SHORT:
+								short_data=0;
+								len=0;
+								SQLGetData(hstmt,info[i].col_number,info[i].col_type,&short_data,sizeof(short_data),&len);
+								_snprintf(buf,buf_size,"%s%s%i",buf,delim,short_data);
+								break;
+							case SQL_C_LONG:
+								long_data=0;
+								len=0;
+								SQLGetData(hstmt,info[i].col_number,info[i].col_type,&long_data,sizeof(long_data),&len);
+								_snprintf(buf,buf_size,"%s%s%i",buf,delim,long_data);
+								break;
+							default:
+								_snprintf(buf,buf_size,"%s%s%i",buf,delim,col);
+								break;
+							}
+						}
+						_snprintf(buf,buf_size,"%s\n",buf);
+						col++;
+					}
+					buf[buf_size-1]=0;
+					DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_COL_INFO),tree->htree,col_info_proc,buf);
+					free(buf);
+					result=TRUE;
+				}
+			}
+			else{
+				char err[256]={0};
+				get_error_msg(hstmt,SQL_HANDLE_STMT,err,sizeof(err));
+				set_status_bar_text(ghstatusbar,0,"error:SQLForeignKeys:%s",err);
 			}
 		}
 		if(hstmt!=0)
