@@ -48,27 +48,38 @@ int get_tables(DB_TREE *tree)
 	char table[256];
 	long len;
 	int count=0;
-	
+	int ctrl;
+	const char *ttype="'TABLE'";
+	ctrl=GetKeyState(VK_CONTROL)&0x8000;
+	if(ctrl)
+		ttype=0;
 	if(SQLAllocStmt(tree->hdbc, &hstmt)!=SQL_SUCCESS)
 		return count;
-	if(SQLTables(hstmt,NULL,SQL_NTS,NULL,SQL_NTS,NULL,SQL_NTS,"'TABLE'",SQL_NTS)!=SQL_ERROR){
+	if(SQLTables(hstmt,NULL,SQL_NTS,NULL,SQL_NTS,NULL,SQL_NTS,ttype,SQL_NTS)!=SQL_ERROR){
 		if(SQLFetch(hstmt)!=SQL_NO_DATA_FOUND){
 			HSTMT hpriv=0;
+			int print=TRUE;
 			SQLAllocStmt(tree->hdbc,&hpriv);
 			while(!SQLGetData(hstmt,3,SQL_C_CHAR,table,sizeof(table),&len))
 			{
 				HTREEITEM hitem;
 				table[sizeof(table)-1]=0;
-				/*
-				if(SQLTablePrivileges(hpriv,"",SQL_NTS,"",SQL_NTS,table,SQL_NTS)==SQL_SUCCESS)
-				{
-					char str[256]={0};
-					SQLFetch(hpriv);
-					SQLGetData(hpriv,6,SQL_C_CHAR,str,sizeof(str),&len);
-					SQLCloseCursor(hpriv);
-					printf("name=%s | %s\n",table,str);
+				if(ctrl){
+					if(SQLTablePrivileges(hpriv,"",SQL_NTS,"",SQL_NTS,table,SQL_NTS)==SQL_SUCCESS)
+					{
+						char str[256]={0};
+						SQLFetch(hpriv);
+						SQLGetData(hpriv,6,SQL_C_CHAR,str,sizeof(str),&len);
+						SQLCloseCursor(hpriv);
+						printf("name=%s | %s\n",table,str);
+					}
+					else if(print){
+						char msg[SQL_MAX_MESSAGE_LENGTH]={0};
+						get_error_msg(hpriv,SQL_HANDLE_STMT,msg,sizeof(msg));
+						printf("SQLTablePrivileges err:%s\n",msg);
+						print=FALSE;
+					}
 				}
-				*/
 				hitem=insert_item(table,tree->hroot,IDC_TABLE_ITEM);
 				intelli_add_table(tree->name,table);
 				//if(hitem!=0)
@@ -812,6 +823,57 @@ int reopen_db(TABLE_WINDOW *win)
 	}
 	return FALSE;
 }
+struct INFO{
+	char *col_name;
+	int col_number;
+	int col_type;
+};
+int fetch_results_printf(HSTMT hstmt,struct INFO *info,int info_count,char *buf,int buf_size,int *col)
+{
+	int i;
+	if(hstmt==0 || info==0 || buf==0 || col==0)
+		return FALSE;
+	while(SQLFetch(hstmt)==SQL_SUCCESS){
+		int len;
+		char str[256];
+		short short_data;
+		long long_data;
+		for(i=0;i<info_count;i++){
+			const char *delim;
+			if(i==0)
+				delim="";
+			else
+				delim="\t";
+			switch(info[i].col_type){
+			case SQL_C_CHAR:
+				str[0]=0;
+				len=0;
+				SQLGetData(hstmt,info[i].col_number,info[i].col_type,str,sizeof(str),&len);
+				str[sizeof(str)-1]=0;
+				_snprintf(buf,buf_size,"%s%s%s",buf,delim,str);
+				break;
+			case SQL_C_SHORT:
+				short_data=0;
+				len=0;
+				SQLGetData(hstmt,info[i].col_number,info[i].col_type,&short_data,sizeof(short_data),&len);
+				_snprintf(buf,buf_size,"%s%s%i",buf,delim,short_data);
+				break;
+			case SQL_C_LONG:
+				long_data=0;
+				len=0;
+				SQLGetData(hstmt,info[i].col_number,info[i].col_type,&long_data,sizeof(long_data),&len);
+				_snprintf(buf,buf_size,"%s%s%i",buf,delim,long_data);
+				break;
+			default:
+				_snprintf(buf,buf_size,"%s%s%i",buf,delim,*col);
+				break;
+			}
+		}
+		_snprintf(buf,buf_size,"%s\n",buf);
+		*col++;
+	}
+	return TRUE;
+}
 int get_col_info(DB_TREE *tree,char *table)
 {
 	int result=FALSE;
@@ -825,11 +887,6 @@ int get_col_info(DB_TREE *tree,char *table)
 				int buf_size=0x10000;
 				buf=malloc(buf_size);
 				if(buf!=0){
-					struct INFO{
-						char *col_name;
-						int col_number;
-						int col_type;
-					};
 					struct INFO info[]={ 
 						{"field name",4,SQL_C_CHAR},
 						{"type",6,SQL_C_CHAR},
@@ -856,45 +913,7 @@ int get_col_info(DB_TREE *tree,char *table)
 						_snprintf(buf,buf_size,"%s%s%s",buf,i>0?"\t":"",info[i].col_name);
 					}
 					_snprintf(buf,buf_size,"%s\n",buf);
-					while(SQLFetch(hstmt)==SQL_SUCCESS){
-						int len;
-						char str[256];
-						short short_data;
-						long long_data;
-						for(i=0;i<sizeof(info)/sizeof(struct INFO);i++){
-							const char *delim;
-							if(i==0)
-								delim="";
-							else
-								delim="\t";
-							switch(info[i].col_type){
-							case SQL_C_CHAR:
-								str[0]=0;
-								len=0;
-								SQLGetData(hstmt,info[i].col_number,info[i].col_type,str,sizeof(str),&len);
-								str[sizeof(str)-1]=0;
-								_snprintf(buf,buf_size,"%s%s%s",buf,delim,str);
-								break;
-							case SQL_C_SHORT:
-								short_data=0;
-								len=0;
-								SQLGetData(hstmt,info[i].col_number,info[i].col_type,&short_data,sizeof(short_data),&len);
-								_snprintf(buf,buf_size,"%s%s%i",buf,delim,short_data);
-								break;
-							case SQL_C_LONG:
-								long_data=0;
-								len=0;
-								SQLGetData(hstmt,info[i].col_number,info[i].col_type,&long_data,sizeof(long_data),&len);
-								_snprintf(buf,buf_size,"%s%s%i",buf,delim,long_data);
-								break;
-							default:
-								_snprintf(buf,buf_size,"%s%s%i",buf,delim,col);
-								break;
-							}
-						}
-						_snprintf(buf,buf_size,"%s\n",buf);
-						col++;
-					}
+					fetch_results_printf(hstmt,&info,sizeof(info)/sizeof(struct INFO),buf,buf_size,&col);
 					buf[buf_size-1]=0;
 					DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_COL_INFO),tree->htree,col_info_proc,buf);
 					free(buf);
@@ -925,11 +944,6 @@ int get_index_info(DB_TREE *tree,char *table)
 				int buf_size=0x10000;
 				buf=malloc(buf_size);
 				if(buf!=0){
-					struct INFO{
-						char *col_name;
-						int col_number;
-						int col_type;
-					};
 					struct INFO info[]={ 
 						{"non unique",4,SQL_C_SHORT},
 						{"index qualifier",5,SQL_C_CHAR},
@@ -951,45 +965,7 @@ int get_index_info(DB_TREE *tree,char *table)
 						_snprintf(buf,buf_size,"%s%s%s",buf,i>0?"\t":"",info[i].col_name);
 					}
 					_snprintf(buf,buf_size,"%s\n",buf);
-					while(SQLFetch(hstmt)==SQL_SUCCESS){
-						int len;
-						char str[256];
-						short short_data;
-						long long_data;
-						for(i=0;i<sizeof(info)/sizeof(struct INFO);i++){
-							const char *delim;
-							if(i==0)
-								delim="";
-							else
-								delim="\t";
-							switch(info[i].col_type){
-							case SQL_C_CHAR:
-								str[0]=0;
-								len=0;
-								SQLGetData(hstmt,info[i].col_number,info[i].col_type,str,sizeof(str),&len);
-								str[sizeof(str)-1]=0;
-								_snprintf(buf,buf_size,"%s%s%s",buf,delim,str);
-								break;
-							case SQL_C_SHORT:
-								short_data=0;
-								len=0;
-								SQLGetData(hstmt,info[i].col_number,info[i].col_type,&short_data,sizeof(short_data),&len);
-								_snprintf(buf,buf_size,"%s%s%i",buf,delim,short_data);
-								break;
-							case SQL_C_LONG:
-								long_data=0;
-								len=0;
-								SQLGetData(hstmt,info[i].col_number,info[i].col_type,&long_data,sizeof(long_data),&len);
-								_snprintf(buf,buf_size,"%s%s%i",buf,delim,long_data);
-								break;
-							default:
-								_snprintf(buf,buf_size,"%s%s%i",buf,delim,col);
-								break;
-							}
-						}
-						_snprintf(buf,buf_size,"%s\n",buf);
-						col++;
-					}
+					fetch_results_printf(hstmt,&info,sizeof(info)/sizeof(struct INFO),buf,buf_size,&col);
 					buf[buf_size-1]=0;
 					DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_COL_INFO),tree->htree,col_info_proc,buf);
 					free(buf);
@@ -1031,11 +1007,6 @@ int get_foreign_keys(DB_TREE *tree,char *table)
 				int buf_size=0x10000;
 				buf=malloc(buf_size);
 				if(buf!=0){
-					struct INFO{
-						char *col_name;
-						int col_number;
-						int col_type;
-					};
 					struct INFO info[]={ 
 						{"primary table",3,SQL_C_CHAR},
 						{"primary col",4,SQL_C_CHAR},
@@ -1055,45 +1026,7 @@ int get_foreign_keys(DB_TREE *tree,char *table)
 						_snprintf(buf,buf_size,"%s%s%s",buf,i>0?"\t":"",info[i].col_name);
 					}
 					_snprintf(buf,buf_size,"%s\n",buf);
-					while(SQLFetch(hstmt)==SQL_SUCCESS){
-						int len;
-						char str[256];
-						short short_data;
-						long long_data;
-						for(i=0;i<sizeof(info)/sizeof(struct INFO);i++){
-							const char *delim;
-							if(i==0)
-								delim="";
-							else
-								delim="\t";
-							switch(info[i].col_type){
-							case SQL_C_CHAR:
-								str[0]=0;
-								len=0;
-								SQLGetData(hstmt,info[i].col_number,info[i].col_type,str,sizeof(str),&len);
-								str[sizeof(str)-1]=0;
-								_snprintf(buf,buf_size,"%s%s%s",buf,delim,str);
-								break;
-							case SQL_C_SHORT:
-								short_data=0;
-								len=0;
-								SQLGetData(hstmt,info[i].col_number,info[i].col_type,&short_data,sizeof(short_data),&len);
-								_snprintf(buf,buf_size,"%s%s%i",buf,delim,short_data);
-								break;
-							case SQL_C_LONG:
-								long_data=0;
-								len=0;
-								SQLGetData(hstmt,info[i].col_number,info[i].col_type,&long_data,sizeof(long_data),&len);
-								_snprintf(buf,buf_size,"%s%s%i",buf,delim,long_data);
-								break;
-							default:
-								_snprintf(buf,buf_size,"%s%s%i",buf,delim,col);
-								break;
-							}
-						}
-						_snprintf(buf,buf_size,"%s\n",buf);
-						col++;
-					}
+					fetch_results_printf(hstmt,&info,sizeof(info)/sizeof(struct INFO),buf,buf_size,&col);
 					buf[buf_size-1]=0;
 					DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_COL_INFO),tree->htree,col_info_proc,buf);
 					free(buf);

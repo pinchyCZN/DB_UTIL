@@ -165,6 +165,7 @@ int thread(HANDLE event)
 				{
 					DB_TREE *db=0;
 					char *table;
+					int result=FALSE;
 					table=strstr(localinfo,";TABLE=");
 					if(table!=0){
 						table[0]=0;
@@ -189,21 +190,21 @@ int thread(HANDLE event)
 						intelli_add_db(db->name);
 						set_focus_after_open(db);
 						reassign_tables(db);
-						if(task==TASK_OPEN_DB_AND_TABLE){
-							if(table!=0 && strncmp(table,"TABLE=",sizeof("TABLE=")-1)==0){
-								table+=sizeof("TABLE=")-1;
-								ResetEvent(event);
-								task_open_table(db->name,table);
-								continue;
-							}
+						if(task==TASK_OPEN_DB_AND_TABLE &&
+							table!=0 && strncmp(table,"TABLE=",sizeof("TABLE=")-1)==0){
+							table+=sizeof("TABLE=")-1;
+							ResetEvent(event);
+							task_open_table(db->name,table);
+							continue;
 						}
 						else{
 							load_tables_if_empty(db);
 							if(keep_closed)
 								close_db(db);
-							set_status_bar_text(ghstatusbar,0,"open DB done %s",keep_closed?"(closed DB)":"");
+							result=TRUE;
 						}
 					}
+					set_status_bar_text(ghstatusbar,0,"open DB %s %s",result?"done":"failed",keep_closed?"(closed DB)":"");
 				}
 				break;
 			case TASK_GET_COL_INFO:
