@@ -257,7 +257,7 @@ int populate_assoc(HWND hwnd)
 	}
 	return first_entry>=0;
 }
-int add_update_ext(HWND hwnd,char *ext,char *connect)
+int add_update_ext(HWND hwnd,char *ext,char *connect,int *was_updated)
 {
 	int i,first_empty=-1;
 	char key[20]={0};
@@ -284,6 +284,7 @@ int add_update_ext(HWND hwnd,char *ext,char *connect)
 			write_ini_str(section,key,ext);
 			_snprintf(key,sizeof(key),"CONNECT%02i",i);
 			write_ini_str(section,key,connect);
+			*was_updated=TRUE;
 			return TRUE;
 		}
 	}
@@ -675,6 +676,7 @@ LRESULT CALLBACK file_assoc_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				if(focus==GetDlgItem(hwnd,IDOK) || focus==GetDlgItem(hwnd,IDC_CONNECT_EDIT)){
 					char ext[MAX_EXTENSION_LENGTH]={0};
 					char connect[MAX_CONNECT_LENGTH]={0};
+					int was_updated=FALSE;
 					GetDlgItem(hwnd,IDOK);
 					GetDlgItemText(hwnd,IDC_EXT_COMBO,ext,sizeof(ext));
 					ext[sizeof(ext)-1]=0;
@@ -684,8 +686,8 @@ LRESULT CALLBACK file_assoc_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 						tooltip_message(hwnd,&tooltip,"no extension");
 					else if(connect[0]==0)
 						tooltip_message(hwnd,&tooltip,"no connect string");
-					else if(add_update_ext(hwnd,ext,connect))
-						tooltip_message(hwnd,&tooltip,"added extension");
+					else if(add_update_ext(hwnd,ext,connect,&was_updated))
+						tooltip_message(hwnd,&tooltip,"%s extension",was_updated?"updated":"added");
 					else
 						tooltip_message(hwnd,&tooltip,"failed to add extension");
 				}else if(focus==GetDlgItem(hwnd,IDC_DRIVER_LIST)){
