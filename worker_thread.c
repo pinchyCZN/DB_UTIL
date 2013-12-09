@@ -253,7 +253,7 @@ void __cdecl thread(HANDLE event)
 					table[sizeof(table)-1]=0;
 					if(db!=0){
 						int result;
-						set_status_bar_text(ghstatusbar,0,"getting index info for %s",table);
+						set_status_bar_text(ghstatusbar,0,"getting foreign keys for %s",table);
 						result=get_foreign_keys(db,table);
 						if(keep_closed)
 							close_db(db);
