@@ -518,7 +518,7 @@ int assert()
 {
 	return 0;
 }
-int intellisense_thread(void)
+void __cdecl intellisense_thread(void)
 {
 	void *pParser=0; //ParseAlloc(malloc);
 #define sizeof_str 0x7FFF //MAXWORD largest em_getline allows
@@ -613,7 +613,6 @@ int intellisense_thread(void)
 	}
 	ParseFree(pParser,free);
 	_endthreadex(0);
-	return 0;
 }
 int start_intellisense_thread()
 {

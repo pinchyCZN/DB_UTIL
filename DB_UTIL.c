@@ -424,8 +424,9 @@ int stop_thread_menu(int create)
 		DeleteMenu(ghmenu,IDM_STOP_THREAD,MF_BYCOMMAND);
 		InsertMenu(ghmenu,IDM_STOP_THREAD,MF_BYCOMMAND|MF_STRING,IDM_STOP_THREAD,"Cancel thread");
 	}
-	else
+	else{
 		DeleteMenu(ghmenu,IDM_STOP_THREAD,MF_BYCOMMAND);
+	}
 	DrawMenuBar(ghmainframe);
 	return 0;
 }
@@ -579,7 +580,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 			DialogBox(ghinstance,MAKEINTRESOURCE(IDD_RECENT),hwnd,recent_proc);
 			break;
 		case IDM_STOP_THREAD:
-			stop_thread_menu(FALSE);
+			{
+				int click=MessageBox(hwnd,"Are you sure you want to terminate the task?","Warning",MB_OKCANCEL|MB_SYSTEMMODAL);
+				if(click==IDOK){
+					terminate_worker_thread();
+					stop_thread_menu(FALSE);
+				}
+			}
 			break;
 		case IDM_QUERY:
 			task_new_query();

@@ -6,7 +6,8 @@
 
 
 extern HWND ghmainframe,ghmdiclient,ghtreeview,ghdbview,ghstatusbar;
-HANDLE event;
+HANDLE event=0;
+HANDLE hworker=0;
 int task=0;
 int keep_closed=TRUE;
 char taskinfo[1024*2]={0};
@@ -135,11 +136,12 @@ int	task_get_foreign_keys(void *db,char *table)
 	return TRUE;
 }
 
-int thread(HANDLE event)
+void __cdecl thread(HANDLE event)
 {
 	int id;
 	if(event==0)
 		return 0;
+	printf("worker thread started\n");
 	while(TRUE){
 		stop_thread_menu(FALSE);
 		id=WaitForSingleObject(event,INFINITE);
@@ -187,6 +189,7 @@ int thread(HANDLE event)
 						set_focus_after_open(db);
 					}
 					else{
+Sleep(10000);
 						intelli_add_db(db->name);
 						set_focus_after_open(db);
 						reassign_tables(db);
@@ -438,9 +441,8 @@ int thread(HANDLE event)
 
 						}
 					}
-					if(!result)
-						set_status_bar_text(ghstatusbar,0,"open table:%s failed %s",
-							table,keep_closed?"(closed DB)":"");
+					set_status_bar_text(ghstatusbar,0,"open table:%s %s %s",
+						table,result?"success":"failed",keep_closed?"(closed DB)":"");
 				}
 				break;
 			default:
@@ -450,6 +452,7 @@ int thread(HANDLE event)
 		ResetEvent(event);
 	}
 	CloseHandle(event);
+	hworker=0;
 }
 
 int start_worker_thread()
@@ -466,9 +469,23 @@ int start_worker_thread()
 			RpcStringFree(&p);
 		}
 	}
+	if(event!=0)
+		CloseHandle(event);
 	event=CreateEvent(NULL,TRUE,FALSE,str);
 	if(event==0)
 		return FALSE;
-	_beginthread(thread,0,event);
+	hworker=_beginthread(thread,0,event);
 	return TRUE;
+}
+int terminate_worker_thread()
+{
+	int result=FALSE;
+	if(hworker!=0){
+		if(TerminateThread(hworker,0)!=0){
+			printf("terminated thread %08X\n",hworker);
+			start_worker_thread();
+			result=TRUE;
+		}
+	}
+	return result;
 }
