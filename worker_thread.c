@@ -189,7 +189,6 @@ void __cdecl thread(HANDLE event)
 						set_focus_after_open(db);
 					}
 					else{
-Sleep(10000);
 						intelli_add_db(db->name);
 						set_focus_after_open(db);
 						reassign_tables(db);
