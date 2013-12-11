@@ -1059,6 +1059,7 @@ int mdi_tile_windows_vert()
 				flags=SWP_NOSIZE;
 			SetWindowPos(win->hwnd,NULL,0,y,rect.right,rect.bottom,flags);
 			y+=height;
+			rect.bottom-=height;
 		}
 	}
 	return TRUE;
