@@ -50,6 +50,7 @@ int get_tables(DB_TREE *tree)
 	int count=0;
 	int ctrl;
 	const char *ttype="'TABLE'";
+	GetAsyncKeyState(VK_ESCAPE);
 	ctrl=GetKeyState(VK_CONTROL)&0x8000;
 	if(ctrl)
 		ttype=0;
