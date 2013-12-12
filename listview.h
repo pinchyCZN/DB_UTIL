@@ -268,6 +268,12 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 								lv_get_col_text(win->hlistview,win->selected_column,col_name,sizeof(col_name));
 								get_col_brackets(win,col_name,&lbrack,&rbrack);
 								_snprintf(sql,sql_size,"%s ORDER BY %s%s%s",sql,lbrack,col_name,rbrack);
+								if(GetKeyState(VK_CONTROL)&0x8000){
+									SendMessage(win->hedit,EM_SETSEL,-1,-1);
+									_snprintf(sql,sql_size,",%s%s%s",lbrack,col_name,rbrack);
+									SendMessage(win->hedit,EM_REPLACESEL,TRUE,sql);
+									sql[0]=0;
+								}
 							}
 							break;
 						case CMD_SQL_UPDATE:
