@@ -873,7 +873,7 @@ int copy_param(char *str,char *search,char *out,int olen)
 int extract_short_db_name(char *name,char *out,int olen)
 {
 	int i,found=FALSE;
-	const char *params[]={"SourceDB=","DSN=","DBQ","Driver=","UID=","PWD="};
+	const char *params[]={"SourceDB=","DatabaseFile=","DSN=","DBQ","Driver=","UID=","PWD="};
 	if(name==0 || out==0 || olen<=0)
 		return FALSE;
 	out[0]=0;

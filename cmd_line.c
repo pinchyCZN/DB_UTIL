@@ -184,9 +184,15 @@ int process_cmd_line(char *cmd)
 			task_open_db(connect);
 			return TRUE;
 		}
-//		task_open_db_and_table("UID=dba;PWD=sql;DSN=Journal;TABLE=PATIENT");
 	}
-
+	else if(stricmp(ext,".DB")==0){
+		if(fname[0]!=0){
+			char *cstr="UID=dba;PWD=sql;DatabaseFile=%s;AutoStop=Yes;Integrated=No;Driver={Adaptive Server Anywhere 9.0}";
+			_snprintf(connect,sizeof(connect),cstr,fname);
+			task_open_db(connect);
+			return TRUE;
+		}
+	}
 	return FALSE;
 }
 int populate_drivers(HWND hwnd)
