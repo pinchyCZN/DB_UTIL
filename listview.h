@@ -6,6 +6,9 @@ enum {
 	CMD_COL_INFO=10000,
 	CMD_COL_WIDTH_HEADER,
 	CMD_COL_WIDTH_DATA,
+	CMD_SQL_SELECT_ALL,
+	CMD_SQL_WHERE,
+	CMD_SQL_ORDERBY,
 	CMD_SQL_UPDATE,
 	CMD_EXPORT_DATA,
 };
@@ -209,12 +212,78 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		case CMD_COL_INFO:
 			DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_COL_INFO),hwnd,col_info_proc,hwnd);
 			break;
+		case CMD_SQL_SELECT_ALL:
+		case CMD_SQL_WHERE:
+		case CMD_SQL_ORDERBY:
 		case CMD_SQL_UPDATE:
 			{
 				TABLE_WINDOW *win=0;
 				if(find_win_by_hlistview(hwnd,&win)){
+					char *sql;
+					int sql_size=0x10000;
 					int row=ListView_GetSelectionMark(win->hlistview);
-					task_update_record(win,row,"xyz",TRUE);
+					sql=malloc(sql_size);
+					if(sql!=0){
+						sql[0]=0;
+						switch(wparam){
+						case CMD_SQL_SELECT_ALL:
+						case CMD_SQL_WHERE:
+						case CMD_SQL_ORDERBY:
+							if(win->table!=0){
+								if(strchr(win->table,' ')!=0)
+									_snprintf(sql,sql_size,"SELECT * FROM [%s]",win->table);
+								else
+									_snprintf(sql,sql_size,"SELECT * FROM %s",win->table);
+							}
+							if(wparam==CMD_SQL_SELECT_ALL)
+								break;
+							if(wparam==CMD_SQL_WHERE){
+								char *lbrack="",*rbrack="";
+								char *tmp;
+								char col_name[80]={0};
+								int tmp_size=0x1000;
+								lv_get_col_text(win->hlistview,win->selected_column,col_name,sizeof(col_name));
+								get_col_brackets(win,col_name,&lbrack,&rbrack);
+								tmp=malloc(tmp_size);
+								if(tmp!=0){
+									char *v=0,*eq="=";
+									tmp[0]=0;
+									ListView_GetItemText(win->hlistview,row,win->selected_column,tmp,tmp_size);
+									if(stricmp(tmp,"(NULL)")==0){
+										v="NULL";
+										eq=" is ";
+									}
+									else if(tmp[0]==0)
+										v="''";
+									else
+										v=tmp;
+									sanitize_value(tmp,tmp,tmp_size,get_column_type(win,win->selected_column));
+									_snprintf(sql,sql_size,"%s WHERE %s%s%s%s%s",sql,lbrack,col_name,rbrack,eq,v);
+									free(tmp);
+								}
+							}
+							else if(wparam==CMD_SQL_ORDERBY){
+								char *lbrack="",*rbrack="";
+								char col_name[80]={0};
+								lv_get_col_text(win->hlistview,win->selected_column,col_name,sizeof(col_name));
+								get_col_brackets(win,col_name,&lbrack,&rbrack);
+								_snprintf(sql,sql_size,"%s ORDER BY %s%s%s",sql,lbrack,col_name,rbrack);
+							}
+							break;
+						case CMD_SQL_UPDATE:
+							{
+								char tmp[80]={0};
+								int tmp_size=sizeof(tmp);
+								ListView_GetItemText(win->hlistview,row,win->selected_column,tmp,tmp_size);
+								tmp[sizeof(tmp)-1]=0;
+								create_update_statement(win,row,tmp,sql,sql_size);
+							}
+							break;
+						}
+						if(sql[0]!=0)
+							SetWindowText(win->hedit,sql);
+						free(sql);
+					}
 				}
 			}
 			break;
@@ -670,7 +739,7 @@ LRESULT APIENTRY sc_lvedit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 						int index;
 						index=ListView_GetSelectionMark(win->hlistview);
 						GetWindowText(win->hlvedit,text,sizeof_text);
-						task_update_record(win,index,text,FALSE);
+						task_update_record(win,index,text);
 						PostMessage(win->hwnd,WM_USER,win,MAKELPARAM(IDC_LV_EDIT,IDOK));
 						free(text);
 					}
@@ -768,7 +837,10 @@ int create_lv_menus()
 	if(lv_menu!=0)DestroyMenu(lv_menu);
 	if(lv_menu=CreatePopupMenu()){
 		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_COL_INFO,"col info");
-		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SQL_UPDATE,"create update SQL statement");
+		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SQL_SELECT_ALL,"SQL select *");
+		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SQL_WHERE,"SQL where =");
+		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SQL_ORDERBY,"SQL order by");
+		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SQL_UPDATE,"SQL update where =");
 		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_EXPORT_DATA,"export data");
 	}
 	return TRUE;

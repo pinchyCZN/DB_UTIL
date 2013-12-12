@@ -21,7 +21,6 @@ enum{
 	TASK_NEW_QUERY,
 	TASK_EXECUTE_QUERY,
 	TASK_UPDATE_ROW,
-	TASK_UPDATE_ROW_COPY,
 	TASK_DELETE_ROW,
 	TASK_INSERT_ROW,
 	TASK_GET_COL_INFO,
@@ -87,12 +86,9 @@ int task_refresh_tables(char *str)
 	SetEvent(event);
 	return TRUE;
 }
-int task_update_record(void *win,int row,char *data,int only_copy)
+int task_update_record(void *win,int row,char *data)
 {
-	if(only_copy)
-		task=TASK_UPDATE_ROW_COPY;
-	else
-		task=TASK_UPDATE_ROW;
+	task=TASK_UPDATE_ROW;
 	_snprintf(taskinfo,sizeof(taskinfo),"WIN=0x%08X;ROW=%i;DATA=%s",win,row,data);
 	SetEvent(event);
 	return TRUE;
@@ -263,7 +259,6 @@ void __cdecl thread(HANDLE event)
 					}
 				}
 				break;
-			case TASK_UPDATE_ROW_COPY:
 			case TASK_UPDATE_ROW:
 				{
 					int result=FALSE;
@@ -273,11 +268,8 @@ void __cdecl thread(HANDLE event)
 					if(win!=0){
 						char *s=strstr(localinfo,"DATA=");
 						if(s!=0){
-							int only_copy=FALSE;
 							s+=sizeof("DATA=")-1;
-							if(task==TASK_UPDATE_ROW_COPY)
-								only_copy=TRUE;
-							result=update_row(win,row,s,only_copy);
+							result=update_row(win,row,s);
 							if(keep_closed){
 								void *db=0;
 								acquire_db_tree_from_win(win,&db);
@@ -285,14 +277,9 @@ void __cdecl thread(HANDLE event)
 							}
 						}
 					}
-					if(task==TASK_UPDATE_ROW_COPY){
-						set_status_bar_text(ghstatusbar,0,"copied update string to clip %s",
-							result?"ok":"failed");
-					}
-					else
-						set_status_bar_text(ghstatusbar,0,"update row %s %s",
-							result?"done":"failed",
-							keep_closed?"(closed DB)":"");
+					set_status_bar_text(ghstatusbar,0,"update row %s %s",
+						result?"done":"failed",
+						keep_closed?"(closed DB)":"");
 				}
 				break;
 			case TASK_DELETE_ROW:

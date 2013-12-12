@@ -258,7 +258,7 @@ int trim_trail_space(char *s,int slen)
 	}
 	return len;
 }
-int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
+int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols,int *aborted)
 {
 	SQLINTEGER rows=0;
 	FILE *f=0;
@@ -276,8 +276,10 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 		while(TRUE){
 			int result=0;
 			int i;
-			if(win->abort || win->hwnd==0)
+			if(win->abort || win->hwnd==0){
+				*aborted=TRUE;
 				break;
+			}
 			result=SQLFetch(hstmt);
 			if(!(result==SQL_SUCCESS || result==SQL_SUCCESS_WITH_INFO))
 				break;
@@ -286,8 +288,10 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols)
 				char *str=tmp;
 				int sizeof_str=sizeof(tmp);
 				int len=0;
-				if(win->abort || win->hwnd==0)
+				if(win->abort || win->hwnd==0){
+					*aborted=TRUE;
 					break;
+				}
 				if(buf!=0){ //use buffer if its avail
 					str=buf;
 					sizeof_str=buf_size;
@@ -389,6 +393,24 @@ int get_column_type(TABLE_WINDOW *win,int col)
 		result=win->col_attr[col].type;
 	}
 	return result;
+}
+int get_col_brackets(TABLE_WINDOW *win,char *col_name,char **lbrack,char **rbrack)
+{
+	int DBF_TYPE=FALSE;
+	if(win!=0)
+		DBF_TYPE=is_dbf(win);
+	if(col_name!=0 && (is_sql_reserved(col_name) || strchr(col_name,' '))){
+		if(DBF_TYPE){
+			*lbrack="`",*rbrack="`";
+		}
+		else{
+			*lbrack="[",*rbrack="]";
+		}
+	}
+	else{
+		*lbrack="",*rbrack="";
+	}
+	return TRUE;
 }
 int sanitize_value(char *str,char *out,int size,int type)
 {
@@ -650,19 +672,17 @@ int insert_row(TABLE_WINDOW *win,HWND hlistview)
 		free(tmp);
 	return result;
 }
-int update_row(TABLE_WINDOW *win,int row,char *data,int only_copy)
+int create_update_statement(TABLE_WINDOW *win,int row,char *data,char *sql,int sql_size)
 {
 	int result=FALSE;
-	if(win!=0 && win->hlistview!=0 && win->table[0]!=0 && data!=0){
-		char *sql=0;
+	if(win!=0 && win->hlistview!=0 && data!=0 && sql!=0 && sql_size>0){
 		char col_name[80]={0};
 		char *tmp=0;
-		int i,count,sql_size=0x10000,tmp_size=0x10000;
+		int i,count,tmp_size=0x10000;
 		count=lv_get_column_count(win->hlistview);
 		lv_get_col_text(win->hlistview,win->selected_column,col_name,sizeof(col_name));
-		sql=malloc(sql_size);
 		tmp=malloc(tmp_size);
-		if(count>0 && sql!=0 && tmp!=0 && col_name[0]!=0){
+		if(count>0 && tmp!=0 && col_name[0]!=0){
 			int DBF_TYPE=FALSE;
 			char *lbrack="",*rbrack="";
 			DBF_TYPE=is_dbf(win);
@@ -705,32 +725,40 @@ int update_row(TABLE_WINDOW *win,int row,char *data,int only_copy)
 				sanitize_value(tmp,tmp,tmp_size,get_column_type(win,i));
 				_snprintf(sql,sql_size,"%s%s%s%s%s%s%s",sql,lbrack,col_name,rbrack,eq,v,i>=count-1?"":" AND\r\n");
 			}
+			result=TRUE;
 			printf("%s\n",sql);
-			if(only_copy){
-				result=copy_str_clipboard(sql);
-				//SetWindowText(win->hedit,sql);
-			}
-			else{
-				if(reopen_db(win)){
-					mdi_create_abort(win);
-					result=execute_sql(win,sql,FALSE);
-					if(result)
-						lv_update_data(win->hlistview,row,win->selected_column,data);
-					else
-						copy_str_clipboard(sql);
-					mdi_destroy_abort(win);
-					PostMessage(win->hwnd,WM_USER,win->hlistview,IDC_MDI_CLIENT);
-				}
+		}
+		if(tmp!=0)
+			free(tmp);
+	}
+	return result;
+
+}
+int update_row(TABLE_WINDOW *win,int row,char *data)
+{
+	int result=FALSE;
+	if(win!=0 && win->hlistview!=0 && win->table[0]!=0 && data!=0){
+		char *sql=0;
+		int sql_size=0x10000;
+		sql=malloc(sql_size);
+		if(sql!=0){
+			sql[0]=0;
+			if(create_update_statement(win,row,data,sql,sql_size) && reopen_db(win)){
+				mdi_create_abort(win);
+				result=execute_sql(win,sql,FALSE);
+				if(result)
+					lv_update_data(win->hlistview,row,win->selected_column,data);
+				else
+					copy_str_clipboard(sql);
+				mdi_destroy_abort(win);
+				PostMessage(win->hwnd,WM_USER,win->hlistview,IDC_MDI_CLIENT);
 			}
 #ifdef _DEBUG
 			copy_str_clipboard(sql);
 #endif
-
 		}
 		if(sql!=0)
 			free(sql);
-		if(tmp!=0)
-			free(tmp);
 	}
 	return result;
 }
@@ -748,8 +776,8 @@ int execute_sql(TABLE_WINDOW *win,char *sql,int display_results)
 			case SQL_SUCCESS_WITH_INFO:
 			case SQL_SUCCESS:
 				{
-				SQLINTEGER rows=0,cols=0,total=0;
-				SQLRowCount(hstmt,&rows);
+				SQLINTEGER cols=0,total=0;
+				int aborted=FALSE;
 				if(display_results){
 					int mark;
 					RECT rect={0};
@@ -759,7 +787,7 @@ int execute_sql(TABLE_WINDOW *win,char *sql,int display_results)
 					mdi_clear_listview(win);
 					cols=fetch_columns(hstmt,win);
 					SetWindowText(ghstatusbar,"fetching results");
-					total=fetch_rows(hstmt,win,cols);
+					total=fetch_rows(hstmt,win,cols,&aborted);
 					if(mark>=0){
 						RECT newrect={0};
 						int dx,dy;
@@ -772,10 +800,7 @@ int execute_sql(TABLE_WINDOW *win,char *sql,int display_results)
 					win->rows=total;
 				}
 				result=TRUE;
-				if(total==rows)
-					set_status_bar_text(ghstatusbar,0,"returned %i rows %i cols",win->rows,win->columns);
-				else
-					set_status_bar_text(ghstatusbar,0,"returned %i of %i rows, %i cols",total,rows,win->columns);
+				set_status_bar_text(ghstatusbar,0,"returned %i rows %i cols%s",win->rows,win->columns,aborted?" (aborted)":"");
 				printf("executed sql sucess\n");
 				}
 				break;
