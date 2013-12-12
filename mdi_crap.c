@@ -102,8 +102,6 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 			}
 		}
         break;
-	case WM_CONTEXTMENU:
-		break;
 	case WM_NOTIFY:
 		{
 			NMHDR *nmhdr=lparam;

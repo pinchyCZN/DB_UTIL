@@ -282,13 +282,19 @@ LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 		{
 			POINT p={0};
 			TV_HITTESTINFO ht={0};
-			int type=0;
+			int type=0,x,y;
 			HMENU hmenu=0;
-			p.x=LOWORD(lparam);
-			p.y=HIWORD(lparam);
+			if(lparam==-1){
+				GetCursorPos(&p);
+				x=p.x;y=p.y;
+			}
+			else{
+				p.x=x=LOWORD(lparam);
+				p.y=y=HIWORD(lparam);
+			}
 			ScreenToClient(ghtreeview,&p);
-			ht.pt.x=p.x;
-			ht.pt.y=p.y;
+			ht.pt.x=x;
+			ht.pt.y=y;
 			TreeView_HitTest(ghtreeview,&ht);
 			if(ht.hItem!=0)
 				tree_get_info(ht.hItem,0,0,&type);
@@ -296,7 +302,7 @@ LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 				hmenu=db_menu;
 			else
 				hmenu=table_menu;
-			TrackPopupMenu(hmenu,TPM_LEFTALIGN,LOWORD(lparam),HIWORD(lparam),0,hwnd,NULL);
+			TrackPopupMenu(hmenu,TPM_LEFTALIGN,x,y,0,hwnd,NULL);
 		}
 		break;
 	case WM_NOTIFY:

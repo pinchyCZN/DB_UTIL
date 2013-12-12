@@ -464,7 +464,11 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				GetWindowRect(header,&rect);
 			x=LOWORD(lparam);
 			y=HIWORD(lparam);
-
+			if(lparam==-1){
+				POINT p={0};
+				GetCursorPos(&p);
+				x=p.x;y=p.y;
+			}
 			if(y<=rect.bottom){
 				LV_HITTESTINFO ht={0};
 				ht.pt.x=x;
