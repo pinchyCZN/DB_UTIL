@@ -31,7 +31,17 @@ static const char *SQL_TYPES[]={
 	"SQL_VARCHAR",12,
 	"SQL_TYPE_DATE",91,
 	"SQL_TYPE_TIME",92,
-	"SQL_TYPE_TIMESTAMP",93
+	"SQL_TYPE_TIMESTAMP",93,
+	"SQL_LONGVARCHAR",-1,
+	"SQL_BINARY",-2,
+	"SQL_VARBINARY",-3,
+	"SQL_LONGVARBINARY",-4,
+	"SQL_BIGINT",-5,
+	"SQL_TINYINT",-6,
+	"SQL_BIT",-7,
+	"SQL_BLOB",-10,
+	"SQL_CLOB",-11,
+	"SQL_OTHER",100
 };
 int find_sql_type_str(int type,const char **str)
 {

@@ -7,6 +7,17 @@
 #include <conio.h>
 #include <stdlib.h>
 
+#define	SQL_LONGVARCHAR		-1
+#define	SQL_BINARY			-2
+#define	SQL_VARBINARY		-3
+#define	SQL_LONGVARBINARY	-4
+#define	SQL_BIGINT			-5
+#define	SQL_TINYINT			-6
+#define	SQL_BIT				-7
+#define	SQL_BLOB			-10
+#define	SQL_CLOB			-11
+#define	SQL_OTHER			100
+
 int get_error_msg(SQLHANDLE handle,int handle_type,char *err,int len)
 {
 	SQLCHAR state[6]={0},msg[SQL_MAX_MESSAGE_LENGTH]={0};
@@ -435,7 +446,7 @@ int sanitize_value(char *str,char *out,int size,int type)
 			case SQL_DOUBLE:
 				_snprintf(out,size,"%s",tmp);
 				break;
-			case -1:
+			case SQL_LONGVARCHAR: //-1
 			case SQL_VARCHAR:
 			case SQL_CHAR:
 				{
