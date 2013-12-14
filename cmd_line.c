@@ -592,17 +592,20 @@ LRESULT CALLBACK file_assoc_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 	extern HINSTANCE ghinstance;
 	static HWND grippy=0,tooltip=0;
 	static int help_busy=FALSE;
-	static char *help_str="example cmd line: C:\\temp\\mydatabase.dbf\r\n"
+	static char *static_help_str="example cmd line: C:\\temp\\mydatabase.dbf\r\n"
 				"%FPATH%=C:\\temp\\mydatabase.dbf\r\n"
 				"%PATH%=C:\\temp\\\r\n"
 				"%NAME%=mydatabase\r\n\r\n"
 				"example connect: Driver={Microsoft dBASE Driver (*.dbf)};DBQ=%FPATH%;TABLE=%NAME%";
-
+	static char *help_msg="example connect:\r\n"
+				" Driver={Microsoft dBASE Driver (*.dbf)};DBQ=%FPATH%;TABLE=%NAME%\r\n"
+				" UID=dba;PWD=sql;DatabaseFile=%s;AutoStop=Yes;Integrated=No;Driver={Adaptive Server Anywhere 9.0}\r\n\r\n"
+				"ODBC attributes:\r\n SourceDB=,DatabaseFile=,DSN=,DBQ=,Driver=,UID=,PWD=,Server=,Database=";
 	switch(msg){
 	case WM_INITDIALOG:
 		SendDlgItemMessage(hwnd,IDC_EXT_COMBO,CB_LIMITTEXT,MAX_EXTENSION_LENGTH-1,0);
 		SendDlgItemMessage(hwnd,IDC_CONNECT_EDIT,EM_LIMITTEXT,MAX_CONNECT_LENGTH-1,0);
-		SetDlgItemText(hwnd,IDC_STATIC_HELP,help_str);
+		SetDlgItemText(hwnd,IDC_STATIC_HELP,static_help_str);
 		populate_assoc(hwnd);
 		populate_drivers(hwnd);
 		grippy=create_grippy(hwnd);
@@ -621,7 +624,7 @@ LRESULT CALLBACK file_assoc_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 	case WM_HELP:
 		if(!help_busy){
 			help_busy=TRUE;
-			MessageBox(hwnd,help_str,"HELP",MB_OK);
+			MessageBox(hwnd,help_msg,"HELP",MB_OK);
 			help_busy=FALSE;
 		}
 		return 1;
