@@ -143,6 +143,20 @@ int replace_params(char *connect,int con_size,char *full_name,char *path,char *n
 	free(tmp);
 	return TRUE;
 }
+int does_key_exist(char *subkey,char *entry)
+{
+	int result=FALSE;
+	HKEY hkey=0;
+	RegOpenKeyEx(HKEY_LOCAL_MACHINE,subkey,NULL,KEY_READ,&hkey);
+	if(hkey!=0){
+		int len=0,type=0;
+		RegQueryValueEx(hkey,entry,NULL,&type,NULL,&len);
+		if(len!=0)
+			result=TRUE;
+		RegCloseKey(hkey);
+	}
+	return result;
+}
 int process_cmd_line(char *cmd)
 {
 	char fname[MAX_PATH+4]={0};
@@ -168,29 +182,33 @@ int process_cmd_line(char *cmd)
 		}
 	}
 	else if(stricmp(ext,".DBF")==0){
-		if(name[0]!=0 && path[0]!=0){
-			//char *cstr="DSN=Visual FoxPro Tables;UID=;PWD=;SourceDB=%s;SourceType=DBF;Exclusive=No;BackgroundFetch=Yes;Collate=Machine;Null=Yes;Deleted=Yes;TABLE=%s";
-			//char *cstr="CollatingSequence=ASCII;DefaultDir=%s;Deleted=0;Driver={Microsoft dBASE Driver (*.dbf)};DriverId=533;Exclusive=0;FIL=dBase 5.0;MaxBufferSize=2048;MaxScanRows=8;PageTimeout=5;SafeTransactions=0;Statistics=0;Threads=3;UID=admin;UserCommitSync=Yes;TABLE=%s";
-			char *cstr="Driver={Microsoft dBASE Driver (*.dbf)};DBQ=%s;TABLE=%s";
-			_snprintf(connect,sizeof(connect),cstr,path,name);
-			task_open_db_and_table(connect);
-			return TRUE;
+		if(does_key_exist("SOFTWARE\\ODBC\\ODBCINST.INI\\ODBC Drivers","Microsoft dBase Driver (*.dbf)")){
+			if(name[0]!=0 && path[0]!=0){
+				char *cstr="Driver={Microsoft dBASE Driver (*.dbf)};DBQ=%s;TABLE=%s";
+				_snprintf(connect,sizeof(connect),cstr,path,name);
+				task_open_db_and_table(connect);
+				return TRUE;
+			}
 		}
 	}
 	else if(stricmp(ext,".MDB")==0){
-		if(fname[0]!=0){
-			char *cstr="Driver={Microsoft Access Driver (*.mdb)};Dbq=%s";
-			_snprintf(connect,sizeof(connect),cstr,fname);
-			task_open_db(connect);
-			return TRUE;
+		if(does_key_exist("SOFTWARE\\ODBC\\ODBCINST.INI\\ODBC Drivers","Microsoft Access Driver (*.mdb)")){
+			if(fname[0]!=0){
+				char *cstr="Driver={Microsoft Access Driver (*.mdb)};Dbq=%s";
+					_snprintf(connect,sizeof(connect),cstr,fname);
+					task_open_db(connect);
+					return TRUE;
+			}
 		}
 	}
 	else if(stricmp(ext,".DB")==0){
-		if(fname[0]!=0){
-			char *cstr="UID=dba;PWD=sql;DatabaseFile=%s;AutoStop=Yes;Integrated=No;Driver={Adaptive Server Anywhere 9.0}";
-			_snprintf(connect,sizeof(connect),cstr,fname);
-			task_open_db(connect);
-			return TRUE;
+		if(does_key_exist("SOFTWARE\\ODBC\\ODBCINST.INI\\ODBC Drivers","Adaptive Server Anywhere 9.0")){
+			if(fname[0]!=0){
+				char *cstr="UID=dba;PWD=sql;DatabaseFile=%s;AutoStop=Yes;Integrated=No;Driver={Adaptive Server Anywhere 9.0}";
+					_snprintf(connect,sizeof(connect),cstr,fname);
+					task_open_db(connect);
+					return TRUE;
+			}
 		}
 	}
 	return FALSE;
