@@ -314,8 +314,12 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			SetWindowPos(hwnd,NULL,x,y,0,0,SWP_NOSIZE|SWP_NOZORDER);
 			SendDlgItemMessage(hwnd,IDC_EDIT1,EM_SETSEL,0,-1);
 			SetFocus(GetDlgItem(hwnd,IDC_EDIT1));
-
 			search_fill_lb(hwnd,win->hlistview,win->selected_column);
+			if(GetKeyState(VK_SHIFT)&0x8000)
+				col_only=TRUE;
+			else
+				col_only=FALSE;
+
 			if(col_only){
 				ShowWindow(GetDlgItem(hwnd,IDC_COMBO1),SW_SHOW);
 				CheckDlgButton(hwnd,IDC_SEARCH_COL,BST_CHECKED);
