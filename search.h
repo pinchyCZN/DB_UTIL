@@ -225,12 +225,36 @@ int do_search(TABLE_WINDOW *win,HWND hwnd,char *find,int dir,int col_only,int wh
 			if(GetScrollInfo(win->hlistview,SB_HORZ,&si)!=0){
 				rect_col.left-=si.nPos;
 			}
-
-
 		}
 		set_status_bar_text(ghstatusbar,1,"row=%3i col=%2i",last_row+1,win->selected_column+1);
-		if(hwnd!=0)
-			SetWindowPos(hwnd,NULL,rect_col.left,rect.bottom,0,0,SWP_NOSIZE|SWP_NOZORDER);
+		if(hwnd!=0){
+			HMONITOR hmon;
+			POINT p;
+			RECT srect={0};
+			int mx,my;
+			GetWindowRect(hwnd,&srect);
+			mx=(srect.right-srect.left)/2;
+			my=(srect.bottom-srect.top)/2;
+			p.x=rect_col.left+mx;
+			p.y=rect.bottom+my;
+			hmon=MonitorFromPoint(p,MONITOR_DEFAULTTONULL);
+			if(hmon==0){
+				p.x=rect_col.left+mx;
+				p.y=rect.top-my;
+				hmon=MonitorFromPoint(p,MONITOR_DEFAULTTONULL);
+				if(hmon!=0){
+					p.x=rect_col.left;
+					p.y=rect.top-(srect.bottom-srect.top);
+				}
+			}
+			else{
+				p.x=rect_col.left;
+				p.y=rect.bottom;
+			}
+			if(hmon!=0){
+				SetWindowPos(hwnd,NULL,p.x,p.y,0,0,SWP_NOSIZE|SWP_NOZORDER);
+			}
+		}
 		if(dir==DOWN){
 			last_dir=DOWN;
 			if(col_only)
