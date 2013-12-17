@@ -95,7 +95,6 @@ int load_window_size(HWND hwnd,char *section)
 				x=rect.left;
 			if(y<(rect.top-25) || y>(rect.bottom-25))
 				y=rect.top;
-			move_console(x+width,0);
 			if(SetWindowPos(hwnd,HWND_TOP,x,y,width,height,flags)!=0)
 				result=TRUE;
 		}

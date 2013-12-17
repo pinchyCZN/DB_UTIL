@@ -383,6 +383,45 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		}
 		break;
 	case WM_MOUSEWHEEL:
+		{
+			int x=0,y=0,ctrl=0,shift=0;
+			if(GetKeyState(VK_CONTROL)&0x8000)
+				ctrl=1;
+			if(GetKeyState(VK_SHIFT)&0x8000)
+				shift=1;
+			if(ctrl!=0 && shift!=0)
+				y=3;
+			else if(ctrl!=0)
+				x=1;
+			else if(shift!=0)
+				y=1;
+			if(x!=0 || y!=0){
+				TABLE_WINDOW *win=0;
+				if(find_win_by_hlistview(hwnd,&win)){
+					RECT rect={0};
+					int zdelta;
+					GetClientRect(win->hlistview,&rect);
+					if(x!=0){
+						x=rect.right/10;
+						if(x<=10)
+							x=10;
+					}
+					if(y!=0){
+						y=y*rect.bottom/3;
+						if(y<=20)
+							y=20;
+					}
+					zdelta=HIWORD(wparam);
+					if(zdelta&0x8000)
+						x=-x;
+					else
+						y=-y;
+					ListView_Scroll(win->hlistview,x,y);
+					return 0;
+				}
+				break;
+			}
+		}
 	case WM_VSCROLL:
 		{
 			TABLE_WINDOW *win=0;
