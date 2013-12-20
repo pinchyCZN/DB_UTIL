@@ -416,7 +416,7 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 						x=-x;
 					else
 						y=-y;
-					ListView_Scroll(win->hlistview,x,y);
+					ListView_Scroll(win->hlistview,-x,y);
 					return 0;
 				}
 				break;
