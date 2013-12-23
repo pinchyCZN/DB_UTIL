@@ -946,8 +946,15 @@ int load_tables_if_empty(DB_TREE *tree)
 int mdi_open_db(DB_TREE *tree)
 {
 	int result=FALSE;
-	if(open_db(tree))
-		result=TRUE;
+	if(tree!=0){
+		if(open_db(tree)){
+			char str[1024]={0};
+			tree_get_item_text(tree->hroot,str,sizeof(str));
+			if(str[0]==0)
+				tree_set_item_text(tree->hroot,tree->connect_str);
+			result=TRUE;
+		}
+	}
 	return result;
 }
 int mdi_remove_db(DB_TREE *tree)

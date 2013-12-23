@@ -38,6 +38,18 @@ int insert_item(char *name,HTREEITEM hparent,int lparam)
 	tvins.item=tvi;
  	return TreeView_InsertItem(ghtreeview,&tvins);
 }
+int tree_set_item_text(HTREEITEM hitem,char *str)
+{
+	TV_ITEM tvi;
+	if(hitem!=0 && str!=0 && str[0]!=0){
+		memset(&tvi,0,sizeof(tvi));
+		tvi.hItem=hitem;
+		tvi.mask=TVIF_TEXT;
+		tvi.pszText=str;
+		return TreeView_SetItem(ghtreeview,&tvi);
+	}
+	return FALSE;
+}
 int tree_get_item_text(HTREEITEM hitem,char *str,int len)
 {
 	TV_ITEM tvi;

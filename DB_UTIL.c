@@ -221,9 +221,10 @@ int add_connect_str(char *connect)
 
 	if(connect!=0 && connect[0]!=0){
 		int i;
-		char **entries;
+		char **entries,**out;
 		entries=malloc(max_entries*sizeof(char *));
-		if(entries!=0){
+		out=malloc(max_entries*sizeof(char *));
+		if(entries!=0 && out!=0){
 			int index=0;
 			for(i=0;i<max_entries;i++){
 				entries[i]=malloc(max_len);
@@ -231,49 +232,78 @@ int add_connect_str(char *connect)
 					entries[i][0]=0;
 					get_ini_entry(section,i,entries[i],max_len);
 				}
+				out[i]=malloc(max_len);
+				if(out[i]!=0){
+					out[i][0]=0;
+				}
 			}
 			// entries that start with > are meant to stay at the top
+			index=0;
+			if(connect[0]=='>'){
+				if(out[index]!=0){
+					strncpy(out[index],connect,max_len);
+					index++;
+				}
+			}
 			for(i=0;i<max_entries;i++){
+				if(index>=max_entries)
+					break;
 				if(entries[i]!=0){
 					if(entries[i][0]=='>'){
-						if(strnicmp(entries[i]+1,connect,max_len-1)==0){
-							index=max_entries+1; //go ahead and bail, dont dupe this entry
-							break;
+						if(out[index]!=0){
+							if(stricmp(entries[i],connect)!=0){
+								strncpy(out[index],entries[i],max_len);
+								index++;
+							}
 						}
-					}
-					else{
-						index=i;
-						break;
 					}
 				}
 			}
-			if(index<max_entries){
-				for(i=index;i<max_entries;i++){
-					if(entries[i]!=0){
-						if(entries[i][0]!=0){
-							if(strnicmp(entries[i],connect,max_len)==0)
-								entries[i][0]=0;
-						}
-					}
-				}
-				set_ini_entry(section,index,connect);
-				for(i=index;i<max_entries-1;i++){
-					if(entries[i]!=0){
-						if(entries[i][0]!=0){
-							set_ini_entry(section,index+1,entries[i]);
+			if(connect[0]!='>' && index<max_entries && out[index]!=0){
+				strncpy(out[index],connect,max_len);
+				index++;
+			}
+			for(i=0;i<max_entries;i++){
+				if(index>=max_entries)
+					break;
+				if(entries[i]!=0){
+					if(entries[i][0]!='>'){
+						if(stricmp(entries[i],connect)!=0){
+							strncpy(out[index],entries[i],max_len);
 							index++;
 						}
 					}
 				}
 			}
-		}
-		if(entries!=0){
-			for(i=0;i<max_entries;i++){
-				if(entries[i]!=0)
-					free(entries[i]);
+			index=0;
+			for(i=0;i<max_entries-1;i++){
+				if(out[i]!=0){
+					if(out[i][0]!=0){
+						set_ini_entry(section,index,out[i]);
+						index++;
+					}
+				}
 			}
-			free(entries);
+			for(i=index;i<max_entries-1;i++){
+				set_ini_entry(section,index,"");
+				index++;
+			}
+
 		}
+		for(i=0;i<max_entries;i++){
+			char **p=entries;
+			if(p!=0)
+				if(p[i]!=0)
+					free(p[i]);
+			p=out;
+			if(p!=0)
+				if(p[i]!=0)
+					free(p[i]);
+		}
+		if(entries!=0)
+			free(entries);
+		if(out!=0)
+			free(out);
 	}
 	return result;
 }
@@ -549,13 +579,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 	case WM_COMMAND:
 		switch(LOWORD(wparam)){
 		case IDM_OPEN:
-			if(GetKeyState(VK_SHIFT)&0x8000)
+			if((GetKeyState(VK_SHIFT)&0x8000) || GetKeyState(VK_CONTROL)&0x8000)
 				task_open_db("");
-			else
-			task_open_db( //"DSN=OFW Visual FoxPro;UID=;PWD=;SourceDB=C:\\Program Files\\Pinnacle\\Oaswin\\;SourceType=DBF;Exclusive=No;BackgroundFetch=Yes;Collate=Machine;Null=Yes;Deleted=Yes;");
-			"UID=dba;PWD=sql;DSN=Journal");
-			//task_open_db( //"DSN=OFW Visual FoxPro;UID=;PWD=;SourceDB=C:\\Program Files\\Pinnacle\\Oaswin\\;SourceType=DBF;Exclusive=No;BackgroundFetch=Yes;Collate=Machine;Null=Yes;Deleted=Yes;");
-			//"");
+			else{
+				if(does_key_exist("SOFTWARE\\ODBC\\ODBC.INI\\ODBC Data Sources","Journal"))
+					task_open_db("UID=dba;PWD=sql;DSN=Journal");
+			}
 			break;
 		case IDM_CLOSE:
 			{
