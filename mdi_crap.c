@@ -48,19 +48,28 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
     {
 	case WM_CREATE:
 		{
-		TABLE_WINDOW *win=0;
-		LPCREATESTRUCT pcs = (LPCREATESTRUCT)lparam;
-		LPMDICREATESTRUCT pmdics = (LPMDICREATESTRUCT)(pcs->lpCreateParams);
-		win=pmdics->lParam;
-		if(win!=0){
-			win->hwnd=hwnd;
-		}
-		create_mdi_window(hwnd,ghinstance,win);
+			TABLE_WINDOW *win=0;
+			RECT rect={0};
+			int ypos;
+			LPCREATESTRUCT pcs = (LPCREATESTRUCT)lparam;
+			LPMDICREATESTRUCT pmdics = (LPMDICREATESTRUCT)(pcs->lpCreateParams);
+			win=pmdics->lParam;
+			if(win!=0){
+				win->hwnd=hwnd;
+			}
+			create_mdi_window(hwnd,ghinstance,win);
 
-		SendDlgItemMessage(hwnd,IDC_MDI_EDIT,WM_SETFONT,GetStockObject(get_font_setting(IDC_SQL_FONT)),0);
-		SendDlgItemMessage(hwnd,IDC_MDI_LISTVIEW,WM_SETFONT,GetStockObject(get_font_setting(IDC_LISTVIEW_FONT)),0);
-		load_mdi_size(hwnd);
-		mdi_tile_windows_vert(hwnd);
+			SendDlgItemMessage(hwnd,IDC_MDI_EDIT,WM_SETFONT,GetStockObject(get_font_setting(IDC_SQL_FONT)),0);
+			SendDlgItemMessage(hwnd,IDC_MDI_LISTVIEW,WM_SETFONT,GetStockObject(get_font_setting(IDC_LISTVIEW_FONT)),0);
+			load_mdi_size(hwnd);
+			ypos=new_mdi_ypos(0,FALSE);
+			GetClientRect(ghmdiclient,&rect);
+			if(ypos>(rect.bottom*2/3))
+				ypos=0;
+			SetWindowPos(hwnd,NULL,0,ypos,0,0,SWP_NOSIZE);
+			ypos+=GetSystemMetrics(SM_CYCAPTION);
+			ypos+=GetSystemMetrics(SM_CXEDGE)*2;
+			new_mdi_ypos(ypos,TRUE);
 		}
         break;
 	case WM_CHAR:
@@ -1048,11 +1057,17 @@ int mdi_set_title(TABLE_WINDOW *win,char *title)
 		SetWindowText(win->hwnd,title);
 	return TRUE;
 }
-int mdi_tile_windows_vert(HWND hwnd)
+int new_mdi_ypos(int y,int save)
+{
+	static int ypos=0;
+	if(save)
+		ypos=y;
+	return ypos;
+}
+int mdi_tile_windows_vert()
 {
 	int i,y=0,caption_height,width,height;
 	RECT rect={0};
-	HWND last_hwnd=0;
 	caption_height=GetSystemMetrics(SM_CYCAPTION);
 	caption_height+=GetSystemMetrics(SM_CXEDGE)*2;
 	if(caption_height==0)
@@ -1071,12 +1086,9 @@ int mdi_tile_windows_vert(HWND hwnd)
 			height-=caption_height;
 			if(height<(rect.bottom/3))
 				height=rect.bottom/3;
-			last_hwnd=win->hwnd;
 		}
 	}
-	if(hwnd!=0 && last_hwnd!=hwnd){
-		SendMessage(ghmdiclient,WM_MDIACTIVATE,(WPARAM)hwnd,0);
-	}
+	new_mdi_ypos(y,TRUE);
 	return TRUE;
 }
 int create_abort(TABLE_WINDOW *win)

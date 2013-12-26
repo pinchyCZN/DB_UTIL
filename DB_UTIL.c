@@ -623,7 +623,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 			task_execute_query(NULL);
 			break;
 		case IDM_WINDOW_TILE:
-			mdi_tile_windows_vert(NULL);
+			mdi_tile_windows_vert();
 			break;
 		}
 		break;
