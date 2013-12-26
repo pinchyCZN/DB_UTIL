@@ -60,6 +60,7 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 		SendDlgItemMessage(hwnd,IDC_MDI_EDIT,WM_SETFONT,GetStockObject(get_font_setting(IDC_SQL_FONT)),0);
 		SendDlgItemMessage(hwnd,IDC_MDI_LISTVIEW,WM_SETFONT,GetStockObject(get_font_setting(IDC_LISTVIEW_FONT)),0);
 		load_mdi_size(hwnd);
+		mdi_tile_windows_vert(hwnd);
 		}
         break;
 	case WM_CHAR:
@@ -1047,25 +1048,34 @@ int mdi_set_title(TABLE_WINDOW *win,char *title)
 		SetWindowText(win->hwnd,title);
 	return TRUE;
 }
-int mdi_tile_windows_vert()
+int mdi_tile_windows_vert(HWND hwnd)
 {
-	int i,y=0,height;
+	int i,y=0,caption_height,width,height;
 	RECT rect={0};
-	height=GetSystemMetrics(SM_CYCAPTION);
-	height+=GetSystemMetrics(SM_CXEDGE)*2;
-	if(height==0)
-		height=19+4;
+	HWND last_hwnd=0;
+	caption_height=GetSystemMetrics(SM_CYCAPTION);
+	caption_height+=GetSystemMetrics(SM_CXEDGE)*2;
+	if(caption_height==0)
+		caption_height=19+4;
 	GetClientRect(ghmdiclient,&rect);
+	height=rect.bottom;
+	width=rect.right;
 	for(i=0;i<sizeof(table_windows)/sizeof(TABLE_WINDOW);i++){
 		TABLE_WINDOW *win=&table_windows[i];
 		if(win->hwnd!=0){
 			int flags=0;
-			if(rect.right==0 || rect.bottom==0)
+			if(width<=0 || height<=0)
 				flags=SWP_NOSIZE;
-			SetWindowPos(win->hwnd,NULL,0,y,rect.right,rect.bottom,flags);
-			y+=height;
-			rect.bottom-=height;
+			SetWindowPos(win->hwnd,NULL,0,y,width,height,flags);
+			y+=caption_height;
+			height-=caption_height;
+			if(height<(rect.bottom/3))
+				height=rect.bottom/3;
+			last_hwnd=win->hwnd;
 		}
+	}
+	if(hwnd!=0 && last_hwnd!=hwnd){
+		SendMessage(ghmdiclient,WM_MDIACTIVATE,(WPARAM)hwnd,0);
 	}
 	return TRUE;
 }
