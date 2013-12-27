@@ -188,7 +188,7 @@ int handle_intellisense(TABLE_WINDOW *win,char *str,int pos,int mode)
 	return tab_continue;
 }
 
-int find_word_start(char *str,int pos,int *start)
+int find_word_start(unsigned char *str,int pos,int *start)
 {
 	int i,found=FALSE;
 	if(is_word_boundary(str[pos])){
@@ -222,7 +222,7 @@ int find_word_end(char *str,int pos,int *end)
 	return TRUE;
 }
 
-int is_word_boundary(char a)
+int is_word_boundary(unsigned char a)
 {
 	if(a<='/')
 		return TRUE;
@@ -230,13 +230,17 @@ int is_word_boundary(char a)
 		return FALSE;
 	else if(a>=':' && a<='@')
 		return TRUE;
-	else if(a>='[' && a<='\'')
+	else if(a>='[' && a<='^')
+		return TRUE;
+	else if(a=='`')
+		return TRUE;
+	else if(a>='{')
 		return TRUE;
 	else
 		return FALSE;
 }
 
-int get_substr(char *str,int start,char *substr,int size,int *pos)
+int get_substr(unsigned char *str,int start,char *substr,int size,int *pos)
 {
 	int i,index,len,found=FALSE;
 	len=strlen(str);
@@ -368,7 +372,7 @@ int check_LR(TABLE_WINDOW *win,int vkey)
 		start=0;
 	line=SendMessage(win->hedit,EM_LINEFROMCHAR,start,0);
 	if(line>=0){
-		char s[1024];
+		unsigned char s[1024];
 		int len,lindex,linestart;
 		((WORD*)s)[0]=sizeof(s);
 		len=SendMessage(win->hedit,EM_GETLINE,line,s);

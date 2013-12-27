@@ -186,7 +186,7 @@ int process_anchor_list(HWND hwnd,short *list)
 	ReleaseDC(hwnd,hdc);
 	return TRUE;
 }
-int get_word(char *str,int num,char *out,int olen)
+int get_word(unsigned char *str,int num,char *out,int olen)
 {
 	int i,len,count=0,index=0;
 	int start_found=FALSE;

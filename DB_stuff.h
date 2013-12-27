@@ -255,7 +255,7 @@ int fetch_columns(SQLHSTMT hstmt,TABLE_WINDOW *win)
 	}
 	return cols;
 }
-int trim_trail_space(char *s,int slen)
+int trim_trail_space(unsigned char *s,int slen)
 {
 	int i,len;
 	len=strlen(s);
