@@ -7,6 +7,7 @@ extern HINSTANCE ghinstance;
 
 int trim_trailing=0;
 int left_justify=0;
+int save_mdi_win_size=0;
 
 struct FONT_NAME{
 	int font_num;
@@ -151,6 +152,10 @@ LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			if(left_justify)
 				CheckDlgButton(hwnd,IDC_LEFT_JUSTIFY,BST_CHECKED);
 
+			get_ini_value(INI_SETTINGS,"SAVE_MDI_WIN_SIZE",&save_mdi_win_size);
+			if(save_mdi_win_size)
+				CheckDlgButton(hwnd,IDC_SAVE_MDI_WIN_SIZE,BST_CHECKED);
+
 			add_fonts(hwnd,IDC_SQL_FONT);
 			add_fonts(hwnd,IDC_LISTVIEW_FONT);
 			add_fonts(hwnd,IDC_TREEVIEW_FONT);
@@ -279,6 +284,12 @@ LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			else
 				left_justify=0;
 			write_ini_value(INI_SETTINGS,"LEFT_JUSTIFY",left_justify);
+
+			if(IsDlgButtonChecked(hwnd,IDC_SAVE_MDI_WIN_SIZE)==BST_CHECKED)
+				save_mdi_win_size=1;
+			else
+				save_mdi_win_size=0;
+			write_ini_value(INI_SETTINGS,"SAVE_MDI_SIZE",save_mdi_win_size);
 
 			for(i=0;i<sizeof(ctrls)/sizeof(int);i++){
 				key[0]=0;

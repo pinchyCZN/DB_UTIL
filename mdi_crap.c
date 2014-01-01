@@ -49,8 +49,6 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 	case WM_CREATE:
 		{
 			TABLE_WINDOW *win=0;
-			RECT rect={0};
-			int ypos;
 			LPCREATESTRUCT pcs = (LPCREATESTRUCT)lparam;
 			LPMDICREATESTRUCT pmdics = (LPMDICREATESTRUCT)(pcs->lpCreateParams);
 			win=pmdics->lParam;
@@ -62,14 +60,6 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 			SendDlgItemMessage(hwnd,IDC_MDI_EDIT,WM_SETFONT,GetStockObject(get_font_setting(IDC_SQL_FONT)),0);
 			SendDlgItemMessage(hwnd,IDC_MDI_LISTVIEW,WM_SETFONT,GetStockObject(get_font_setting(IDC_LISTVIEW_FONT)),0);
 			load_mdi_size(hwnd);
-			ypos=new_mdi_ypos(0,FALSE);
-			GetClientRect(ghmdiclient,&rect);
-			if(ypos>(rect.bottom*2/3))
-				ypos=0;
-			SetWindowPos(hwnd,NULL,0,ypos,0,0,SWP_NOSIZE);
-			ypos+=GetSystemMetrics(SM_CYCAPTION);
-			ypos+=GetSystemMetrics(SM_CXEDGE)*2;
-			new_mdi_ypos(ypos,TRUE);
 		}
         break;
 	case WM_CHAR:
@@ -498,42 +488,88 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 
 int load_mdi_size(HWND hwnd)
 {
-	int width=0,height=0,max=0;
-	get_ini_value("SETTINGS","mdi_width",&width);
-	get_ini_value("SETTINGS","mdi_height",&height);
-	get_ini_value("SETTINGS","mdi_maximized",&max);
-	if(width!=0 && height!=0){
-		WINDOWPLACEMENT wp={0};
-		RECT rect={0};
-		wp.length=sizeof(wp);
-		wp.showCmd=SW_SHOWNORMAL;
-		wp.rcNormalPosition.bottom=height;
-		wp.rcNormalPosition.right=width;
-		GetClientRect(ghmdiclient,&rect);
-		if(width>rect.right)
-			width=rect.right;
-		if(height>rect.bottom)
-			height=rect.bottom;
-		SetWindowPos(hwnd,HWND_TOP,0,0,width,height,SWP_SHOWWINDOW|SWP_NOMOVE);
-		if(max)
-			PostMessage(hwnd,WM_USER+1,0,0);
-		return TRUE;
+extern int save_mdi_win_size;
+	if(save_mdi_win_size){
+		int width=0,height=0,max=0;
+		get_ini_value("SETTINGS","mdi_width",&width);
+		get_ini_value("SETTINGS","mdi_height",&height);
+		get_ini_value("SETTINGS","mdi_maximized",&max);
+		if(width!=0 && height!=0){
+			RECT rect={0};
+			GetClientRect(ghmdiclient,&rect);
+			if(width>rect.right)
+				width=rect.right;
+			if(height>rect.bottom)
+				height=rect.bottom;
+			if(width<(rect.right/4))
+				width=rect.right/4;
+			if(height<(rect.bottom/4))
+				height=rect.bottom/4;
+			SetWindowPos(hwnd,HWND_TOP,0,0,width,height,SWP_SHOWWINDOW|SWP_NOMOVE);
+			if(max)
+				PostMessage(hwnd,WM_USER+1,0,0);
+			return TRUE;
+		}
+		return FALSE;
 	}
-	return FALSE;
+	else{
+		int i,ypos,limit,w,h,count=0;
+		int flags=0;
+		RECT rect={0};
+		RECT wrect={0};
+		for(i=0;i<sizeof(table_windows)/sizeof(TABLE_WINDOW);i++){
+			TABLE_WINDOW *win=&table_windows[i];
+			if(win->hwnd!=0 && win->hwnd!=hwnd)
+				count++;
+		}
+		ypos=GetSystemMetrics(SM_CYCAPTION);
+		ypos+=GetSystemMetrics(SM_CXEDGE)*2;
+
+		GetClientRect(ghmdiclient,&rect);
+		GetWindowRect(ghmdiclient,&wrect);
+
+		limit=(rect.bottom*2/3);
+		if(limit<=0)
+			limit=23*12;
+		ypos=(count*ypos)%limit;
+
+		{
+			int xv=GetSystemMetrics(SM_CXVSCROLL);
+			if(((wrect.right-wrect.left)-rect.right)<xv/2)
+				w=rect.right-xv;
+			else
+				w=rect.right;
+		}
+		h=rect.bottom-GetSystemMetrics(SM_CYHSCROLL)/2;
+		if(w<=0 || w<rect.right/2)
+			w=rect.right/2;
+		if(w<=16)
+			flags|=SWP_NOSIZE;
+		if(h<=0 || h<rect.bottom/2)
+			h=rect.bottom/2;
+		if(h<=16)
+			flags|=SWP_NOSIZE;
+		SetWindowPos(hwnd,NULL,0,ypos,w,h,flags);
+	}
+	return TRUE;
 }
 int save_mdi_size(HWND hwnd)
 {
-	WINDOWPLACEMENT wp;
-	wp.length=sizeof(wp);
-	if(GetWindowPlacement(hwnd,&wp)!=0){
-		RECT rect={0};
-		rect=wp.rcNormalPosition;
-		write_ini_value("SETTINGS","mdi_width",rect.right-rect.left);
-		write_ini_value("SETTINGS","mdi_height",rect.bottom-rect.top);
-		write_ini_value("SETTINGS","mdi_maximized",wp.flags&WPF_RESTORETOMAXIMIZED?1:0);
-		return TRUE;
+extern int save_mdi_win_size;
+	if(save_mdi_win_size){
+		WINDOWPLACEMENT wp;
+		wp.length=sizeof(wp);
+		if(GetWindowPlacement(hwnd,&wp)!=0){
+			RECT rect={0};
+			rect=wp.rcNormalPosition;
+			write_ini_value("SETTINGS","mdi_width",rect.right-rect.left);
+			write_ini_value("SETTINGS","mdi_height",rect.bottom-rect.top);
+			write_ini_value("SETTINGS","mdi_maximized",wp.flags&WPF_RESTORETOMAXIMIZED?1:0);
+			return TRUE;
+		}
+		return FALSE;
 	}
-	return FALSE;
+	return TRUE;
 }
 int move_console(int x,int y)
 {
@@ -1057,16 +1093,9 @@ int mdi_set_title(TABLE_WINDOW *win,char *title)
 		SetWindowText(win->hwnd,title);
 	return TRUE;
 }
-int new_mdi_ypos(int y,int save)
-{
-	static int ypos=0;
-	if(save)
-		ypos=y;
-	return ypos;
-}
 int mdi_tile_windows_vert()
 {
-	int i,y=0,caption_height,width,height;
+	int i,caption_height,y,width,height;
 	RECT rect={0};
 	caption_height=GetSystemMetrics(SM_CYCAPTION);
 	caption_height+=GetSystemMetrics(SM_CXEDGE)*2;
@@ -1075,6 +1104,7 @@ int mdi_tile_windows_vert()
 	GetClientRect(ghmdiclient,&rect);
 	height=rect.bottom;
 	width=rect.right;
+	y=0;
 	for(i=0;i<sizeof(table_windows)/sizeof(TABLE_WINDOW);i++){
 		TABLE_WINDOW *win=&table_windows[i];
 		if(win->hwnd!=0){
@@ -1082,13 +1112,12 @@ int mdi_tile_windows_vert()
 			if(width<=0 || height<=0)
 				flags=SWP_NOSIZE;
 			SetWindowPos(win->hwnd,NULL,0,y,width,height,flags);
-			y+=caption_height;
 			height-=caption_height;
 			if(height<(rect.bottom/3))
 				height=rect.bottom/3;
+			y+=caption_height;
 		}
 	}
-	new_mdi_ypos(y,TRUE);
 	return TRUE;
 }
 int create_abort(TABLE_WINDOW *win)

@@ -61,6 +61,7 @@
 #define IDC_TXT_APPDATA                 1049
 #define IDC_SHELL_ASSOC                 1050
 #define IDC_EDIT3                       1051
+#define IDC_SAVE_MDI_WIN_SIZE           1052
 #define IDM_SETTINGS                    40002
 #define IDM_OPEN                        40006
 #define IDM_CLOSE                       40007
@@ -76,7 +77,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        118
 #define _APS_NEXT_COMMAND_VALUE         40013
-#define _APS_NEXT_CONTROL_VALUE         1052
+#define _APS_NEXT_CONTROL_VALUE         1053
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
