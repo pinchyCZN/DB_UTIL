@@ -534,13 +534,13 @@ extern int save_mdi_win_size;
 		ypos=(count*ypos)%limit;
 
 		{
-			int xv=GetSystemMetrics(SM_CXVSCROLL);
-			if(((wrect.right-wrect.left)-rect.right)<xv/2)
-				w=rect.right-xv;
-			else
+			//int xv=GetSystemMetrics(SM_CXVSCROLL);
+			//if(((wrect.right-wrect.left)-rect.right)<xv/2)
+			//	w=rect.right-xv;
+			//else
 				w=rect.right;
 		}
-		h=rect.bottom-GetSystemMetrics(SM_CYHSCROLL)/2;
+		h=rect.bottom-ypos;
 		if(w<=0 || w<rect.right/2)
 			w=rect.right/2;
 		if(w<=16)
