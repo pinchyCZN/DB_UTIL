@@ -1087,12 +1087,6 @@ int mdi_get_edit_text(TABLE_WINDOW *win,char *str,int size)
 	}
 	return TRUE;
 }
-int mdi_set_title(TABLE_WINDOW *win,char *title)
-{
-	if(win!=0 && win->hwnd!=0)
-		SetWindowText(win->hwnd,title);
-	return TRUE;
-}
 int mdi_tile_windows_vert()
 {
 	int i,caption_height,y,width,height;

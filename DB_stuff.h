@@ -145,6 +145,10 @@ int open_db(DB_TREE *tree)
 					strncpy(tree->connect_str,str,sizeof(tree->connect_str));
 					printf("connect str=%s\n",str);
 					add_connect_str(str);
+					if(tree->name[0]==0){
+						strncpy(tree->name,str,sizeof(tree->name));
+						tree->name[sizeof(tree->name)-1]=0;
+					}
 				}
 				tree->hdbc=hDbc;
 				tree->hdbenv=hEnv;
