@@ -7,13 +7,13 @@
 #include <conio.h>
 #include <stdlib.h>
 
-#define	SQL_LONGVARCHAR		-1
-#define	SQL_BINARY			-2
-#define	SQL_VARBINARY		-3
-#define	SQL_LONGVARBINARY	-4
-#define	SQL_BIGINT			-5
-#define	SQL_TINYINT			-6
-#define	SQL_BIT				-7
+//#define	SQL_LONGVARCHAR		-1
+//#define	SQL_BINARY			-2
+//#define	SQL_VARBINARY		-3
+//#define	SQL_LONGVARBINARY	-4
+//#define	SQL_BIGINT			-5
+//#define	SQL_TINYINT			-6
+//#define	SQL_BIT				-7
 #define	SQL_BLOB			-10
 #define	SQL_CLOB			-11
 #define	SQL_OTHER			100
@@ -581,7 +581,7 @@ int delete_row(TABLE_WINDOW *win,int row)
 					result=execute_sql(win,sql,FALSE);
 					if(result){
 						ListView_DeleteItem(win->hlistview,row);
-						set_status_bar_text(ghstatusbar,0,"row %i deleted",row+1);
+						set_status_bar_text(ghstatusbar,1,"rows affected=%i",result);
 					}
 					else{
 						copy_str_clipboard(sql);
@@ -664,8 +664,17 @@ int insert_row(TABLE_WINDOW *win,HWND hlistview)
 			}
 			else{
 				ListView_GetItemText(hlistview,i,TYPE_COL,str,sizeof(str));
-				if(strstri(str,"date")!=0 || strstri(str,"time")!=0 || strstri(str,"char")!=0){
+				if(strstri(str,"char")!=0){
 					lquote=rquote="'";
+				}else if(strstri(str,"datetime")!=0){
+					lquote="{ts'";
+					rquote="'}";
+				}else if(strstri(str,"date")!=0){
+					lquote="{d'";
+					rquote="'}";
+				}else if(strstri(str,"time")!=0){
+					lquote="{t'";
+					rquote="'}";
 				}
 			}
 			_snprintf(sql,sql_size,"%s%s%s%s%s",sql,(inserted>0)?",":"",lquote,d,rquote);
@@ -686,7 +695,7 @@ int insert_row(TABLE_WINDOW *win,HWND hlistview)
 		free(tmp);
 	return result;
 }
-int create_update_statement(TABLE_WINDOW *win,int row,char *data,char *sql,int sql_size)
+int create_statement(TABLE_WINDOW *win,int row,char *data,char *sql,int sql_size,int create_delete)
 {
 	int result=FALSE;
 	if(win!=0 && win->hlistview!=0 && data!=0 && sql!=0 && sql_size>0){
@@ -710,7 +719,10 @@ int create_update_statement(TABLE_WINDOW *win,int row,char *data,char *sql,int s
 			sql[0]=0;
 			tmp[0]=0;
 			sanitize_value(data,tmp,tmp_size,get_column_type(win,win->selected_column));
-			_snprintf(sql,sql_size,"UPDATE [%s]\r\nSET %s%s%s=%s\r\nWHERE\r\n",win->table,lbrack,col_name,rbrack,tmp[0]==0?"''":tmp);
+			if(create_delete)
+				_snprintf(sql,sql_size,"DELETE FROM [%s] WHERE\r\n",win->table);
+			else
+				_snprintf(sql,sql_size,"UPDATE [%s]\r\nSET %s%s%s=%s\r\nWHERE\r\n",win->table,lbrack,col_name,rbrack,tmp[0]==0?"''":tmp);
 			for(i=0;i<count;i++){
 				char *v=0,*eq="=";
 				col_name[0]=0;
@@ -757,7 +769,7 @@ int update_row(TABLE_WINDOW *win,int row,char *data)
 		sql=malloc(sql_size);
 		if(sql!=0){
 			sql[0]=0;
-			if(create_update_statement(win,row,data,sql,sql_size) && reopen_db(win)){
+			if(create_statement(win,row,data,sql,sql_size,FALSE) && reopen_db(win)){
 				mdi_create_abort(win);
 				result=execute_sql(win,sql,FALSE);
 				if(result)
@@ -776,6 +788,26 @@ int update_row(TABLE_WINDOW *win,int row,char *data)
 	}
 	return result;
 }
+int is_modify_sql(unsigned char *sql)
+{
+	int i,len;
+	unsigned char *s=sql;
+	len=strlen(sql);
+	for(i=0;i<len;i++){
+		if(sql[i]>' '){
+			s=sql+i;
+			break;
+		}
+	}
+	if(strnicmp(s,"UPDATE",sizeof("UPDATE")-1)==0)
+		return TRUE;
+	else if(strnicmp(s,"INSERT",sizeof("INSERT")-1)==0)
+		return TRUE;
+	else if(strnicmp(s,"DELETE",sizeof("DELETE")-1)==0)
+		return TRUE;
+	else
+		return FALSE;
+}
 int execute_sql(TABLE_WINDOW *win,char *sql,int display_results)
 {
 	int result=FALSE;
@@ -785,14 +817,17 @@ int execute_sql(TABLE_WINDOW *win,char *sql,int display_results)
 		SQLAllocHandle(SQL_HANDLE_STMT,win->hdbc,&hstmt);
 		if(hstmt!=0){
 			SetWindowText(ghstatusbar,"executing query");
+			set_status_bar_text(ghstatusbar,1,"");
 			retcode=SQLExecDirect(hstmt,sql,SQL_NTS);
 			switch(retcode){
 			case SQL_SUCCESS_WITH_INFO:
 			case SQL_SUCCESS:
 				{
 				SQLINTEGER cols=0,total=0;
+				SQLINTEGER row_count=0;
 				int aborted=FALSE;
-				if(display_results){
+				int is_mod=is_modify_sql(sql);
+				if(display_results && (!is_mod)){
 					int mark;
 					RECT rect={0};
 					ListView_GetItemRect(win->hlistview,0,&rect,LVIR_BOUNDS);
@@ -814,6 +849,15 @@ int execute_sql(TABLE_WINDOW *win,char *sql,int display_results)
 					win->rows=total;
 				}
 				result=TRUE;
+				SQLRowCount(hstmt,&row_count);
+				if(row_count==-1)
+					row_count=0;
+				if(row_count>0){
+					if(is_mod)
+						set_status_bar_text(ghstatusbar,1,"rows affected %i",row_count);
+					else
+						set_status_bar_text(ghstatusbar,1,"row count %i",row_count);
+				}
 				set_status_bar_text(ghstatusbar,0,"returned %i rows %i cols%s",win->rows,win->columns,aborted?" (aborted)":"");
 				printf("executed sql sucess\n");
 				}
@@ -828,10 +872,10 @@ int execute_sql(TABLE_WINDOW *win,char *sql,int display_results)
 				}
 				break;
 			case SQL_NO_DATA:
-				SetWindowText(ghstatusbar,"no data returned");
+				set_status_bar_text(ghstatusbar,1,"no data returned");
 				break;
 			default:
-				set_status_bar_text(ghstatusbar,0,"unhandled return code %i",retcode);
+				set_status_bar_text(ghstatusbar,1,"unhandled return code %i",retcode);
 				break;
 			}
 			SQLFreeStmt(hstmt,SQL_CLOSE);

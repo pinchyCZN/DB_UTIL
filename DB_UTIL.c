@@ -637,13 +637,15 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 		break;
 	case WM_ENDSESSION:
 		if(wparam){
-			save_window_size(hwnd,"MAIN_WINDOW");
+			if(!(GetKeyState(VK_SHIFT)&0x8000))
+				save_window_size(hwnd,"MAIN_WINDOW");
 		}
 		return 0;
 	case WM_CLOSE:
         break;
 	case WM_DESTROY:
-		save_window_size(hwnd,"MAIN_WINDOW");
+		if(!(GetKeyState(VK_SHIFT)&0x8000))
+			save_window_size(hwnd,"MAIN_WINDOW");
 		PostQuitMessage(0);
         break;
     }

@@ -349,8 +349,7 @@ void __cdecl thread(HANDLE event)
 						set_focus_after_result(win,result);
 					}
 					if(!result)
-						set_status_bar_text(ghstatusbar,0,
-							"execute sql failed %s",
+						set_status_bar_text(ghstatusbar,0,"execute sql failed %s",
 							keep_closed?"(closed DB)":"");
 				}
 				break;

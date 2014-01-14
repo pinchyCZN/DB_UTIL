@@ -10,6 +10,7 @@ enum {
 	CMD_SQL_WHERE,
 	CMD_SQL_ORDERBY,
 	CMD_SQL_UPDATE,
+	CMD_SQL_DELETE,
 	CMD_EXPORT_DATA,
 };
 int get_str_width(HWND hwnd,char *str)
@@ -216,6 +217,7 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		case CMD_SQL_WHERE:
 		case CMD_SQL_ORDERBY:
 		case CMD_SQL_UPDATE:
+		case CMD_SQL_DELETE:
 			{
 				TABLE_WINDOW *win=0;
 				if(find_win_by_hlistview(hwnd,&win)){
@@ -282,7 +284,13 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 								int tmp_size=sizeof(tmp);
 								ListView_GetItemText(win->hlistview,row,win->selected_column,tmp,tmp_size);
 								tmp[sizeof(tmp)-1]=0;
-								create_update_statement(win,row,tmp,sql,sql_size);
+								create_statement(win,row,tmp,sql,sql_size,FALSE);
+							}
+							break;
+						case CMD_SQL_DELETE:
+							{
+								char tmp[1]={0};
+								create_statement(win,row,tmp,sql,sql_size,TRUE);
 							}
 							break;
 						}
@@ -890,6 +898,7 @@ int create_lv_menus()
 		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SQL_WHERE,"SQL where =");
 		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SQL_ORDERBY,"SQL order by");
 		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SQL_UPDATE,"SQL update where =");
+		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SQL_DELETE,"SQL delete from [] where =");
 		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_EXPORT_DATA,"export data");
 	}
 	return TRUE;
