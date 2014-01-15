@@ -174,7 +174,6 @@ int process_cmd_line(char *cmd)
 	get_path(fname,path,sizeof(path));
 	get_name(fname,name,sizeof(name));
 	get_ext(fname,ext,sizeof(ext));
-
 	if(find_association(ext,connect,sizeof(connect))){
 		if(connect[0]!=0){
 			replace_params(connect,sizeof(connect),fname,path,name);
@@ -182,13 +181,21 @@ int process_cmd_line(char *cmd)
 		}
 	}
 	else if(stricmp(ext,".DBF")==0){
-		if(does_key_exist("SOFTWARE\\ODBC\\ODBCINST.INI\\ODBC Drivers","Microsoft dBase Driver (*.dbf)")){
-			if(name[0]!=0 && path[0]!=0){
-				char *cstr="Driver={Microsoft dBASE Driver (*.dbf)};DBQ=%s;TABLE=%s";
-				_snprintf(connect,sizeof(connect),cstr,path,name);
-				task_open_db_and_table(connect);
-				return TRUE;
+		{
+		char *key_list[]={
+			"Microsoft Visual FoxPro Driver","Microsoft dBase VFP Driver (*.dbf)","Microsoft dBase Driver (*.dbf)"
+		};
+		int i;
+		for(i=0;i<sizeof(key_list)/sizeof(char *);i++){
+			if(does_key_exist("SOFTWARE\\ODBC\\ODBCINST.INI\\ODBC Drivers",key_list[i])){
+				if(name[0]!=0 && path[0]!=0){
+					char *cstr="Driver={%s};DBQ=%s;SourceType=DBF;TABLE=%s";
+					_snprintf(connect,sizeof(connect),cstr,key_list[i],path,name);
+					task_open_db_and_table(connect);
+					return TRUE;
+				}
 			}
+		}
 		}
 	}
 	else if(stricmp(ext,".MDB")==0){
@@ -608,6 +615,8 @@ LRESULT CALLBACK shell_assoc_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam
 LRESULT CALLBACK file_assoc_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
 	extern HINSTANCE ghinstance;
+	static WNDPROC wporigtedit=0;
+	static HWND hedit=0;
 	static HWND grippy=0,tooltip=0;
 	static int help_busy=FALSE;
 	static char *static_help_str="example cmd line: C:\\temp\\mydatabase.dbf\r\n"
@@ -619,6 +628,16 @@ LRESULT CALLBACK file_assoc_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				" Driver={Microsoft dBASE Driver (*.dbf)};DBQ=%FPATH%;TABLE=%NAME%\r\n"
 				" UID=dba;PWD=sql;DatabaseFile=%s;AutoStop=Yes;Integrated=No;Driver={Adaptive Server Anywhere 9.0}\r\n\r\n"
 				"ODBC attributes:\r\n SourceDB=,DatabaseFile=,DSN=,DBQ=,Driver=,UID=,PWD=,Server=,Database=";
+	if(hwnd==hedit && wporigtedit!=0){
+		print_msg(msg,lparam,wparam,hwnd);
+		if(msg==WM_KEYFIRST){
+			if(wparam=='A'){
+				if(GetKeyState(VK_CONTROL)&0x8000)
+					SendMessage(hwnd,EM_SETSEL,0,-1);
+			}
+		}
+		return CallWindowProc(wporigtedit,hwnd,msg,wparam,lparam);
+	}
 	switch(msg){
 	case WM_INITDIALOG:
 		SendDlgItemMessage(hwnd,IDC_EXT_COMBO,CB_LIMITTEXT,MAX_EXTENSION_LENGTH-1,0);
@@ -629,6 +648,11 @@ LRESULT CALLBACK file_assoc_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		grippy=create_grippy(hwnd);
 		tooltip=0;
 		help_busy=FALSE;
+		hedit=GetDlgItem(hwnd,IDC_CONNECT_EDIT);
+		if(hedit)
+			wporigtedit=SetWindowLong(hedit,GWL_WNDPROC,(LONG)file_assoc_proc);
+		else
+			wporigtedit=0;
 		break;
 	case WM_SIZE:
 		grippy_move(hwnd,grippy);
