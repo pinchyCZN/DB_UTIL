@@ -447,6 +447,7 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			if(HIWORD(wparam)==EN_CHANGE)
 				do_search(win,0,0,0,0,0);
 			break;
+			break;
 		case IDOK:
 		case IDC_SEARCH_UP:
 		case IDC_SEARCH_DOWN:
@@ -458,6 +459,8 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				whole_word=TRUE;
 			else
 				whole_word=FALSE;
+			if(IDC_SEARCH_UP==LOWORD(wparam))
+				search=UP;
 			break;
 		case IDCANCEL:
 			if(timer!=0)
