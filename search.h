@@ -243,11 +243,44 @@ int do_search(TABLE_WINDOW *win,HWND hwnd,char *find,int dir,int col_only,int wh
 				p.y=rect.top-my;
 				hmon=MonitorFromPoint(p,MONITOR_DEFAULTTONULL);
 				if(hmon!=0){
+					//place on top
 					p.x=rect_col.left;
 					p.y=rect.top-(srect.bottom-srect.top);
+				}else{
+					p.x=rect_col.left-mx;
+					p.y=rect.top-my;
+					hmon=MonitorFromPoint(p,MONITOR_DEFAULTTONULL);
+					if(hmon!=0){
+						/*position at:
+						 _________
+						| search  |
+						 ---------*--------
+						          | match  |
+						           --------
+						*/
+						p.x=rect_col.left-(srect.right-srect.left);
+						p.y=rect.top-(srect.bottom-srect.top);
+					}else{
+						p.x=rect_col.left-mx;
+						p.y=rect.bottom+my;
+						hmon=MonitorFromPoint(p,MONITOR_DEFAULTTONULL);
+						if(hmon!=0){
+							/*position at:
+							           --------
+							          | match  |
+							 ---------*--------
+							| search  |
+							 ---------
+							*/
+							p.x=rect_col.left-(srect.right-srect.left);
+							p.y=rect.bottom+(srect.bottom-srect.top);
+						}
+					}
+
 				}
 			}
 			else{
+				//place below
 				p.x=rect_col.left;
 				p.y=rect.bottom;
 			}
@@ -299,8 +332,8 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 
 	static TABLE_WINDOW *win=0;
 	static int col_only=FALSE,whole_word=FALSE,timer=0;
-	//static char find[80]={0};
-	static HWND hwndTT=0;
+	static WNDPROC wporigtedit=0;
+	static HWND hwndTT=0,hedit=0;
 	int search=0;
 
 	if(FALSE)
@@ -313,6 +346,15 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		printf("src");
 		print_msg(msg,lparam,wparam,hwnd);
 		tick=GetTickCount();
+	}
+	if(hwnd==hedit && wporigtedit!=0){
+		if(msg==WM_KEYFIRST){
+			if(wparam=='A'){
+				if(GetKeyState(VK_CONTROL)&0x8000)
+					SendMessage(hwnd,EM_SETSEL,0,-1);
+			}
+		}
+		return CallWindowProc(wporigtedit,hwnd,msg,wparam,lparam);
 	}
 	switch(msg){
 	case WM_INITDIALOG:
@@ -358,13 +400,30 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			}
 			if(win->table!=0 && win->table[0]!=0){
 				char str[80]={0};
-				_snprintf(str,sizeof(str),"search %s (ctrl+enter srch up)",win->table);
+				_snprintf(str,sizeof(str),"search %s (shift+enter search up)",win->table);
 				str[sizeof(str)-1]=0;
 				SetWindowText(hwnd,str);
 			}
+			hedit=GetDlgItem(hwnd,IDC_EDIT1);
+			if(hedit)
+				wporigtedit=SetWindowLong(hedit,GWL_WNDPROC,(LONG)search_proc);
+			else
+				wporigtedit=0;
+			break;
+
 			hwndTT=0;
 			timer=0;
 			do_search(win,0,0,0,0,0);
+		}
+		break;
+	case WM_HELP:
+		{
+			static int help_active=FALSE;
+			if(!help_active){
+				help_active=TRUE;
+				MessageBox(hwnd,"shift+enter search up\r\nctrl+enter search whole word\r\n","HELP",MB_OK);
+				help_active=FALSE;
+			}
 		}
 		break;
 	case WM_COMMAND:
@@ -389,28 +448,16 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				do_search(win,0,0,0,0,0);
 			break;
 		case IDOK:
-			if(GetKeyState(VK_CONTROL)&0x8000)
-				search=UP;
-			else
-				search=DOWN;
-			if(GetKeyState(VK_SHIFT)&0x8000)
-				whole_word=TRUE;
-			else
-				whole_word=FALSE;
-			break;
 		case IDC_SEARCH_UP:
-			search=UP;
-			break;
 		case IDC_SEARCH_DOWN:
-			if(GetKeyState(VK_CONTROL)&0x8000)
+			if(GetKeyState(VK_SHIFT)&0x8000)
 				search=UP;
 			else
 				search=DOWN;
-			if(GetKeyState(VK_SHIFT)&0x8000)
+			if(GetKeyState(VK_CONTROL)&0x8000)
 				whole_word=TRUE;
 			else
 				whole_word=FALSE;
-
 			break;
 		case IDCANCEL:
 			if(timer!=0)

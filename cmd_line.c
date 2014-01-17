@@ -629,7 +629,6 @@ LRESULT CALLBACK file_assoc_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				" UID=dba;PWD=sql;DatabaseFile=%s;AutoStop=Yes;Integrated=No;Driver={Adaptive Server Anywhere 9.0}\r\n\r\n"
 				"ODBC attributes:\r\n SourceDB=,DatabaseFile=,DSN=,DBQ=,Driver=,UID=,PWD=,Server=,Database=";
 	if(hwnd==hedit && wporigtedit!=0){
-		print_msg(msg,lparam,wparam,hwnd);
 		if(msg==WM_KEYFIRST){
 			if(wparam=='A'){
 				if(GetKeyState(VK_CONTROL)&0x8000)

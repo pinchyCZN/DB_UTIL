@@ -207,9 +207,9 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 									if(find!=0 && find[0]!=0){
 										int dir=IDC_SEARCH_DOWN,whole_word=FALSE;
 										int result;
-										if(GetKeyState(VK_CONTROL)&0x8000)
-											dir=IDC_SEARCH_UP;
 										if(GetKeyState(VK_SHIFT)&0x8000)
+											dir=IDC_SEARCH_UP;
+										if(GetKeyState(VK_CONTROL)&0x8000)
 											whole_word=TRUE;
 										set_status_bar_text(ghstatusbar,0,"searching for %s",find);
 										result=do_search(win,NULL,find,dir,0,whole_word);
