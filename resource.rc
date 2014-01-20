@@ -71,6 +71,7 @@ BEGIN
     POPUP "Window"
     BEGIN
         MENUITEM "Tile",                        IDM_WINDOW_TILE
+        MENUITEM "Cascade",                     IDM_WINDOW_CASCADE
     END
 END
 
@@ -266,6 +267,8 @@ END
 IDR_ACCELERATOR1 ACCELERATORS DISCARDABLE 
 BEGIN
     "T",            IDM_WINDOW_TILE,        VIRTKEY, CONTROL, NOINVERT
+    "T",            IDM_WINDOW_CASCADE,     VIRTKEY, SHIFT, CONTROL, 
+                                                    NOINVERT
     VK_F5,          IDC_EXECUTE_SQL,        VIRTKEY, NOINVERT
 END
 

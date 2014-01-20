@@ -1087,6 +1087,36 @@ int mdi_get_edit_text(TABLE_WINDOW *win,char *str,int size)
 	}
 	return TRUE;
 }
+int mdi_cascade_win_vert()
+{
+	int i,count=0;
+	int caption_height,y,width,height;
+	RECT rect={0};
+	for(i=0;i<sizeof(table_windows)/sizeof(TABLE_WINDOW);i++){
+		TABLE_WINDOW *win=&table_windows[i];
+		if(win->hwnd!=0)
+			count++;
+	}
+	caption_height=GetSystemMetrics(SM_CYCAPTION);
+	caption_height+=GetSystemMetrics(SM_CXEDGE)*2;
+	GetClientRect(ghmdiclient,&rect);
+	height=rect.bottom/count;
+	if(height<caption_height)
+		height=caption_height;
+	width=rect.right;
+	y=0;
+	for(i=0;i<sizeof(table_windows)/sizeof(TABLE_WINDOW);i++){
+		TABLE_WINDOW *win=&table_windows[i];
+		if(win->hwnd!=0){
+			int flags=0;
+			if(width<=0 || height<=0)
+				flags=SWP_NOSIZE;
+			SetWindowPos(win->hwnd,NULL,0,y,width,height,flags);
+			y+=height;
+		}
+	}
+	return TRUE;
+}
 int mdi_tile_windows_vert()
 {
 	int i,caption_height,y,width,height;

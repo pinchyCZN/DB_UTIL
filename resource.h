@@ -70,13 +70,14 @@
 #define IDM_RECENT                      40010
 #define ID_WINDOW_LIST                  40012
 #define IDM_WINDOW_TILE                 40012
+#define IDM_WINDOW_CASCADE              40013
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        118
-#define _APS_NEXT_COMMAND_VALUE         40013
+#define _APS_NEXT_COMMAND_VALUE         40014
 #define _APS_NEXT_CONTROL_VALUE         1053
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
