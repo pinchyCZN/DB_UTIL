@@ -1087,7 +1087,7 @@ int mdi_get_edit_text(TABLE_WINDOW *win,char *str,int size)
 	}
 	return TRUE;
 }
-int mdi_cascade_win_vert()
+int mdi_tile_windows_vert()
 {
 	int i,count=0;
 	int caption_height,y,width,height;
@@ -1117,7 +1117,7 @@ int mdi_cascade_win_vert()
 	}
 	return TRUE;
 }
-int mdi_tile_windows_vert()
+int mdi_cascade_win_vert()
 {
 	int i,caption_height,y,width,height;
 	RECT rect={0};

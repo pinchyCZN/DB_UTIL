@@ -266,8 +266,8 @@ END
 
 IDR_ACCELERATOR1 ACCELERATORS DISCARDABLE 
 BEGIN
-    "T",            IDM_WINDOW_TILE,        VIRTKEY, CONTROL, NOINVERT
-    "T",            IDM_WINDOW_CASCADE,     VIRTKEY, SHIFT, CONTROL, 
+    "T",            IDM_WINDOW_CASCADE,     VIRTKEY, CONTROL, NOINVERT
+    "T",            IDM_WINDOW_TILE,        VIRTKEY, SHIFT, CONTROL, 
                                                     NOINVERT
     VK_F5,          IDC_EXECUTE_SQL,        VIRTKEY, NOINVERT
 END
