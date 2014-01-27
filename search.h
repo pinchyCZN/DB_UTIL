@@ -368,8 +368,8 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			win=lparam;
 			find_len=get_search_text(&find);
 			if(find_len>0){
-				SendDlgItemMessage(hwnd,IDC_EDIT1,EM_SETLIMITTEXT,find_len,0);
-				SetWindowText(GetDlgItem(hwnd,IDC_EDIT1),find);
+				SendDlgItemMessage(hwnd,IDC_COMBO_SEARCH,CB_LIMITTEXT,find_len,0);
+				SetWindowText(GetDlgItem(hwnd,IDC_COMBO_SEARCH),find);
 			}
 			GetWindowRect(GetParent(win->hwnd),&rect);
 			x=(rect.left+rect.right)/2;
@@ -378,8 +378,8 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			x-=(rect.right-rect.left)/2;
 			y-=(rect.bottom-rect.top)/2;
 			SetWindowPos(hwnd,NULL,x,y,0,0,SWP_NOSIZE|SWP_NOZORDER);
-			SendDlgItemMessage(hwnd,IDC_EDIT1,EM_SETSEL,0,-1);
-			SetFocus(GetDlgItem(hwnd,IDC_EDIT1));
+			SendDlgItemMessage(hwnd,IDC_COMBO_SEARCH,CB_SETEDITSEL,0,-1);
+			SetFocus(GetDlgItem(hwnd,IDC_COMBO_SEARCH));
 			search_fill_lb(hwnd,win->hlistview,win->selected_column);
 			if(GetKeyState(VK_SHIFT)&0x8000)
 				col_only=TRUE;
@@ -404,7 +404,7 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				str[sizeof(str)-1]=0;
 				SetWindowText(hwnd,str);
 			}
-			hedit=GetDlgItem(hwnd,IDC_EDIT1);
+			hedit=GetDlgItem(hwnd,IDC_COMBO_SEARCH);
 			if(hedit)
 				wporigtedit=SetWindowLong(hedit,GWL_WNDPROC,(LONG)search_proc);
 			else
@@ -443,8 +443,8 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				}
 			}
 			break;
-		case IDC_EDIT1:
-			if(HIWORD(wparam)==EN_CHANGE)
+		case IDC_COMBO_SEARCH:
+			if(HIWORD(wparam)==CBN_EDITCHANGE)
 				do_search(win,0,0,0,0,0);
 			break;
 			break;
@@ -507,7 +507,7 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			destroy_tooltip(hwndTT);
 			hwndTT=0;
 			create_tooltip(hwnd,"searching\r\npress escape to abort",x,y,&hwndTT);
-			GetWindowText(GetDlgItem(hwnd,IDC_EDIT1),find,find_len);
+			GetWindowText(GetDlgItem(hwnd,IDC_COMBO_SEARCH),find,find_len);
 			if(do_search(win,hwnd,find,search,col_only,whole_word)==0){
 				x=rect.left;
 				if(search==DOWN)
