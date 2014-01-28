@@ -416,6 +416,18 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			else if(wparam==VK_DOWN || wparam==VK_UP)
 				search_history(hedit,TRUE,wparam,0);
 		}
+		else if(msg==WM_MOUSEWHEEL){
+			short delta=HIWORD(wparam);
+			int key=VK_UP;
+			if(delta<0)
+				key=VK_DOWN;
+			search_history(hedit,TRUE,key,0);
+		}
+		else if(msg==WM_PASTE){
+			HWND hparent=GetParent(hedit);
+			if(hparent)
+				PostMessage(hparent,WM_APP,0,0);
+		}
 		return CallWindowProc(wporigtedit,hwnd,msg,wparam,lparam);
 	}
 	switch(msg){
@@ -475,6 +487,9 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			do_search(win,0,0,0,0,0);
 		}
 		break;
+	case WM_APP:
+		search_history(GetDlgItem(hwnd,IDC_EDIT1),FALSE,0,NULL);
+		break;
 	case WM_HELP:
 		{
 			static int help_active=FALSE;
@@ -525,7 +540,6 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				KillTimer(hwnd,timer);
 			if(hwndTT!=0)
 				destroy_tooltip(hwndTT);
-			search_history(GetDlgItem(hwnd,IDC_EDIT1),FALSE,0,NULL);
 			EndDialog(hwnd,0);
 			break;
 		case IDC_SEARCH_COL:
