@@ -237,17 +237,19 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 							if(win->table!=0){
 								char *lbrack="",*rbrack="";
 								char col_name[80]={0};
+								char *sql_count="";
 								if(wparam==CMD_SQL_GROUPBY){
 									lv_get_col_text(win->hlistview,win->selected_column,col_name,sizeof(col_name));
 									get_col_brackets(win,col_name,&lbrack,&rbrack);
+									sql_count=",COUNT(*)";
 								}
 								else{
 									col_name[0]='*';col_name[1]=0;
 								}
 								if(strchr(win->table,' ')!=0)
-									_snprintf(sql,sql_size,"SELECT %s%s%s FROM [%s]",lbrack,col_name,rbrack,win->table);
+									_snprintf(sql,sql_size,"SELECT %s%s%s%s FROM [%s]",lbrack,col_name,rbrack,sql_count,win->table);
 								else
-									_snprintf(sql,sql_size,"SELECT %s%s%s FROM %s",lbrack,col_name,rbrack,win->table);
+									_snprintf(sql,sql_size,"SELECT %s%s%s%s FROM %s",lbrack,col_name,rbrack,sql_count,win->table);
 							}
 							if(wparam==CMD_SQL_SELECT_ALL)
 								break;
