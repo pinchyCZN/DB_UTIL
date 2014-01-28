@@ -337,6 +337,7 @@ void __cdecl thread(HANDLE event)
 						s=malloc(size);
 						if(s!=0){
 							mdi_get_edit_text(win,s,size);
+							sql_remove_comments(s,size);
 							result=execute_sql(win,s,TRUE);
 							free(s);
 						}

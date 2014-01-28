@@ -303,7 +303,7 @@ int do_search(TABLE_WINDOW *win,HWND hwnd,char *find,int dir,int col_only,int wh
 	return found;
 }
 
-int search_fill_lb(HWND hwnd,HWND hlistview,int index)
+int search_populate_cols(HWND hwnd,HWND hlistview,int index)
 {
 	int i,max;
 	SendDlgItemMessage(hwnd,IDC_COMBO1,CB_RESETCONTENT,0,0);
@@ -317,15 +317,45 @@ int search_fill_lb(HWND hwnd,HWND hlistview,int index)
 	SendDlgItemMessage(hwnd,IDC_COMBO1,CB_SETCURSEL,index,0);
 	return TRUE;
 }
-int get_search_text(char **str)
+int search_history(HWND hlist,int load,char **first)
 {
-	static char find[80]={0};
-	if(str!=0){
-		*str=find;
-		return sizeof(find);
+#define _HISTORY 10
+#define _STR_LEN 80
+	static int init=FALSE;
+	static char find[_HISTORY][_STR_LEN];
+	int i;
+	if(!init){
+		memset(find,0,sizeof(find));
+		init=TRUE;
 	}
-	else
-		return 0;
+	if(first!=0)
+		*first=first[0];
+	if(hlist==0)
+		return FALSE;
+	SendMessage(hlist,CB_LIMITTEXT,_STR_LEN,0);
+	if(load){
+		for(i=0;i<_HISTORY;i++){
+			if(find[i][0]!=0){
+				SendMessage(hlist,CB_ADDSTRING,0,find[i]);
+			}
+		}
+		SendMessage(hlist,CB_SETCURSEL,0,0);
+	}else{ //save list
+		int index=0;
+		for(i=0;i<_HISTORY;i++){
+			char tmp[_STR_LEN]={0};
+			int len;
+			len=SendMessage(hlist,CB_GETLBTEXTLEN,i,0);
+			if(len==CB_ERR || len>=_STR_LEN)
+				continue;
+			SendMessage(hlist,CB_GETLBTEXT,i,tmp);
+			if(tmp[0]!=0){
+				strncpy(find[index],tmp,sizeof(find[i]));
+				index++;
+			}
+		}
+	}
+	return TRUE;
 }
 LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
@@ -359,18 +389,13 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 	switch(msg){
 	case WM_INITDIALOG:
 		{
-			char *find=0;
-			int find_len;
 			int x,y;
 			RECT rect={0};
 			if(lparam==0)
 				EndDialog(hwnd,-1);
 			win=lparam;
-			find_len=get_search_text(&find);
-			if(find_len>0){
-				SendDlgItemMessage(hwnd,IDC_COMBO_SEARCH,CB_LIMITTEXT,find_len,0);
-				SetWindowText(GetDlgItem(hwnd,IDC_COMBO_SEARCH),find);
-			}
+			search_history(GetDlgItem(hwnd,IDC_COMBO_SEARCH),TRUE,0);
+
 			GetWindowRect(GetParent(win->hwnd),&rect);
 			x=(rect.left+rect.right)/2;
 			y=(rect.top+rect.bottom)/2;
@@ -380,7 +405,7 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			SetWindowPos(hwnd,NULL,x,y,0,0,SWP_NOSIZE|SWP_NOZORDER);
 			SendDlgItemMessage(hwnd,IDC_COMBO_SEARCH,CB_SETEDITSEL,0,-1);
 			SetFocus(GetDlgItem(hwnd,IDC_COMBO_SEARCH));
-			search_fill_lb(hwnd,win->hlistview,win->selected_column);
+			search_populate_cols(hwnd,win->hlistview,win->selected_column);
 			if(GetKeyState(VK_SHIFT)&0x8000)
 				col_only=TRUE;
 			else
@@ -447,7 +472,6 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			if(HIWORD(wparam)==CBN_EDITCHANGE)
 				do_search(win,0,0,0,0,0);
 			break;
-			break;
 		case IDOK:
 		case IDC_SEARCH_UP:
 		case IDC_SEARCH_DOWN:
@@ -467,6 +491,7 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				KillTimer(hwnd,timer);
 			if(hwndTT!=0)
 				destroy_tooltip(hwndTT);
+			search_history(GetDlgItem(hwnd,IDC_COMBO_SEARCH),FALSE,0);
 			EndDialog(hwnd,0);
 			break;
 		case IDC_SEARCH_COL:
@@ -495,10 +520,9 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		break;
 	}
 	if(search){
-		char *find=0;
-		int find_len;
-		find_len=get_search_text(&find);
-		if(find_len>0){
+		char find[80]={0};
+		GetWindowText(GetDlgItem(hwnd,IDC_COMBO_SEARCH),find,sizeof(find));
+		if(find[0]!=0){
 			RECT rect={0};
 			int x,y;
 			GetWindowRect(GetParent(win->hwnd),&rect);
@@ -507,7 +531,6 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			destroy_tooltip(hwndTT);
 			hwndTT=0;
 			create_tooltip(hwnd,"searching\r\npress escape to abort",x,y,&hwndTT);
-			GetWindowText(GetDlgItem(hwnd,IDC_COMBO_SEARCH),find,find_len);
 			if(do_search(win,hwnd,find,search,col_only,whole_word)==0){
 				x=rect.left;
 				if(search==DOWN)
@@ -525,8 +548,20 @@ LRESULT CALLBACK search_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				}
 				timer=SetTimer(hwnd,0x1337,550,NULL);
 			}else{
+				int count,index;
 				destroy_tooltip(hwndTT);
 				hwndTT=0;
+				count=SendDlgItemMessage(hwnd,IDC_COMBO_SEARCH,CB_GETCOUNT,0,0);
+				if(count!=CB_ERR && count>20){
+					SendDlgItemMessage(hwnd,IDC_COMBO_SEARCH,CB_DELETESTRING,19,0);
+				}
+				index=SendDlgItemMessage(hwnd,IDC_COMBO_SEARCH,CB_FINDSTRINGEXACT,-1,find);
+				if(index>0)
+					SendDlgItemMessage(hwnd,IDC_COMBO_SEARCH,CB_DELETESTRING,index,0);
+				if(index==CB_ERR || index>0){
+					SendDlgItemMessage(hwnd,IDC_COMBO_SEARCH,CB_INSERTSTRING,0,find);
+					SendDlgItemMessage(hwnd,IDC_COMBO_SEARCH,CB_SETCURSEL,0,0);
+				}
 			}
 
 		}

@@ -808,6 +808,31 @@ int is_modify_sql(unsigned char *sql)
 	else
 		return FALSE;
 }
+int sql_remove_comments(unsigned char *str,int len)
+{
+	int i,char_found=FALSE,comment_found=FALSE;
+	if(str==0 || len==0)
+		return 0;
+	for(i=0;i<len;i++){
+		if(str[i]==0)
+			break;
+		else if(str[i]=='\r' || str[i]=='\n'){
+			comment_found=char_found=FALSE;
+			continue;
+		}
+		else if(comment_found)
+			str[i]=' ';
+		else if(!char_found){
+			if(str[i]=='-' && str[i+1]=='-'){
+				comment_found=TRUE;
+				str[i]=' ';
+			}
+			else if(str[i]>' ')
+				char_found=TRUE;
+		}
+	}
+	return i;
+}
 int execute_sql(TABLE_WINDOW *win,char *sql,int display_results)
 {
 	int result=FALSE;

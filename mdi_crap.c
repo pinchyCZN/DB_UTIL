@@ -203,7 +203,7 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 							case VK_F3:
 								{
 									char *find=0;
-									get_search_text(&find);
+									search_history(0,0,&find);
 									if(find!=0 && find[0]!=0){
 										int dir=IDC_SEARCH_DOWN,whole_word=FALSE;
 										int result;
