@@ -9,6 +9,7 @@ enum {
 	CMD_SQL_SELECT_ALL,
 	CMD_SQL_WHERE,
 	CMD_SQL_ORDERBY,
+	CMD_SQL_GROUPBY,
 	CMD_SQL_UPDATE,
 	CMD_SQL_DELETE,
 	CMD_EXPORT_DATA,
@@ -216,6 +217,7 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		case CMD_SQL_SELECT_ALL:
 		case CMD_SQL_WHERE:
 		case CMD_SQL_ORDERBY:
+		case CMD_SQL_GROUPBY:
 		case CMD_SQL_UPDATE:
 		case CMD_SQL_DELETE:
 			{
@@ -231,11 +233,21 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 						case CMD_SQL_SELECT_ALL:
 						case CMD_SQL_WHERE:
 						case CMD_SQL_ORDERBY:
+						case CMD_SQL_GROUPBY:
 							if(win->table!=0){
+								char *lbrack="",*rbrack="";
+								char col_name[80]={0};
+								if(wparam==CMD_SQL_GROUPBY){
+									lv_get_col_text(win->hlistview,win->selected_column,col_name,sizeof(col_name));
+									get_col_brackets(win,col_name,&lbrack,&rbrack);
+								}
+								else{
+									col_name[0]='*';col_name[1]=0;
+								}
 								if(strchr(win->table,' ')!=0)
-									_snprintf(sql,sql_size,"SELECT * FROM [%s]",win->table);
+									_snprintf(sql,sql_size,"SELECT %s%s%s FROM [%s]",lbrack,col_name,rbrack,win->table);
 								else
-									_snprintf(sql,sql_size,"SELECT * FROM %s",win->table);
+									_snprintf(sql,sql_size,"SELECT %s%s%s FROM %s",lbrack,col_name,rbrack,win->table);
 							}
 							if(wparam==CMD_SQL_SELECT_ALL)
 								break;
@@ -264,12 +276,15 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 									free(tmp);
 								}
 							}
-							else if(wparam==CMD_SQL_ORDERBY){
+							else if(wparam==CMD_SQL_ORDERBY || wparam==CMD_SQL_GROUPBY){
 								char *lbrack="",*rbrack="";
 								char col_name[80]={0};
+								char *op="ORDER BY";
+								if(wparam==CMD_SQL_GROUPBY)
+									op="GROUP BY";
 								lv_get_col_text(win->hlistview,win->selected_column,col_name,sizeof(col_name));
 								get_col_brackets(win,col_name,&lbrack,&rbrack);
-								_snprintf(sql,sql_size,"%s ORDER BY %s%s%s",sql,lbrack,col_name,rbrack);
+								_snprintf(sql,sql_size,"%s %s %s%s%s",sql,op,lbrack,col_name,rbrack);
 								if(GetKeyState(VK_CONTROL)&0x8000){
 									SendMessage(win->hedit,EM_SETSEL,-1,-1);
 									_snprintf(sql,sql_size,",%s%s%s",lbrack,col_name,rbrack);
@@ -894,11 +909,15 @@ int create_lv_menus()
 	if(lv_menu!=0)DestroyMenu(lv_menu);
 	if(lv_menu=CreatePopupMenu()){
 		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_COL_INFO,"col info");
+		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_SEPARATOR,0,0);
 		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SQL_SELECT_ALL,"SQL select *");
 		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SQL_WHERE,"SQL where =");
 		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SQL_ORDERBY,"SQL order by");
+		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SQL_GROUPBY,"SQL group by [col]");
+		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_SEPARATOR,0,0);
 		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SQL_UPDATE,"SQL update where =");
 		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SQL_DELETE,"SQL delete from [] where =");
+		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_SEPARATOR,0,0);
 		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_EXPORT_DATA,"export data");
 	}
 	return TRUE;

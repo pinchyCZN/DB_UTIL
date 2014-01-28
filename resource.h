@@ -62,14 +62,12 @@
 #define IDC_SHELL_ASSOC                 1050
 #define IDC_EDIT3                       1051
 #define IDC_SAVE_MDI_WIN_SIZE           1052
-#define IDC_COMBO_SEARCH                1053
 #define IDM_SETTINGS                    40002
 #define IDM_OPEN                        40006
 #define IDM_CLOSE                       40007
 #define IDM_QUERY                       40008
 #define IDC_EXECUTE_SQL                 40009
 #define IDM_RECENT                      40010
-#define ID_WINDOW_LIST                  40012
 #define IDM_WINDOW_TILE                 40012
 #define IDM_WINDOW_CASCADE              40013
 
