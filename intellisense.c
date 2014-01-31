@@ -668,9 +668,11 @@ int find_field(char *str,char *field)
 			index++;
 		else
 			index=0;
-		if(index>=flen){
-			result=TRUE;
-			break;
+		if(index==flen){
+			if(str[i]=='\n' || str[i]==0){
+				result=TRUE;
+				break;
+			}
 		}
 		if(str[i]=='\n')
 			index=0;
