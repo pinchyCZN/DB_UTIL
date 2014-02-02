@@ -436,7 +436,7 @@ LRESULT CALLBACK col_info_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				case 'C':
 					if(!(GetKeyState(VK_CONTROL)&0x8000))
 						break;
-					copy_cols_clip(hlistview,GetKeyState(VK_MENU)&0x8000);
+					copy_cols_clip(hlistview,GetKeyState(VK_SHIFT)&0x8000);
 					break;
 				}
 				}

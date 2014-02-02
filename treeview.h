@@ -5,6 +5,7 @@ enum {
 	CMD_CLOSEDB=10000,
 	CMD_DB_INFO,
 	CMD_DB_REFRESH_TABLES,
+	CMD_DB_LIST_TABLES,
 	CMD_VIEWTABLE,
 	CMD_TABLE_STRUCT,
 	CMD_TABLE_INDEXES,
@@ -206,6 +207,7 @@ int create_treeview_menus()
 	if(db_menu=CreatePopupMenu()){
 		InsertMenu(db_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_DB_INFO,"DB info");
 		InsertMenu(db_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_DB_REFRESH_TABLES,"Refresh tables (ctrl=all)");
+		InsertMenu(db_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_DB_LIST_TABLES,"List tables");
 		InsertMenu(db_menu,0xFFFFFFFF,MF_BYPOSITION|MF_SEPARATOR,0,0);
 		InsertMenu(db_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_CLOSEDB,"close DB");
 	}
@@ -217,6 +219,7 @@ int create_treeview_menus()
 		InsertMenu(table_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_TABLE_FOREIGN_KEYS,"Table Foreign keys");
 		InsertMenu(table_menu,0xFFFFFFFF,MF_BYPOSITION|MF_SEPARATOR,0,0);
 		InsertMenu(table_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_DB_REFRESH_TABLES,"Refresh tables (ctrl=all)");
+		InsertMenu(table_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_DB_LIST_TABLES,"List tables");
 		InsertMenu(table_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_CLOSEDB,"close DB");
 	}
 	return TRUE;
@@ -305,8 +308,8 @@ LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 				p.y=y=HIWORD(lparam);
 			}
 			ScreenToClient(ghtreeview,&p);
-			ht.pt.x=x;
-			ht.pt.y=y;
+			ht.pt.x=p.x;
+			ht.pt.y=p.y;
 			TreeView_HitTest(ghtreeview,&ht);
 			if(ht.hItem!=0)
 				tree_get_info(ht.hItem,0,0,&type);
@@ -390,7 +393,45 @@ LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 				}
 			}
 			break;
+		case CMD_DB_LIST_TABLES:
+			{
+				char str[MAX_PATH]={0};
+				tree_get_db_table(TreeView_GetSelection(ghtreeview),str,sizeof(str),0,0,0);
+				if(str[0]!=0){
+					task_list_tables(str);
+					printf("list tables\n");
+				}
+			}
+			break;
 		case CMD_DB_INFO:
+			{
+				DB_TREE *db=0;
+				if(find_selected_tree(&db)){
+					char *buf=0;
+					int buf_len=0x10000;
+					buf=malloc(buf_len);
+					if(buf){
+						_snprintf(buf,buf_len,"DATABASE INFO\n");
+						_snprintf(buf,buf_len,"%s%s",buf,"NAME\tDATA\n");
+						_snprintf(buf,buf_len,"%s%s\t%s\n",buf,"connect_str",db->connect_str);
+						_snprintf(buf,buf_len,"%s%s\t0x%08X\n",buf,"hdbc",db->hdbc);
+						_snprintf(buf,buf_len,"%s%s\t0x%08X\n",buf,"hdbenv",db->hdbenv);
+						_snprintf(buf,buf_len,"%s%s\t0x%08X\n",buf,"hroot",db->hroot);
+						_snprintf(buf,buf_len,"%s%s\t0x%08X\n",buf,"htree",db->htree);
+						_snprintf(buf,buf_len,"%s%s\t%s\n",buf,"name",db->name);
+						_snprintf(buf,buf_len,"%s%s\t",buf,"treename");
+						{
+							int len;
+							buf[buf_len-1]=0;
+							len=strlen(buf);
+							if((buf_len-len)>0)
+								tree_get_info(TreeView_GetSelection(ghtreeview),buf+len,buf_len-len,0);
+						}
+						DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_COL_INFO),hwnd,col_info_proc,buf);
+						free(buf);
+					}
+				}
+			}
 			break;
 		case CMD_VIEWTABLE:
 			open_selected_table(ghtreeview);

@@ -15,6 +15,7 @@ char localinfo[sizeof(taskinfo)]={0};
 enum{
 	TASK_OPEN_TABLE,
 	TASK_REFRESH_TABLES,
+	TASK_LIST_TABLES,
 	TASK_OPEN_DB,
 	TASK_OPEN_DB_AND_TABLE,
 	TASK_CLOSE_DB,
@@ -83,6 +84,13 @@ int task_refresh_tables(char *str)
 {
 	_snprintf(taskinfo,sizeof(taskinfo),"%s",str);
 	task=TASK_REFRESH_TABLES;
+	SetEvent(event);
+	return TRUE;
+}
+int task_list_tables(char *str)
+{
+	_snprintf(taskinfo,sizeof(taskinfo),"%s",str);
+	task=TASK_LIST_TABLES;
 	SetEvent(event);
 	return TRUE;
 }
@@ -389,6 +397,30 @@ void __cdecl thread(HANDLE event)
 					}
 					else
 						SetWindowText(ghstatusbar,"error refreshing cant acquire table");
+				}
+				break;
+			case TASK_LIST_TABLES:
+				{
+					int result=FALSE;
+					DB_TREE *db=0;
+					SetWindowText(ghstatusbar,"listing tables");
+					if(acquire_db_tree(localinfo,&db)){
+						if(!mdi_open_db(db)){
+							mdi_remove_db(db);
+							SetWindowText(ghstatusbar,"error opening DB");
+						}
+						else{
+							intelli_add_db(db->name);
+							result=get_table_list(db);
+							if(keep_closed)
+								close_db(db);
+						}
+						if(result)
+							set_status_bar_text(ghstatusbar,0,"done listing tables %s",
+								keep_closed?"(closed DB)":"");
+					}
+					else
+						SetWindowText(ghstatusbar,"error refreshing cant acquire tree");
 				}
 				break;
 			case TASK_OPEN_TABLE:

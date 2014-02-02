@@ -1156,6 +1156,88 @@ int get_foreign_keys(DB_TREE *tree,char *table)
 	}
 	return result;
 }
+int get_table_list(DB_TREE *tree)
+{
+	int result=FALSE;
+	if(tree==0)
+		return result;
+	if(open_db(tree)){
+		HSTMT hstmt=0;
+		if(SQLAllocStmt(tree->hdbc, &hstmt)==SQL_SUCCESS){
+			char *buf=0;
+			int buf_len=0x80000;
+			int str_offset=0;
+			buf=malloc(buf_len);
+			if(buf!=0){
+				int i,count;
+				char *ttypes[]={"'TABLE'","'VIEW'","'SYSTEM TABLE'","'GLOBAL TEMPORARY'","'LOCAL TEMPORARY'","'ALIAS'","'SYNONYM'"};
+				count=_snprintf(buf,buf_len,"Table list:%s\n%s",tree->name,"NAME\tTYPE\tPrivileges\n");
+				if(count>0)
+					str_offset+=count;
+				for(i=0;i<sizeof(ttypes)/sizeof(char*);i++){
+					if(SQLTables(hstmt,NULL,SQL_NTS,NULL,SQL_NTS,NULL,SQL_NTS,ttypes[i],SQL_NTS)!=SQL_ERROR){
+						if(SQLFetch(hstmt)!=SQL_NO_DATA_FOUND){
+							HSTMT hpriv=0;
+							char table[256]={0};
+							int print=TRUE,len=0;
+							SQLAllocStmt(tree->hdbc,&hpriv);
+							while(!SQLGetData(hstmt,3,SQL_C_CHAR,table,sizeof(table),&len))
+							{
+								char priv[256]={0};
+								table[sizeof(table)-1]=0;
+								if(hpriv){
+									if(SQLTablePrivileges(hpriv,"",SQL_NTS,"",SQL_NTS,table,SQL_NTS)==SQL_SUCCESS)
+									{
+										SQLFetch(hpriv);
+										SQLGetData(hpriv,6,SQL_C_CHAR,priv,sizeof(priv),&len);
+										SQLCloseCursor(hpriv);
+										printf("name=%s | %s\n",table,priv);
+
+									}
+									else if(print){
+										char msg[SQL_MAX_MESSAGE_LENGTH]={0};
+										get_error_msg(hpriv,SQL_HANDLE_STMT,msg,sizeof(msg));
+										printf("SQLTablePrivileges err:%s\n",msg);
+										print=FALSE;
+									}
+								}
+								if((buf_len-str_offset)>0){
+									int count;
+									count=_snprintf(buf+str_offset,buf_len-str_offset,"%s\t%s\t%s\n",table,ttypes[i],priv);
+									if(count>0)
+										str_offset+=count;
+								}
+								SQLFetch(hstmt);
+								if(GetAsyncKeyState(VK_ESCAPE)&0x8001)
+									break;
+							}
+							if(hpriv)
+								SQLFreeStmt(hpriv,SQL_CLOSE);
+						}
+
+
+					}
+					else{
+						char err[256]={0};
+						get_error_msg(hstmt,SQL_HANDLE_STMT,err,sizeof(err));
+						set_status_bar_text(ghstatusbar,0,"error:SQLForeignKeys:%s",err);
+					}
+				}
+				buf[buf_len-1]=0;
+				DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_COL_INFO),tree->htree,col_info_proc,buf);
+			}
+			if(buf)
+				free(buf);
+		}
+		if(hstmt!=0)
+			SQLFreeStmt(hstmt,SQL_CLOSE);	
+	}
+	else{
+		set_status_bar_text(ghstatusbar,0,"failed to open tree:%s",tree->name);
+	}
+	return result;
+
+}
 int assign_db_to_table(DB_TREE *db,TABLE_WINDOW *win,char *table)
 {
 	if(db!=0 && win!=0){
