@@ -1252,6 +1252,7 @@ int get_table_list(DB_TREE *tree)
 				}
 				buf[buf_len-1]=0;
 				DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_COL_INFO),tree->htree,col_info_proc,buf);
+				result=TRUE;
 			}
 			if(buf)
 				free(buf);

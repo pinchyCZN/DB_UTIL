@@ -415,9 +415,12 @@ void __cdecl thread(HANDLE event)
 							if(keep_closed)
 								close_db(db);
 						}
-						if(result)
+						if(result){
 							set_status_bar_text(ghstatusbar,0,"done listing tables %s",
 								keep_closed?"(closed DB)":"");
+						}else{
+							SetWindowText(ghstatusbar,"error listing tables");
+						}
 					}
 					else
 						SetWindowText(ghstatusbar,"error refreshing cant acquire tree");
