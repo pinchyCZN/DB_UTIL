@@ -1169,59 +1169,86 @@ int get_table_list(DB_TREE *tree)
 			int str_offset=0;
 			buf=malloc(buf_len);
 			if(buf!=0){
-				int i,count;
-				char *ttypes[]={"'TABLE'","'VIEW'","'SYSTEM TABLE'","'GLOBAL TEMPORARY'","'LOCAL TEMPORARY'","'ALIAS'","'SYNONYM'"};
-				count=_snprintf(buf,buf_len,"Table list:%s\n%s",tree->name,"NAME\tTYPE\tPrivileges\n");
-				if(count>0)
-					str_offset+=count;
-				for(i=0;i<sizeof(ttypes)/sizeof(char*);i++){
-					if(SQLTables(hstmt,NULL,SQL_NTS,NULL,SQL_NTS,NULL,SQL_NTS,ttypes[i],SQL_NTS)!=SQL_ERROR){
-						if(SQLFetch(hstmt)!=SQL_NO_DATA_FOUND){
-							HSTMT hpriv=0;
-							char table[256]={0};
-							int print=TRUE,len=0;
-							SQLAllocStmt(tree->hdbc,&hpriv);
-							while(!SQLGetData(hstmt,3,SQL_C_CHAR,table,sizeof(table),&len))
-							{
-								char priv[256]={0};
-								table[sizeof(table)-1]=0;
-								if(hpriv){
-									if(SQLTablePrivileges(hpriv,"",SQL_NTS,"",SQL_NTS,table,SQL_NTS)==SQL_SUCCESS)
-									{
-										SQLFetch(hpriv);
-										SQLGetData(hpriv,6,SQL_C_CHAR,priv,sizeof(priv),&len);
-										SQLCloseCursor(hpriv);
-										printf("name=%s | %s\n",table,priv);
-
+				{
+					int count;
+					count=_snprintf(buf,buf_len,"Table list:%s\n%s",tree->name,"NAME\tTYPE\tPrivileges\n");
+					if(count>0){
+						str_offset+=count;
+					}
+				}
+				if(SQLTables(hstmt,NULL,SQL_NTS,NULL,SQL_NTS,NULL,SQL_NTS,0,SQL_NTS)!=SQL_ERROR){
+					if(SQLFetch(hstmt)!=SQL_NO_DATA_FOUND){
+						HSTMT hpriv=0;
+						char table[256]={0};
+						int print_once=TRUE,len=0;
+						SQLAllocStmt(tree->hdbc,&hpriv);
+						while(!SQLGetData(hstmt,3,SQL_C_CHAR,table,sizeof(table),&len))
+						{
+							char *priv=0;
+							char ttype[80]={0};
+							table[sizeof(table)-1]=0;
+							SQLGetData(hstmt,4,SQL_C_CHAR,ttype,sizeof(ttype),&len);
+							ttype[sizeof(ttype)-1]=0;
+							if(hpriv){
+								if(SQLTablePrivileges(hpriv,"",SQL_NTS,"",SQL_NTS,table,SQL_NTS)==SQL_SUCCESS)
+								{
+									int priv_len=0x8000;
+									priv=malloc(priv_len);
+									SQLFetch(hpriv);
+									if(priv){
+										int count=0;
+										int priv_offset=0;
+										char grantee[80]={0};
+										char pv[80]={0};
+										priv[0]=0;
+										while(!SQLGetData(hpriv,5,SQL_C_CHAR,grantee,sizeof(grantee),&len)){
+											int write=0;
+											SQLGetData(hpriv,6,SQL_C_CHAR,pv,sizeof(pv),&len);
+											if(priv_len>priv_offset)
+												write=_snprintf(priv+priv_offset,priv_len-priv_offset,"%s%s=%s",count==0?"":",",grantee,pv);
+											if(write>0)
+												priv_offset+=write;
+											count++;
+											grantee[0]=0;
+											pv[0]=0;
+											SQLFetch(hpriv);
+											if(count>100)
+												break;
+										}
+										priv[priv_len-1]=0;
+										//printf("name=%s | %s\n",table,priv);
 									}
-									else if(print){
-										char msg[SQL_MAX_MESSAGE_LENGTH]={0};
-										get_error_msg(hpriv,SQL_HANDLE_STMT,msg,sizeof(msg));
-										printf("SQLTablePrivileges err:%s\n",msg);
-										print=FALSE;
-									}
+									SQLCloseCursor(hpriv);
 								}
-								if((buf_len-str_offset)>0){
-									int count;
-									count=_snprintf(buf+str_offset,buf_len-str_offset,"%s\t%s\t%s\n",table,ttypes[i],priv);
-									if(count>0)
-										str_offset+=count;
+								else if(print_once){
+									char msg[SQL_MAX_MESSAGE_LENGTH]={0};
+									get_error_msg(hpriv,SQL_HANDLE_STMT,msg,sizeof(msg));
+									printf("SQLTablePrivileges err:%s\n",msg);
+									print_once=FALSE;
 								}
-								SQLFetch(hstmt);
-								if(GetAsyncKeyState(VK_ESCAPE)&0x8001)
-									break;
 							}
-							if(hpriv)
-								SQLFreeStmt(hpriv,SQL_CLOSE);
+							if((buf_len-str_offset)>0){
+								int count;
+								count=_snprintf(buf+str_offset,buf_len-str_offset,"%s\t%s\t%s\n",table,ttype,priv==0?"":priv);
+								if(count>0)
+									str_offset+=count;
+							}
+							if(priv)
+								free(priv);
+							SQLFetch(hstmt);
+							if(GetAsyncKeyState(VK_ESCAPE)&0x8001)
+								break;
 						}
+						if(hpriv)
+							SQLFreeStmt(hpriv,SQL_CLOSE);
+					}
 
 
-					}
-					else{
-						char err[256]={0};
-						get_error_msg(hstmt,SQL_HANDLE_STMT,err,sizeof(err));
-						set_status_bar_text(ghstatusbar,0,"error:SQLForeignKeys:%s",err);
-					}
+				}
+				else{
+					char err[256]={0};
+					get_error_msg(hstmt,SQL_HANDLE_STMT,err,sizeof(err));
+					set_status_bar_text(ghstatusbar,0,"error:SQLForeignKeys:%s",err);
 				}
 				buf[buf_len-1]=0;
 				DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_COL_INFO),tree->htree,col_info_proc,buf);
@@ -1236,8 +1263,8 @@ int get_table_list(DB_TREE *tree)
 		set_status_bar_text(ghstatusbar,0,"failed to open tree:%s",tree->name);
 	}
 	return result;
-
 }
+
 int assign_db_to_table(DB_TREE *db,TABLE_WINDOW *win,char *table)
 {
 	if(db!=0 && win!=0){
