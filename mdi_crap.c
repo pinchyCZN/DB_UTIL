@@ -1100,6 +1100,8 @@ int mdi_tile_windows_vert()
 	caption_height=GetSystemMetrics(SM_CYCAPTION);
 	caption_height+=GetSystemMetrics(SM_CXEDGE)*2;
 	GetClientRect(ghmdiclient,&rect);
+	if(count<=0)
+		return FALSE;
 	height=rect.bottom/count;
 	if(height<caption_height)
 		height=caption_height;
