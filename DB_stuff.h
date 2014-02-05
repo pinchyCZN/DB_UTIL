@@ -495,6 +495,7 @@ int sanitize_value(char *str,char *out,int size,int type)
 				}
 				break;
 			case SQL_DATETIME:
+			case SQL_TYPE_TIME:
 			case SQL_TYPE_DATE:
 			case SQL_TYPE_TIMESTAMP:
 				if(strchr(tmp,'-')){
@@ -507,12 +508,29 @@ int sanitize_value(char *str,char *out,int size,int type)
 							_snprintf(out,size,"{d'%s'}",tmp);
 					}
 				}
+				else if(strchr(tmp,':')){
+					_snprintf(out,size,"{t'%s'}",tmp);
+				}
+				else if(strstri(tmp,"now")){
+					char *pre="";
+					char datetime[40]={0};
+					get_current_datetime(datetime,sizeof(datetime),type);
+					switch(type){
+					case SQL_DATETIME:
+					case SQL_TYPE_TIMESTAMP:
+						pre="ts";
+						break;
+					case SQL_TYPE_DATE:
+						pre="d";
+						break;
+					case SQL_TYPE_TIME:
+						pre="t";
+					}
+					_snprintf(out,size,"{%s'%s'}",pre,datetime);
+				}
 				else
 					_snprintf(out,size,"'%s'",tmp);
 
-				break;
-			case SQL_TYPE_TIME:
-				_snprintf(out,size,"{t'%s'}",tmp);
 				break;
 			}
 		}
@@ -600,7 +618,30 @@ int delete_row(TABLE_WINDOW *win,int row)
 	}
 	return result;
 }
-
+int get_current_datetime(char *str,int len,int sql_datetype)
+{
+	char time[20],date[20];
+	SYSTEMTIME systime;
+	GetSystemTime(&systime);
+	GetTimeFormat(LOCALE_USER_DEFAULT,NULL,&systime,"hh':'mm':'ss",time,sizeof(time));
+	GetDateFormat(LOCALE_USER_DEFAULT,NULL,&systime,"yyyy'-'MM'-'dd",date,sizeof(date));
+	if(str && len>0){
+		switch(sql_datetype){
+		case SQL_TYPE_TIMESTAMP:
+		case SQL_DATETIME:
+			_snprintf(str,len,"%s %s",date,time);
+			break;
+		case SQL_TYPE_TIME:
+			_snprintf(str,len,"%s",time);
+			break;
+		case SQL_TYPE_DATE:
+			_snprintf(str,len,"%s",date);
+			break;
+		}
+		str[len-1]=0;
+	}
+	return TRUE;
+}
 int insert_row(TABLE_WINDOW *win,HWND hlistview)
 {
 	int result=FALSE;
@@ -669,12 +710,21 @@ int insert_row(TABLE_WINDOW *win,HWND hlistview)
 				}else if(strstri(str,"datetime")!=0){
 					lquote="{ts'";
 					rquote="'}";
+					if(strstri(tmp,"now")){
+						get_current_datetime(tmp,tmp_size,SQL_DATETIME);
+					}
 				}else if(strstri(str,"date")!=0){
 					lquote="{d'";
 					rquote="'}";
+					if(strstri(tmp,"now")){
+						get_current_datetime(tmp,tmp_size,SQL_TYPE_DATE);
+					}
 				}else if(strstri(str,"time")!=0){
 					lquote="{t'";
 					rquote="'}";
+					if(strstri(tmp,"now")){
+						get_current_datetime(tmp,tmp_size,SQL_TYPE_TIME);
+					}
 				}
 			}
 			_snprintf(sql,sql_size,"%s%s%s%s%s",sql,(inserted>0)?",":"",lquote,d,rquote);

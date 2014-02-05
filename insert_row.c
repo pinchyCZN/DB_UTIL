@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <ctype.h>
 #include <Commctrl.h>
 #include "resource.h"
 #include "structs.h"
@@ -104,7 +105,7 @@ static int populate_edit_control(HWND hlistview,HWND hedit,int row)
 static WNDPROC wporigtedit=0;
 static LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
-	//if(FALSE)
+	if(FALSE)
 	{
 		static DWORD tick=0;
 		if((GetTickCount()-tick)>500)
@@ -159,7 +160,15 @@ static int add_row_tablewindow(TABLE_WINDOW *win,HWND hlistview)
 	ListView_SetItemState(win->hlistview,row,LVIS_SELECTED|LVIS_FOCUSED,LVIS_SELECTED|LVIS_FOCUSED);
 	return TRUE;
 }
-
+int is_entry_key(int key)
+{
+	int result=FALSE;
+	if(isupper(key) && isalpha(key))
+		result=TRUE;
+	if(isdigit(key))
+		result=TRUE;
+	return result;
+}
 LRESULT CALLBACK insert_dlg_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
 	static TABLE_WINDOW *win=0;
@@ -224,15 +233,6 @@ LRESULT CALLBACK insert_dlg_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 									SetFocus(GetDlgItem(hwnd,IDOK));
 							}
 							break;
-						case 'A':
-							if(GetKeyState(VK_CONTROL)&0x8000){
-								int i,count;
-								count=ListView_GetItemCount(hlistview);
-								for(i=0;i<count;i++){
-									ListView_SetItemState(hlistview,i,LVIS_SELECTED,LVIS_SELECTED);
-								}
-							}
-							break;
 						case VK_DELETE:
 							clear_selected_items(hlistview);
 							break;
@@ -240,6 +240,20 @@ LRESULT CALLBACK insert_dlg_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 							if(task_insert_row(win,hlistview))
 								SetWindowText(GetDlgItem(hwnd,IDOK),"Busy");
 							break;
+						case 'A':
+							if(GetKeyState(VK_CONTROL)&0x8000){
+								int i,count;
+								count=ListView_GetItemCount(hlistview);
+								for(i=0;i<count;i++){
+									ListView_SetItemState(hlistview,i,LVIS_SELECTED,LVIS_SELECTED);
+								}
+								break;
+							}
+						default:
+							if(!is_entry_key(key->wVKey))
+								break;
+							if(GetKeyState(VK_CONTROL)&0x8000)
+								break;
 						case ' ':
 						case VK_F2:
 						case VK_INSERT:
@@ -266,7 +280,19 @@ LRESULT CALLBACK insert_dlg_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 										SetWindowPos(hedit,HWND_TOP,x,y,w,h,0);
 										if(hfont!=0)
 											SendMessage(hedit,WM_SETFONT,hfont,0);
-										populate_edit_control(hlistview,hedit,row_sel);
+										if(is_entry_key(key->wVKey)){
+											char str[2];
+											char c=tolower(key->wVKey);
+											if((GetKeyState(VK_SHIFT)&0x8000) || (GetKeyState(VK_CAPITAL)&1))
+												c=toupper(c);
+											str[0]=c;
+											str[1]=0;
+											SetWindowText(hedit,str);
+											SendMessage(hedit,EM_SETSEL,1,1);
+
+										}else{
+											populate_edit_control(hlistview,hedit,row_sel);
+										}
 										SetFocus(hedit);
 										wporigtedit=SetWindowLong(hedit,GWL_WNDPROC,(LONG)sc_edit);
 									}
