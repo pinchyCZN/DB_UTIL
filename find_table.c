@@ -140,8 +140,16 @@ LRESULT CALLBACK find_table_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		htreeview=lparam;
 		{
 			RECT rect={0};
+			int h,x,y;
 			GetWindowRect(htreeview,&rect);
-			SetWindowPos(hwnd,NULL,rect.right,rect.top,NULL,NULL,SWP_NOSIZE|SWP_NOZORDER);
+			x=rect.right;
+			y=rect.bottom+rect.top;
+			y=y/2;
+			GetWindowRect(hwnd,&rect);
+			h=rect.bottom-rect.top;
+			h=h/2;
+			y-=h;
+			SetWindowPos(hwnd,NULL,x,y,NULL,NULL,SWP_NOSIZE|SWP_NOZORDER);
 
 		}
 		{
