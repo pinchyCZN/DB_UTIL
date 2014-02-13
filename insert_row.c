@@ -160,6 +160,23 @@ static int add_row_tablewindow(TABLE_WINDOW *win,HWND hlistview)
 	ListView_SetItemState(win->hlistview,row,LVIS_SELECTED|LVIS_FOCUSED,LVIS_SELECTED|LVIS_FOCUSED);
 	return TRUE;
 }
+static int resize_column(HWND hwnd,HWND hlistview,char *str,int col)
+{
+	int cw,sw;
+	cw=ListView_GetColumnWidth(hlistview,col);
+	sw=get_str_width(hlistview,str)+14;
+	if(sw>cw){
+		RECT rect={0};
+		int diff=sw-cw;
+		int w,h;
+		GetWindowRect(hwnd,&rect);
+		w=rect.right-rect.left;
+		h=rect.bottom-rect.top;
+		SetWindowPos(hwnd,NULL,0,0,w+diff,h,SWP_NOMOVE|SWP_NOZORDER);
+		ListView_SetColumnWidth(hlistview,col,cw+diff);
+	}
+	return TRUE;
+}
 int is_entry_key(int key)
 {
 	int result=FALSE;
@@ -174,14 +191,22 @@ LRESULT CALLBACK insert_dlg_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 	static TABLE_WINDOW *win=0;
 	static HWND hlistview=0,hgrippy=0,hedit=0;
 	static HFONT hfont=0;
+	static WNDPROC origlistview=0;
 	if(FALSE)
 	{
 		static DWORD tick=0;
 		if((GetTickCount()-tick)>500)
 			printf("--\n");
-		printf("i");
+		if(hwnd==hlistview)
+			printf("-");
 		print_msg(msg,lparam,wparam,hwnd);
 		tick=GetTickCount();
+	}
+	if(origlistview!=0 && hwnd==hlistview){
+		if(msg==WM_GETDLGCODE){
+			return DLGC_WANTARROWS;
+		}
+		return CallWindowProc(origlistview,hwnd,msg,wparam,lparam);
 	}
 	switch(msg){
 	case WM_INITDIALOG:
@@ -198,13 +223,16 @@ LRESULT CALLBACK insert_dlg_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
                                      IDC_LIST1,
                                      ghinstance,
                                      NULL);
-		ListView_SetExtendedListViewStyle(hlistview,LVS_EX_FULLROWSELECT);
-		hfont=SendMessage(win->hlistview,WM_GETFONT,0,0);
-		if(hfont!=0)
-			SendMessage(hlistview,WM_SETFONT,hfont,0);
+		if(hlistview!=0){
+			ListView_SetExtendedListViewStyle(hlistview,LVS_EX_FULLROWSELECT);
+			hfont=SendMessage(win->hlistview,WM_GETFONT,0,0);
+			if(hfont!=0)
+				SendMessage(hlistview,WM_SETFONT,hfont,0);
+			populate_insert_dlg(hwnd,hlistview,win);
+			ListView_SetItemState(hlistview,0,LVIS_SELECTED|LVIS_FOCUSED,LVIS_SELECTED|LVIS_FOCUSED);
+			origlistview=SetWindowLong(hlistview,GWL_WNDPROC,(LONG)insert_dlg_proc);
+		}
 		set_title(hwnd,win);
-		populate_insert_dlg(hwnd,hlistview,win);
-		ListView_SetItemState(hlistview,0,LVIS_SELECTED|LVIS_FOCUSED,LVIS_SELECTED|LVIS_FOCUSED);
 		hgrippy=create_grippy(hwnd);
 		resize_insert_dlg(hwnd);
 		break;
@@ -250,10 +278,15 @@ LRESULT CALLBACK insert_dlg_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 								break;
 							}
 						default:
-							if(!is_entry_key(key->wVKey))
-								break;
-							if(GetKeyState(VK_CONTROL)&0x8000)
-								break;
+							{
+								int ignore=FALSE;
+								if(!is_entry_key(key->wVKey))
+									ignore=TRUE;
+								if(GetKeyState(VK_CONTROL)&0x8000)
+									ignore=TRUE;
+								if(ignore)
+									return 1;
+							}
 						case ' ':
 						case VK_F2:
 						case VK_INSERT:
@@ -339,6 +372,7 @@ LRESULT CALLBACK insert_dlg_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 					char str[80]={0};
 					int count,row_sel=ListView_GetSelectionMark(hlistview);
 					GetWindowText(hedit,str,sizeof(str));
+					resize_column(hwnd,hlistview,str,1);
 					lv_update_data(hlistview,row_sel,DATA_POS,str);
 					SendMessage(hedit,WM_CLOSE,0,0);
 					count=ListView_GetItemCount(hlistview);

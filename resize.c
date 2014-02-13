@@ -452,6 +452,13 @@ short mdi_anchors[]={
 		HUG_CTRL_Y,IDC_MDI_EDIT,
 		SIZE_WIDTH_OFF,-4,
 		CONTROL_FINISH,-1,
+	CONTROL_ID,IDC_SPLIT_LOCK,
+		WIDTH,22,
+		HEIGHT,22,
+		HUG_R,-40,
+		YPOS,-22,
+		HUG_CTRL_Y,IDC_MDI_EDIT,
+		CONTROL_FINISH,-1,
 	RESIZE_FINISH
 };
 short main_dlg_anchors[]={

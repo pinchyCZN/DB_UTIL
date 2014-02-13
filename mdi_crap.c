@@ -30,9 +30,10 @@ static DB_TREE db_tree[20];
 
 LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
-	static int split_drag=FALSE,mdi_split=60;
+#define DEFAULT_SPLIT_POS 60
+	static int split_drag=FALSE,mdi_split=DEFAULT_SPLIT_POS;
 	static HWND last_focus=0,hwndTT=0;
-	if(FALSE)
+	//if(FALSE)
 	if(msg!=WM_NCMOUSEMOVE&&msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY
 		&&msg!=WM_ERASEBKGND&&msg!=WM_DRAWITEM) 
 		//if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE)
@@ -54,6 +55,7 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 			win=pmdics->lParam;
 			if(win!=0){
 				win->hwnd=hwnd;
+				win->split_pos=DEFAULT_SPLIT_POS;
 			}
 			create_mdi_window(hwnd,ghinstance,win);
 
@@ -340,15 +342,22 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 	case WM_RBUTTONDOWN:
 	case WM_LBUTTONUP:
 		if(split_drag){
+			TABLE_WINDOW *win=0;
 			ReleaseCapture();
 			write_ini_value("SETTINGS","MDI_SPLIT",mdi_split);
 			split_drag=FALSE;
+			if(find_win_by_hwnd(hwnd,&win))
+				win->split_pos=mdi_split;
 		}
 		break;
 	case WM_LBUTTONDOWN:
 		{
+			TABLE_WINDOW *win=0;
 			int y=HIWORD(lparam);
-			if(y>=(mdi_split-10) && y<=(mdi_split+10)){
+			int split=mdi_split;
+			if(find_win_by_hwnd(hwnd,&win))
+				split=win->split_pos;
+			if(y>=(split-10) && y<=(split+10)){
 				SetCapture(hwnd);
 				SetCursor(LoadCursor(NULL,IDC_SIZENS));
 				split_drag=TRUE;
@@ -357,8 +366,13 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 		break;
 	case WM_MOUSEFIRST:
 		{
+			TABLE_WINDOW *win=0;						
 			int y=HIWORD(lparam);
-			if(y>=(mdi_split-10) && y<=(mdi_split+10))
+			int split=mdi_split;
+			find_win_by_hwnd(hwnd,&win);
+			if(win!=0)
+				split=win->split_pos;
+			if(y>=(split-10) && y<=(split+10))
 				SetCursor(LoadCursor(NULL,IDC_SIZENS));
 			if(split_drag){
 				RECT rect;
@@ -366,6 +380,8 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 				if(y>5 && y<rect.bottom-8){
 					mdi_split=y;
 					resize_mdi_window(hwnd,mdi_split);
+					if(win!=0)
+						win->split_pos=mdi_split;
 				}
 			}
 		}
@@ -374,10 +390,10 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 		switch(LOWORD(wparam)){
 		case VK_RETURN:
 			{
-			TABLE_WINDOW *win=0;
-			if(!find_win_by_hwnd(hwnd,&win))
-				break;
-			SendMessage(win->hedit,WM_KEYFIRST,VK_RETURN,0);
+				TABLE_WINDOW *win=0;
+				if(!find_win_by_hwnd(hwnd,&win))
+					break;
+				SendMessage(win->hedit,WM_KEYFIRST,VK_RETURN,0);
 			}
 			break;
 		}
@@ -387,6 +403,49 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 		//LOWORD(wParam) item control
 		//lParam handle of control
 		switch(LOWORD(wparam)){
+		case IDC_MDI_EDIT:
+			switch(HIWORD(wparam)){
+			case EN_UPDATE:
+				{
+					TABLE_WINDOW *win=0;
+					if(split_drag)
+						break;
+					if(find_win_by_hwnd(hwnd,&win)){
+						HWND hedit=lparam;
+						if(win->split_locked)
+							break;
+						if(hedit){
+							int lines,h;
+							lines=SendMessage(win->hedit,EM_GETLINECOUNT,0,0);
+							h=get_str_height(win->hedit,"X");
+							h=lines*h;
+							if(win->split_pos!=h){
+								win->split_pos=h;
+								PostMessage(hwnd,WM_SIZE,0,0);
+							}
+						}
+					}
+				}
+			}
+			break;
+		case IDC_SPLIT_LOCK:
+			switch(HIWORD(wparam)){
+			case BN_CLICKED:
+				{
+					TABLE_WINDOW *win=0;
+					if(find_win_by_hwnd(hwnd,&win)){
+						win->split_locked^=1;
+						if(win->hlock){
+							char *s="";
+							if(win->split_locked)
+								s="L";
+							SetWindowText(win->hlock,s);
+						}
+					}
+				}
+				break;
+			}
+			break;
 		case IDC_INTELLISENSE:
 			switch(HIWORD(wparam)){
 			case LBN_DBLCLK:
@@ -401,10 +460,10 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 			break;
 		case IDC_SQL_ABORT:
 			{
-			TABLE_WINDOW *win=0;
-			find_win_by_hwnd(hwnd,&win);
-			if(win!=0)
-				win->abort=TRUE;
+				TABLE_WINDOW *win=0;
+				find_win_by_hwnd(hwnd,&win);
+				if(win!=0)
+					win->abort=TRUE;
 			}
 			break;
 		}
@@ -415,57 +474,71 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 		ShowWindow(hwnd,SW_MAXIMIZE);
 		break;
 	case WM_USER:
-		switch(LOWORD(lparam)){
-		case IDC_TREEVIEW:
-			SetFocus(ghtreeview);
-			break;
-		case IDC_LV_EDIT:
-			switch(HIWORD(lparam)){
-			case IDOK:
-			default:
-			case IDCANCEL:
-				destroy_lv_edit(wparam);
+		{
+			TABLE_WINDOW *win=0;
+			find_win_by_hwnd(hwnd,&win);
+			switch(LOWORD(lparam)){
+			case IDC_TREEVIEW:
+				SetFocus(ghtreeview);
+				break;
+			case IDC_LV_EDIT:
+				switch(HIWORD(lparam)){
+				case IDOK:
+				default:
+				case IDCANCEL:
+					destroy_lv_edit(wparam);
+					break;
+				}
+				break;
+			case IDC_MDI_CLIENT:
+				if(wparam!=0){
+					printf("setting focus %08X\n",wparam);
+					if(wparam==hwnd){
+						if(win!=0)
+							if(win->hlastfocus!=0)
+								SetFocus(win->hlastfocus);
+							else
+								SetFocus(win->hlistview);
+					}
+					else
+						SetFocus(wparam);
+				}
+				return 0;
+				break;
+			case IDC_MDI_LISTVIEW:
+				if(GetKeyState(VK_SHIFT)&0x8000){
+					RECT rect={0};
+					int y;
+					GetClientRect(hwnd,&rect);
+					y=rect.bottom-8;
+					if(y<0)
+						y=0;
+					resize_mdi_window(hwnd,y);
+					if(win!=0)
+						win->split_pos=y;
+				}
+				else{
+					int split=mdi_split;
+					if(win!=0)
+						split=win->split_pos;
+					resize_mdi_window(hwnd,split);
+				}
+				break;
+			case IDC_MDI_EDIT:
+				{
+					int y=2;
+					if(win!=0)
+						win->split_pos=y;
+					resize_mdi_window(hwnd,y);
+				}
+				break;
+			case IDC_SQL_ABORT:
+				if(HIWORD(lparam))
+					create_abort(wparam);
+				else
+					destroy_abort(wparam);
 				break;
 			}
-			break;
-		case IDC_MDI_CLIENT:
-			if(wparam!=0){
-				printf("setting focus %08X\n",wparam);
-				if(wparam==hwnd){
-					TABLE_WINDOW *win=0;
-					if(find_win_by_hwnd(hwnd,&win))
-						if(win->hlastfocus!=0)
-							SetFocus(win->hlastfocus);
-						else
-							SetFocus(win->hlistview);
-				}
-				else
-					SetFocus(wparam);
-			}
-			return 0;
-			break;
-		case IDC_MDI_LISTVIEW:
-			if(GetKeyState(VK_SHIFT)&0x8000){
-				RECT rect={0};
-				int y;
-				GetClientRect(hwnd,&rect);
-				y=rect.bottom-8;
-				if(y<0)
-					y=0;
-				resize_mdi_window(hwnd,y);
-			}
-			else
-				resize_mdi_window(hwnd,mdi_split);
-			break;
-		case IDC_MDI_EDIT:
-			resize_mdi_window(hwnd,2);
-			break;
-		case IDC_SQL_ABORT:
-			if(HIWORD(lparam))
-				create_abort(wparam);
-			else
-				destroy_abort(wparam);
-			break;
 		}
 		break;
 	case WM_SYSCOMMAND:
@@ -479,13 +552,43 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 		}
 		break;
 	case WM_SIZE:
-		resize_mdi_window(hwnd,mdi_split);
+		{
+			TABLE_WINDOW *win=0;
+			int split=mdi_split;
+			if(find_win_by_hwnd(hwnd,&win))
+				split=win->split_pos;
+			resize_mdi_window(hwnd,split);
+		}
 		break;
 
     }
 	return DefMDIChildProc(hwnd, msg, wparam, lparam);
 }
-
+int get_str_height(HWND hwnd,char *str)
+{
+	if(hwnd!=0 && str!=0){
+		SIZE size={0};
+		HDC hdc;
+		hdc=GetDC(hwnd);
+		if(hdc!=0){
+			HFONT hfont;
+			hfont=SendMessage(hwnd,WM_GETFONT,0,0);
+			if(hfont!=0){
+				HGDIOBJ hold=0;
+				hold=SelectObject(hdc,hfont);
+				GetTextExtentPoint32(hdc,str,strlen(str),&size);
+				if(hold!=0)
+					SelectObject(hdc,hold);
+			}
+			else{
+				GetTextExtentPoint32(hdc,str,strlen(str),&size);
+			}
+			ReleaseDC(hwnd,hdc);
+			return size.cy;
+		}
+	}
+	return 25;
+}
 int load_mdi_size(HWND hwnd)
 {
 extern int save_mdi_win_size;
@@ -632,10 +735,13 @@ void hide_console()
 
 int create_mdi_window(HWND hwnd,HINSTANCE hinstance,TABLE_WINDOW *win)
 {
-	HWND hedit,hlistview,hintel;
+	HWND hedit,hlistview,hintel,hsplit_lock;
 	if(win==0)
 		return FALSE;
 
+    hsplit_lock=CreateWindowEx(WS_EX_TOPMOST,"button","", 
+      WS_TABSTOP|WS_CHILD|WS_VISIBLE, //|BS_ICON,
+        0, 0, 0, 0, hwnd, IDC_SPLIT_LOCK, hinstance, 0);
     hedit = CreateWindow(RICHEDIT_CLASS,// "RichEdit50W", //"RichEdit20A",
                                      "",
                                      WS_TABSTOP|WS_CHILD|WS_CLIPSIBLINGS|WS_VISIBLE|WS_HSCROLL|WS_VSCROLL|ES_AUTOHSCROLL|ES_AUTOVSCROLL|ES_MULTILINE|ES_WANTRETURN,
@@ -663,9 +769,20 @@ int create_mdi_window(HWND hwnd,HINSTANCE hinstance,TABLE_WINDOW *win)
 									 IDC_INTELLISENSE,
 									 ghinstance,
 									 NULL);
+
+	if(hsplit_lock){
+		/*
+		static HICON hicon=0;
+		if(hicon==0)
+			hicon=LoadImage(ghinstance,MAKEINTRESOURCE(IDI_LOCK),IMAGE_ICON,12,12,NULL);
+		if(hicon)
+			SendMessage(hsplit_lock,BM_SETIMAGE,(WPARAM)IMAGE_ICON,(LPARAM)hicon);
+		*/
+	}
 	win->hlistview=hlistview;
 	win->hedit=hedit;
 	win->hintel=hintel;
+	win->hlock=hsplit_lock;
 	if(hlistview!=0){
 		ListView_SetExtendedListViewStyle(hlistview,ListView_GetExtendedListViewStyle(hlistview)|LVS_EX_FULLROWSELECT);
 		subclass_listview(hlistview);

@@ -13,7 +13,9 @@ typedef struct{
 	COL_ATTR *col_attr;
 	int rows;
 	int selected_column;
-	HWND hwnd,hlistview,hlvedit,hedit,hroot,habort,hintel,hlastfocus;
+	int split_pos;
+	int split_locked;
+	HWND hwnd,hlistview,hlvedit,hedit,hlock,hroot,habort,hintel,hlastfocus;
 }TABLE_WINDOW;
 
 typedef struct{
