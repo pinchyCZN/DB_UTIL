@@ -33,7 +33,7 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 #define DEFAULT_SPLIT_POS 60
 	static int split_drag=FALSE,mdi_split=DEFAULT_SPLIT_POS;
 	static HWND last_focus=0,hwndTT=0;
-	//if(FALSE)
+	if(FALSE)
 	if(msg!=WM_NCMOUSEMOVE&&msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY
 		&&msg!=WM_ERASEBKGND&&msg!=WM_DRAWITEM) 
 		//if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE)
@@ -355,8 +355,11 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 			TABLE_WINDOW *win=0;
 			int y=HIWORD(lparam);
 			int split=mdi_split;
-			if(find_win_by_hwnd(hwnd,&win))
-				split=win->split_pos;
+			if(find_win_by_hwnd(hwnd,&win)){
+				RECT rect={0};
+				GetClientRect(win->hedit,&rect);
+				split=rect.bottom;
+			}
 			if(y>=(split-10) && y<=(split+10)){
 				SetCapture(hwnd);
 				SetCursor(LoadCursor(NULL,IDC_SIZENS));
@@ -369,9 +372,11 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 			TABLE_WINDOW *win=0;						
 			int y=HIWORD(lparam);
 			int split=mdi_split;
-			find_win_by_hwnd(hwnd,&win);
-			if(win!=0)
-				split=win->split_pos;
+			if(find_win_by_hwnd(hwnd,&win)){
+				RECT rect={0};
+				GetClientRect(win->hedit,&rect);
+				split=rect.bottom;
+			}
 			if(y>=(split-10) && y<=(split+10))
 				SetCursor(LoadCursor(NULL,IDC_SIZENS));
 			if(split_drag){
@@ -514,8 +519,6 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 					if(y<0)
 						y=0;
 					resize_mdi_window(hwnd,y);
-					if(win!=0)
-						win->split_pos=y;
 				}
 				else{
 					int split=mdi_split;
@@ -527,8 +530,6 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 			case IDC_MDI_EDIT:
 				{
 					int y=2;
-					if(win!=0)
-						win->split_pos=y;
 					resize_mdi_window(hwnd,y);
 				}
 				break;
