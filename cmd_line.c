@@ -183,7 +183,7 @@ int process_cmd_line(char *cmd)
 	else if(stricmp(ext,".DBF")==0){
 		{
 		char *key_list[]={
-			"Microsoft Visual FoxPro Driver","Microsoft dBase VFP Driver (*.dbf)","Microsoft dBase Driver (*.dbf)"
+			"Microsoft dBase VFP Driver (*.dbf)","Microsoft dBase Driver (*.dbf)","Microsoft Visual FoxPro Driver"
 		};
 		int i;
 		for(i=0;i<sizeof(key_list)/sizeof(char *);i++){

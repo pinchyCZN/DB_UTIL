@@ -526,7 +526,7 @@ void __cdecl intellisense_thread(void)
 {
 	void *pParser=0; //ParseAlloc(malloc);
 #define sizeof_str 0x7FFF //MAXWORD largest em_getline allows
-	static char str[sizeof_str];
+	static unsigned char str[sizeof_str];
 
 	while(TRUE){
 		MSG msg;
@@ -555,7 +555,15 @@ void __cdecl intellisense_thread(void)
 				else if(pos>=sizeof_str-1)
 					pos=sizeof_str-1;
 
-
+				if(pos==0 
+					|| (pos>0 && (str[pos-1]<=' '))
+					)
+					{
+					if(win!=0 && win->hintel!=0){
+						ShowWindow(win->hintel,SW_HIDE);
+						break;
+					}
+				}
 
 				if(str[0]!=0){
 					int yv,mode;
@@ -640,14 +648,25 @@ int find_table(DB_INFO *db,char *table,TABLE_INFO **ti)
 	if(db==0 || table==0 || table[0]==0)
 		return FALSE;
 	t=db->table_info;
-	while(t!=0){
-		if(stricmp(t->table,table)==0){
-			if(ti!=0)
-				*ti=t;
-			result=TRUE;
-			break;
+	if(t==0 && ti!=0){ //add it if none exist
+		if(db->name!=0){
+			add_table_node(db,table);
 		}
-		t=t->next;
+		if(db->table_info!=0){
+			*ti=db->table_info;
+			result=TRUE;
+		}
+	}
+	else{
+		while(t!=0){
+			if(stricmp(t->table,table)==0){
+				if(ti!=0)
+					*ti=t;
+				result=TRUE;
+				break;
+			}
+			t=t->next;
+		}
 	}
 	return result;
 }
@@ -731,6 +750,51 @@ int add_field(char *str)
 //	dump_db_nodes();
 	return result;
 }
+int add_table_node(DB_INFO *db,char *table)
+{
+	int result=FALSE;
+	TABLE_INFO *t=0;
+	t=malloc(sizeof(TABLE_INFO));
+	if(t!=0){
+		int len;
+		memset(t,0,sizeof(TABLE_INFO));
+		len=strlen(table)+1;
+		t->table=malloc(len);
+		if(t->table!=0){
+			strncpy(t->table,table,len);
+			t->table[len-1]=0;
+			if(db->table_info==0){
+				db->table_count++;
+				db->table_info=t;
+				result=TRUE;
+			}
+			else{
+				TABLE_INFO *tnode=db->table_info;
+				while(tnode!=0){
+					if(tnode->next==0){
+						db->table_count++;
+						tnode->next=t;
+						t->prev=tnode;
+						result=TRUE;
+						break;
+					}
+					else{
+						tnode=tnode->next;
+					}
+				}
+			}
+			if(result==FALSE){
+				free(t->table);
+				free(t);
+			}
+		}
+		else{
+			free(t);
+			result=FALSE;
+		}
+	}
+	return result;
+}
 /*
 format: db_name\ntable
 */
@@ -751,46 +815,7 @@ int add_table(char *str)
 			if(find_table(db,table,0))
 				result=TRUE;
 			else{
-				TABLE_INFO *t=0;
-				t=malloc(sizeof(TABLE_INFO));
-				if(t!=0){
-					int len;
-					memset(t,0,sizeof(TABLE_INFO));
-					len=strlen(table)+1;
-					t->table=malloc(len);
-					if(t->table!=0){
-						strncpy(t->table,table,len);
-						t->table[len-1]=0;
-						if(db->table_info==0){
-							db->table_count++;
-							db->table_info=t;
-							result=TRUE;
-						}
-						else{
-							TABLE_INFO *tnode=db->table_info;
-							while(tnode!=0){
-								if(tnode->next==0){
-									db->table_count++;
-									tnode->next=t;
-									t->prev=tnode;
-									result=TRUE;
-									break;
-								}
-								else{
-									tnode=tnode->next;
-								}
-							}
-						}
-						if(result==FALSE){
-							free(t->table);
-							free(t);
-						}
-					}
-					else{
-						free(t);
-						result=FALSE;
-					}
-				}
+				result=add_table_node(db,table);
 			}
 		}
 	}
