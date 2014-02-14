@@ -153,6 +153,10 @@ int open_db(DB_TREE *tree)
 				tree->hdbc=hDbc;
 				tree->hdbenv=hEnv;
 				return TRUE;
+			}else if(result==SQL_ERROR){
+				char msg[SQL_MAX_MESSAGE_LENGTH]={0};
+				get_error_msg(hDbc,SQL_HANDLE_DBC,msg,sizeof(msg));
+				printf("open_db error=%s\n",msg);
 			}
 		}
 	}

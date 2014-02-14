@@ -420,13 +420,21 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 						if(win->split_locked)
 							break;
 						if(hedit){
-							int lines,h;
+							int lines,index,h;
+							POINT ptop={0},pbot={0};
 							lines=SendMessage(win->hedit,EM_GETLINECOUNT,0,0);
+							index=SendMessage(win->hedit,EM_LINEINDEX,lines-1,0);
+							SendMessage(win->hedit,EM_POSFROMCHAR,&pbot,index);
+							SendMessage(win->hedit,EM_POSFROMCHAR,&ptop,0);
 							h=get_str_height(win->hedit,"X");
-							h=lines*h;
-							if(win->split_pos!=h){
-								win->split_pos=h;
-								PostMessage(hwnd,WM_SIZE,0,0);
+							h=(pbot.y-ptop.y)+h;
+							if(h>0 && win->split_pos!=h){
+								RECT rect={0};
+								GetClientRect(win->hwnd,&rect);
+								if(h<(rect.bottom-20)){
+									win->split_pos=h;
+									PostMessage(hwnd,WM_SIZE,0,0);
+								}
 							}
 						}
 					}
@@ -441,7 +449,7 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 					if(find_win_by_hwnd(hwnd,&win)){
 						win->split_locked^=1;
 						if(win->hlock){
-							char *s="";
+							char *s="O";
 							if(win->split_locked)
 								s="L";
 							SetWindowText(win->hlock,s);
@@ -538,6 +546,38 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 					create_abort(wparam);
 				else
 					destroy_abort(wparam);
+				break;
+			case IDC_SPLIT_LOCK:
+				{
+					int dir=1;
+					switch(wparam){
+					case VK_F4:
+						{
+							char *s="O";
+							win->split_locked^=1;
+							if(win->split_locked)
+								s="L";
+							SetWindowText(win->hlock,s);
+						}
+						break;
+					case VK_UP:
+						dir=-1;
+					case VK_DOWN:
+						if(win!=0){
+							int y=20;
+							int pos=win->split_pos;
+							RECT rect={0};
+							GetClientRect(win->hwnd,&rect);
+							pos+=y*dir;
+							if(pos>5 && pos<(rect.bottom-20)){
+								win->split_pos=pos;
+								win->split_locked=1;
+								SetWindowText(win->hlock,"L");
+								resize_mdi_window(hwnd,pos);
+							}
+						}
+					}
+				}
 				break;
 			}
 		}
@@ -740,7 +780,7 @@ int create_mdi_window(HWND hwnd,HINSTANCE hinstance,TABLE_WINDOW *win)
 	if(win==0)
 		return FALSE;
 
-    hsplit_lock=CreateWindowEx(WS_EX_TOPMOST,"button","", 
+    hsplit_lock=CreateWindowEx(WS_EX_TOPMOST,"button","O", 
       WS_TABSTOP|WS_CHILD|WS_VISIBLE, //|BS_ICON,
         0, 0, 0, 0, hwnd, IDC_SPLIT_LOCK, hinstance, 0);
     hedit = CreateWindow(RICHEDIT_CLASS,// "RichEdit50W", //"RichEdit20A",
@@ -1354,6 +1394,11 @@ int custom_dispatch(MSG *msg)
 			type=IDC_MDI_EDIT;
 			break;
 		}
+		else if(table_windows[i].hlock==msg->hwnd){
+			win=&table_windows[i];
+			type=IDC_SPLIT_LOCK;
+			break;
+		}
 		else if(table_windows[i].hwnd==msg->hwnd){
 			win=&table_windows[i];
 			type=IDC_MDI_CLIENT;
@@ -1404,16 +1449,43 @@ int custom_dispatch(MSG *msg)
 						return TRUE;
 					}
 				}
+				else if(type==IDC_SPLIT_LOCK){
+					SetFocus(win->hedit);
+					return TRUE;
+				}
 				else if(type!=0){
 					SetFocus(win->hlistview);
 					return TRUE;
 				}
 
 				break;
+			case VK_F4:
+			case VK_UP:
+			case VK_DOWN:
+				if(type==IDC_MDI_EDIT){
+					int post=FALSE;
+					if(GetKeyState(VK_CONTROL)&0x8000){
+						if(GetKeyState(VK_SHIFT)&0x8000){
+							post=TRUE;
+						}
+					}
+					if(msg->wParam==VK_F4)
+						post=TRUE;
+					if(post){
+						PostMessage(win->hwnd,WM_USER,msg->wParam,IDC_SPLIT_LOCK);
+						return TRUE;
+					}
+				}
+				break;
 			case 'L':
-				if(GetKeyState(VK_CONTROL)&0x8000)
-					if(ghtreeview!=0)
+				if(GetKeyState(VK_CONTROL)&0x8000){
+					if(GetKeyState(VK_SHIFT)&0x8000){
+						SetFocus(win->hlock);
+						return TRUE;
+					}
+					else if(ghtreeview!=0)
 						SetFocus(ghtreeview);
+				}
 				break;
 			case 'W':
 				if(GetKeyState(VK_CONTROL)&0x8000)
