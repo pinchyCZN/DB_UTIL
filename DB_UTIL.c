@@ -561,7 +561,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 		break;
 	case WM_MOUSEFIRST:
 		{
-			int y=HIWORD(lparam);
 			int x=LOWORD(lparam);
 			if(x>=(tree_width-10) && x<(tree_width+10))
 				SetCursor(LoadCursor(NULL,IDC_SIZEWE));
@@ -571,7 +570,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 				if(x>10 && x<rect.right-10){
 					tree_width=x;
 					resize_main_window(hwnd,tree_width);
-					printf("rect.right=%i x=%i y=%i\n",rect.right,x,y);
 				}
 			}
 		}

@@ -722,9 +722,48 @@ int move_console(int x,int y)
 	GetConsoleTitle(title,sizeof(title));
 	if(title[0]!=0){
 		hcon=FindWindow(NULL,title);
-		SetWindowPos(hcon,0,x,y,800,600,SWP_NOZORDER);
+		SetWindowPos(hcon,0,x,y,0,0,SWP_NOZORDER|SWP_NOSIZE);
 	}
 	return 0;
+}
+int get_max_console(int *w,int *h)
+{
+	int result=0;
+	HANDLE hcon;
+	hcon=GetStdHandle(STD_OUTPUT_HANDLE);
+	if(hcon!=0){
+		CONSOLE_SCREEN_BUFFER_INFO conbi={0};
+		result=GetConsoleScreenBufferInfo(hcon,&conbi);
+		if(w)
+			*w=conbi.dwMaximumWindowSize.X;
+		if(h)
+			*h=conbi.dwMaximumWindowSize.Y;
+	}
+	return result;
+}
+int resize_console(int width,int height)
+{
+	int result=0;
+	HANDLE hcon;
+	hcon=GetStdHandle(STD_OUTPUT_HANDLE);
+	if(hcon!=0){
+		SMALL_RECT rect={0};
+		CONSOLE_SCREEN_BUFFER_INFO conbi={0};
+		GetConsoleScreenBufferInfo(hcon,&conbi);
+		if(width>=conbi.dwSize.X || height>=conbi.dwSize.Y){
+			if(width>=conbi.dwSize.X)
+				conbi.dwSize.X=width+1;
+			if(height>=conbi.dwSize.Y)
+				conbi.dwSize.Y=height+1;
+			SetConsoleScreenBufferSize(hcon,conbi.dwSize);
+		}
+		rect.Bottom=height;
+		rect.Right=width;
+		rect.Top=0;
+		rect.Left=0;
+		result=SetConsoleWindowInfo(hcon,TRUE,&rect);
+	}
+	return result;
 }
 void open_console()
 {

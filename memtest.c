@@ -30,6 +30,6 @@ void my_free(void *t)
 {
 	count--;
 	printf("count=%i\n",count);
-#define free
+#define free free
 	free(t);
 }
