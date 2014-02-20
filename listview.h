@@ -7,6 +7,7 @@ enum {
 	CMD_COL_WIDTH_HEADER,
 	CMD_COL_WIDTH_DATA,
 	CMD_SQL_SELECT_ALL,
+	CMD_SQL_SELECT_COL,
 	CMD_SQL_WHERE,
 	CMD_SQL_ORDERBY,
 	CMD_SQL_GROUPBY,
@@ -192,6 +193,34 @@ LRESULT CALLBACK filename_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 	}
 	return 0;
 }
+int insert_col_sql(HWND hedit,char *col)
+{
+	int result=FALSE;
+	if(hedit!=0 && col!=0){
+		char *str;
+		int str_size=0x1000;
+		str=malloc(str_size);
+		if(str){
+			str[0]=0;
+			GetWindowText(hedit,str,str_size);
+			if(str[0]!=0){
+				char *s=strstri(str," FROM ");
+				if(s!=0){
+					char *n=malloc(str_size);
+					if(n!=0){
+						s[0]=0;
+						_snprintf(n,str_size,"%s,%s %s",str,col,s+1);
+						n[str_size-1]=0;
+						SetWindowText(hedit,n);
+						free(n);
+					}
+				}
+			}
+			free(str);
+		}
+	}
+	return result;
+}
 
 static WNDPROC wporiglistview=0;
 LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
@@ -215,6 +244,7 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_COL_INFO),hwnd,col_info_proc,hwnd);
 			break;
 		case CMD_SQL_SELECT_ALL:
+		case CMD_SQL_SELECT_COL:
 		case CMD_SQL_WHERE:
 		case CMD_SQL_ORDERBY:
 		case CMD_SQL_GROUPBY:
@@ -231,6 +261,7 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 						sql[0]=0;
 						switch(wparam){
 						case CMD_SQL_SELECT_ALL:
+						case CMD_SQL_SELECT_COL:
 						case CMD_SQL_WHERE:
 						case CMD_SQL_ORDERBY:
 						case CMD_SQL_GROUPBY:
@@ -242,6 +273,14 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 									lv_get_col_text(win->hlistview,win->selected_column,col_name,sizeof(col_name));
 									get_col_brackets(win,col_name,&lbrack,&rbrack);
 									sql_count=",COUNT(*)";
+								}
+								else if(wparam==CMD_SQL_SELECT_COL){
+									lv_get_col_text(win->hlistview,win->selected_column,col_name,sizeof(col_name));
+									get_col_brackets(win,col_name,&lbrack,&rbrack);
+									if(GetKeyState(VK_CONTROL)&0x8000){
+										insert_col_sql(win->hedit,col_name);
+										break;
+									}
 								}
 								else{
 									col_name[0]='*';col_name[1]=0;
@@ -916,6 +955,7 @@ int create_lv_menus()
 		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SQL_WHERE,"SQL where =");
 		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SQL_ORDERBY,"SQL order by");
 		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SQL_GROUPBY,"SQL group by [col]");
+		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SQL_SELECT_COL,"SQL select [col]");
 		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_SEPARATOR,0,0);
 		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SQL_UPDATE,"SQL update where =");
 		InsertMenu(lv_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_SQL_DELETE,"SQL delete from [] where =");
