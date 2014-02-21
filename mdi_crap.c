@@ -219,6 +219,11 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 									}
 								}
 								break;
+							case 'E':
+								if(GetKeyState(VK_CONTROL)&0x8000){
+									PostMessage(win->hlistview,WM_COMMAND,CMD_EXPORT_DATA,0);
+								}
+								break;
 							case 'C':
 								if(GetKeyState(VK_CONTROL)&0x8000){
 									int sel=ListView_GetSelectionMark(win->hlistview);

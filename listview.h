@@ -157,20 +157,38 @@ LRESULT CALLBACK filename_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 	switch(msg){
 	case WM_INITDIALOG:
 		{
-			if(lparam==0)
+			char **params=lparam;
+			if(params==0 || params[0]==0)
 				EndDialog(hwnd,FALSE);
 			else{
 				char str[MAX_PATH]={0};
-				char *s=lparam;
-				fname=lparam;
+				char *s=params[0];
+				fname=params[0];
 				if(fname[0]==0){
 					GetCurrentDirectory(sizeof(str),str);
 					s=str;
 				}
 				SendDlgItemMessage(hwnd,IDC_EDIT1,WM_SETTEXT,0,s);
+				if(params[1]!=0){
+					_snprintf(str,sizeof(str),"Export filename for table [%s]",params[1]);
+					str[sizeof(str)-1]=0;
+					SetWindowText(hwnd,str);
+				}
 			}
 			SendDlgItemMessage(hwnd,IDC_EDIT1,EM_SETLIMITTEXT,MAX_PATH,0);
 			SetFocus(GetDlgItem(hwnd,IDC_EDIT1));
+			SendDlgItemMessage(hwnd,IDC_EDIT1,EM_SETSEL,MAX_PATH,-1);
+			{
+				RECT rect={0};
+				int x,y;
+				GetWindowRect(ghmdiclient,&rect);
+				x=(rect.left+rect.right)/2;
+				y=(rect.top+rect.bottom)/2;
+				GetWindowRect(hwnd,&rect);
+				x-=(rect.right-rect.left)/2;
+				y-=(rect.bottom-rect.top)/2;
+				SetWindowPos(hwnd,NULL,x,y,0,0,SWP_NOSIZE|SWP_NOZORDER);
+			}
 		}
 		break;
 	case WM_SIZE:
@@ -360,7 +378,12 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		case CMD_EXPORT_DATA:
 			{
 				static char fname[MAX_PATH]={0};
-				if(DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_FILENAME),hwnd,filename_proc,fname)==TRUE){
+				static char *params[2]={fname,0};
+				TABLE_WINDOW *win=0;
+				if(find_win_by_hlistview(hwnd,&win))
+					params[1]=win->table;
+				
+				if(DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_FILENAME),hwnd,filename_proc,params)==TRUE){
 					FILE *f;
 					f=fopen(fname,"wb");
 					if(f!=0){
