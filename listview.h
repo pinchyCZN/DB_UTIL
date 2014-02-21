@@ -151,6 +151,46 @@ int lv_insert_data(HWND hlistview,int row,int col,char *str)
 	}
 	return FALSE;
 }
+int export_listview(HWND hwnd,const char *fname)
+{
+	int result=FALSE;
+	FILE *f;
+	if(hwnd==0 || fname==0 || fname[0]==0)
+		return result;
+	f=fopen(fname,"wb");
+	if(f!=0){
+		int i,j,item_count,col_count;
+		char *buf;
+		int buf_size=0x10000;
+		item_count=ListView_GetItemCount(hwnd);
+		col_count=lv_get_column_count(hwnd);
+		set_status_bar_text(ghstatusbar,0,"exporting data to %s",fname);
+		for(i=0;i<col_count;i++){
+			char str[255]={0};
+			lv_get_col_text(hwnd,i,str,sizeof(str));
+			fprintf(f,"%s%s",str,i==col_count-1?"\n":",");
+		}
+		buf=malloc(buf_size);
+		if(buf!=0){
+			for(i=0;i<item_count;i++){
+				for(j=0;j<col_count;j++){
+					buf[0]=0;
+					ListView_GetItemText(hwnd,i,j,buf,buf_size);
+					fprintf(f,"%s%s",buf,j==col_count-1?"\n":",");
+				}
+			}
+			result=TRUE;
+			free(buf);
+		}
+		else
+			fprintf(f,"cant allocate buffer of size %08X\n",buf_size);
+		fclose(f);
+		set_status_bar_text(ghstatusbar,0,"finished export to %s",fname);
+	}else{
+		set_status_bar_text(ghstatusbar,0,"cant open %s",fname);
+	}
+	return result;
+}
 LRESULT CALLBACK filename_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
 	static char *fname=0;
@@ -384,41 +424,8 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 					params[1]=win->table;
 				
 				if(DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_FILENAME),hwnd,filename_proc,params)==TRUE){
-					FILE *f;
-					f=fopen(fname,"wb");
-					if(f!=0){
-						int i,j,item_count,col_count;
-						char *buf;
-						int buf_size=0x10000;
-						item_count=ListView_GetItemCount(hwnd);
-						col_count=lv_get_column_count(hwnd);
-						set_status_bar_text(ghstatusbar,0,"exporting data to %s",fname);
-						for(i=0;i<col_count;i++){
-							char str[255]={0};
-							lv_get_col_text(hwnd,i,str,sizeof(str));
-							fprintf(f,"%s%s",str,i==col_count-1?"\n":",");
-						}
-						buf=malloc(buf_size);
-						if(buf!=0){
-							for(i=0;i<item_count;i++){
-								for(j=0;j<col_count;j++){
-									buf[0]=0;
-									ListView_GetItemText(hwnd,i,j,buf,buf_size);
-									fprintf(f,"%s%s",buf,j==col_count-1?"\n":",");
-								}
-							}
-							free(buf);
-						}
-						else
-							fprintf(f,"cant allocate buffer of size %08X\n",buf_size);
-						fclose(f);
-						set_status_bar_text(ghstatusbar,0,"finished export to %s",fname);
-					}else{
-						set_status_bar_text(ghstatusbar,0,"cant open %s",fname);
-						fname[0]=0;
-					}
+					export_listview(hwnd,fname);
 				}
-
 			}
 			break;
 		case CMD_COL_WIDTH_DATA:

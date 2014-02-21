@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /MT /W2 /GX /O2 /FI"pragma.h" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /FR /YX /FD /c
+# ADD CPP /nologo /MT /W2 /GX /O2 /I ".\\" /FI"pragma.h" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /FR /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
@@ -100,6 +100,13 @@ LINK32=link.exe
 # Begin Source File
 
 SOURCE=.\lemon\example5.c
+
+!IF  "$(CFG)" == "DB_UTIL - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "DB_UTIL - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
@@ -137,6 +144,13 @@ InputName=example5
 # Begin Source File
 
 SOURCE=.\lemon\lex.yy.c
+
+!IF  "$(CFG)" == "DB_UTIL - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "DB_UTIL - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
@@ -144,14 +158,8 @@ SOURCE=.\lemon\lexer.l
 
 !IF  "$(CFG)" == "DB_UTIL - Win32 Release"
 
+# PROP Exclude_From_Build 1
 # PROP Ignore_Default_Tool 1
-# Begin Custom Build
-InputPath=.\lemon\lexer.l
-
-".\lemon\lex.yy.c" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	.\lemon\flex -o.\lemon\lex.yy.c .\lemon\lexer.l
-
-# End Custom Build
 
 !ELSEIF  "$(CFG)" == "DB_UTIL - Win32 Debug"
 
