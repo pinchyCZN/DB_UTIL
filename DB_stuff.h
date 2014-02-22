@@ -216,6 +216,20 @@ int release_db(DB_TREE *tree)
 	}
 	return FALSE;
 }
+//used only for worker thread abort
+int erase_sql_handles()
+{
+	int i;
+	for(i=0;i<sizeof(table_windows)/sizeof(TABLE_WINDOW);i++){
+		table_windows[i].hdbc=0;
+		table_windows[i].hdbenv=0;
+	}
+	for(i=0;i<sizeof(db_tree)/sizeof(DB_TREE);i++){
+		table_windows[i].hdbc=0;
+		table_windows[i].hdbenv=0;
+	}
+	return 0;
+}
 int close_db(DB_TREE *tree)
 {
 	if(tree!=0){

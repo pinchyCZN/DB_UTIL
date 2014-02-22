@@ -1539,6 +1539,18 @@ int custom_dispatch(MSG *msg)
 			break;
 		}
 	}
+	switch(msg->message){
+	case WM_KEYFIRST:
+		switch(msg->wParam){
+		case 'Z':
+			if(GetKeyState(VK_CONTROL)&0x8000){
+				extern int automation_thread();
+				extern int automation_busy;
+				if(!automation_busy)
+					_beginthread(automation_thread,0,0);
+			}
+		}
+	}
 	return FALSE;
 }
 int create_popup_menus()

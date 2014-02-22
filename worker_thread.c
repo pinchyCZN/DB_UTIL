@@ -9,6 +9,7 @@ extern HWND ghmainframe,ghmdiclient,ghtreeview,ghdbview,ghstatusbar;
 HANDLE event=0;
 HANDLE hworker=0;
 int task=0;
+int thread_busy=0;
 int keep_closed=TRUE;
 char taskinfo[1024*2]={0};
 char localinfo[sizeof(taskinfo)]={0};
@@ -71,11 +72,9 @@ int task_new_query()
 	return TRUE;
 
 }
-int task_execute_query(char *fname)
+int task_execute_query(void *win)
 {
-	taskinfo[0]=0;
-	if(fname!=0 && fname[0]!=0)
-		_snprintf(taskinfo,sizeof(taskinfo),"%s",fname);
+	_snprintf(taskinfo,sizeof(taskinfo),"0x%08X",win);
 	task=TASK_EXECUTE_QUERY;
 	SetEvent(event);
 	return TRUE;
@@ -144,11 +143,13 @@ void __cdecl thread(HANDLE event)
 {
 	int id;
 	if(event==0)
-		return 0;
+		return;
 	printf("worker thread started\n");
 	while(TRUE){
 		stop_thread_menu(FALSE);
+		thread_busy=0;
 		id=WaitForSingleObject(event,INFINITE);
+		thread_busy=1;
 		if(id==WAIT_OBJECT_0){
 			stop_thread_menu(TRUE);
 			strncpy(localinfo,taskinfo,sizeof(localinfo));
@@ -336,7 +337,9 @@ void __cdecl thread(HANDLE event)
 				{
 					void *win=0;
 					int result=FALSE;
-					mdi_get_current_win(&win);
+					win=strtoul(localinfo,0,0);
+					if(win==0)
+						mdi_get_current_win(&win);
 					if(win!=0){
 						char *s=0;
 						int size=0x10000;
@@ -503,10 +506,67 @@ int terminate_worker_thread()
 	int result=FALSE;
 	if(hworker!=0){
 		if(TerminateThread(hworker,0)!=0){
+			erase_sql_handles();
 			printf("terminated thread %08X\n",hworker);
 			start_worker_thread();
 			result=TRUE;
 		}
 	}
 	return result;
+}
+int automation_busy=0;
+int automation_thread()
+{
+	struct ATASK{
+		char *table;
+		char *export;
+	};
+	struct ATASK list[]={
+		{"test1","b:\\out1.txt"},
+		{"test2","b:\\out2.txt"},
+		{"test1","b:\\out3.txt"},
+	};
+	automation_busy=1;
+	printf("auto thread started\n");
+	{
+		int i,max;
+		max=get_max_table_windows();
+		for(i=0;i<max;i++){
+			HWND hwnd=0;
+			get_win_hwnds(i,&hwnd,0,0);
+			if(hwnd!=0){
+				SendMessage(hwnd,WM_CLOSE,0,0);
+			}
+		}
+		while(thread_busy){
+			Sleep(100);
+		};
+		task_new_query();
+		for(i=0;i<sizeof(list)/sizeof(struct ATASK);i++){
+			void *win=0;
+			char str[256];
+			do{
+				Sleep(100);
+			}while(thread_busy);
+			printf("running task\n");
+			mdi_get_current_win(&win);
+			_snprintf(str,sizeof(str),"SELECT * FROM %s",list[i].table);
+			mdi_set_edit_text(win,str);
+			task_execute_query(win);
+			do{
+				Sleep(100);
+			}while(thread_busy);
+			{
+				HWND hwnd=0;
+				get_win_hwnds(0,0,0,&hwnd);
+				if(hwnd){
+					printf("exporting\n");
+					export_listview(hwnd,list[i].export);
+				}
+			}
+		}
+	}
+	automation_busy=0;
+	printf("auto thread finished\n");
+	return 0;
 }
