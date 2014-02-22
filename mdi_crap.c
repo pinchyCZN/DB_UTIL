@@ -362,7 +362,8 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 			int split=mdi_split;
 			if(find_win_by_hwnd(hwnd,&win)){
 				RECT rect={0};
-				GetClientRect(win->hedit,&rect);
+				GetWindowRect(win->hedit,&rect);
+				MapWindowPoints(NULL,win->hwnd,&rect,2);
 				split=rect.bottom;
 			}
 			if(y>=(split-10) && y<=(split+10)){
@@ -379,7 +380,8 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 			int split=mdi_split;
 			if(find_win_by_hwnd(hwnd,&win)){
 				RECT rect={0};
-				GetClientRect(win->hedit,&rect);
+				GetWindowRect(win->hedit,&rect);
+				MapWindowPoints(NULL,win->hwnd,&rect,2);
 				split=rect.bottom;
 			}
 			if(y>=(split-10) && y<=(split+10))

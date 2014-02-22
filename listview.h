@@ -251,10 +251,11 @@ LRESULT CALLBACK filename_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 	}
 	return 0;
 }
-int insert_col_sql(HWND hedit,char *col)
+int insert_col_sql(TABLE_WINDOW *win,char *col)
 {
 	int result=FALSE;
-	if(hedit!=0 && col!=0){
+	if(win!=0 && win->hedit!=0 && col!=0){
+		HWND hedit=win->hedit;
 		char *str;
 		int str_size=0x1000;
 		str=malloc(str_size);
@@ -266,8 +267,10 @@ int insert_col_sql(HWND hedit,char *col)
 				if(s!=0){
 					char *n=malloc(str_size);
 					if(n!=0){
+						char *lbrack="",*rbrack="";
 						s[0]=0;
-						_snprintf(n,str_size,"%s,%s %s",str,col,s+1);
+						get_col_brackets(win,col,&lbrack,&rbrack);
+						_snprintf(n,str_size,"%s,%s%s%s %s",str,lbrack,col,rbrack,s+1);
 						n[str_size-1]=0;
 						SetWindowText(hedit,n);
 						free(n);
@@ -336,7 +339,23 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 									lv_get_col_text(win->hlistview,win->selected_column,col_name,sizeof(col_name));
 									get_col_brackets(win,col_name,&lbrack,&rbrack);
 									if(GetKeyState(VK_CONTROL)&0x8000){
-										insert_col_sql(win->hedit,col_name);
+										insert_col_sql(win,col_name);
+										break;
+									}
+									else if(GetKeyState(VK_SHIFT)&0x8000){
+										int i;
+										_snprintf(sql,sql_size,"SELECT ");
+										for(i=0;i<win->columns;i++){
+											char *comma="";
+											col_name[0]=0;
+											lv_get_col_text(win->hlistview,i,col_name,sizeof(col_name));
+											get_col_brackets(win,col_name,&lbrack,&rbrack);
+											if(i<(win->columns-1))
+												comma=",";
+											_snprintf(sql,sql_size,"%s%s%s%s%s",sql,lbrack,col_name,rbrack,comma);
+										}
+										get_col_brackets(win,win->table,&lbrack,&rbrack);
+										_snprintf(sql,sql_size,"%s FROM %s%s%s",sql,lbrack,win->table,rbrack);
 										break;
 									}
 								}
