@@ -522,9 +522,17 @@ int automation_thread()
 		char *export;
 	};
 	struct ATASK list[]={
-		{"test1","b:\\out1.txt"},
-		{"test2","b:\\out2.txt"},
-		{"test1","b:\\out3.txt"},
+		{"SELECT STORENUM,TICK_DATETIME,REGNUM,TICKET,SHIFT_SEQ,ELSDATE,CASHIER,SOURCE_DEV,SOURCE_UNT,CUSTOMER,CUST_DEMO,CUST_DATE,TRANS_TYPE,CUST_TYPE,TOTAL_AMT,TOTAL_TAX,FUEL_AMT,FUEL_VOL,SCAN_COUNT,PLU_COUNT,DEPT_COUNT,NFND_COUNT,DIRC_COUNT,TOTAL_FS,TOTAL_WIC,TOTAL_DISC,ELAPSED,DELAY,MERCH_CUST,GAS_CUST,PRINTED,DRAWERTIME,KV_SENT,COPIED,DOB_TYPE,VOID_COUNT,POS_TYPE FROM H_TICKET ORDER BY TICKET,TICK_DATETIME","TICKET.txt"},
+		{"SELECT STORENUM,tick_datetime,REGNUM,TICKET,ORDINAL,ELSDATE,TENDER_ID,SUB_ID,AMOUNT,TENDERED,FEE,ACCT_TYPE,ACCOUNT,TRANS_ID,REF,AUTH_CODE,EXP_DATE,INTERFACED,BATCH,SURCHARGE,FMT_ACCT,IV,SIG_STATUS FROM H_TENDER ORDER by TICKET,ORDINAL","tender.txt"},
+		{"SELECT STORENUM,tick_datetime,REGNUM,TICKET,ORD_ASSOC,ELSDATE,TAX_TABLE,TAX,TAX_TOTAL,FS_TAXOFF,FS_TAX_TOT,WC_TAX_TOT FROM H_TAX ORDER by TICKET,tick_datetime","tax.txt"},
+		{"SELECT STORENUM,CASHIER,start_datetime,ELSDATE,stop_datetime,SHIFT_SEQ,REGNUM,DRAWER,SOURCE,NRGT,TOTAL_OVRR,TOTAL_SLS,OVER_SHORT,RECEIPT,DROPPED,LOAN,shift,POS_TYPE FROM H_SHIFT ORDER by start_datetime","shift.txt"},
+		{"SELECT STORENUM,tick_datetime,REGNUM,SHIFT_SEQ,ELSDATE,DESCRIPTION,AMOUNT,TYPE,TRAN_CODE,TEN_TYPE,ID,ACCOUNT,CAP_ACCT,ACCT_NUM,COPIED,POS_TYPE FROM H_POUT ORDER by tick_datetime","pout.txt"},
+		{"SELECT STORENUM,TICK_DATETIME,REGNUM,TICKET,ORDINAL,ELSDATE,ITEM_TYPE,COMBO_NUM,ITEMNUM,DESCRIPTION,MODIFIER,PRICE,AMOUNT,QTY,TAX_TABLE,FOOD_STAMP,DISCOUNT,AGE,DEPARTMENT,PROMO_CODE,KV_SENT,PARENT_ORD FROM H_ITEM ORDER by TICKET,TICK_DATETIME","item.txt"},
+		{"SELECT STORENUM,tick_datetime,REGNUM,TICKET,ORDINAL,ELSDATE,FUEL_TYPE,GRADE,FP,VOLUME,SALES,AMOUNT,PRICE,DISCOUNT,ticket_id,TRANSNUM,MOS,MOP,INIT_MOP FROM H_FUEL ORDER by TICKET,tick_datetime","fuel.txt"},
+		{"SELECT STORENUM,TICK_DATETIME,REGNUM,TICKET,SHIFT_SEQ,ELSDATE,CASHIER,SOURCE_DEV,SOURCE_UNT,CUSTOMER,TRANS_TYPE,ITEMNUM,MODIFIER,[COUNT],AMOUNT,FP,FUEL_AMT,FUEL_VOL,DESCRIPTION,COPIED,LOCATION,POS_TYPE FROM H_EVENT ORDER by TICKET,TICK_DATETIME","event.txt"},
+		{"SELECT STORENUM,SHIFT_SEQ,TICKET,REGNUM,TICK_DATETIME,ID,TYPE,DESCRIPTION,TOTALAMT,ORDINAL,DISCAMT,MAXGAL,PERCENTOFF FROM H_DISC ORDER by TICKET,SHIFT_SEQ","disc.txt"},
+		{"SELECT tick_datetime,SHIFT_SEQ,ID,ELSDATE,ACCT_AREA,ACCT_TYPE,AMOUNT,DONE,STORENUM,REGNUM,LOCATION,POS_TYPE FROM H_ACCT ORDER by tick_datetime,SHIFT_SEQ","acct.txt"}
+
 	};
 	automation_busy=1;
 	printf("auto thread started\n");
@@ -544,14 +552,12 @@ int automation_thread()
 		task_new_query();
 		for(i=0;i<sizeof(list)/sizeof(struct ATASK);i++){
 			void *win=0;
-			char str[256];
 			do{
 				Sleep(100);
 			}while(thread_busy);
 			printf("running task\n");
 			mdi_get_current_win(&win);
-			_snprintf(str,sizeof(str),"SELECT * FROM %s",list[i].table);
-			mdi_set_edit_text(win,str);
+			mdi_set_edit_text(win,list[i].table);
 			task_execute_query(win);
 			do{
 				Sleep(100);
@@ -560,8 +566,16 @@ int automation_thread()
 				HWND hwnd=0;
 				get_win_hwnds(0,0,0,&hwnd);
 				if(hwnd){
+					char *path="C:\\temp\\PJR";
 					printf("exporting\n");
-					export_listview(hwnd,list[i].export);
+					if(!is_path_directory(path)){
+						MessageBox(NULL,"error","path no exist",MB_OK|MB_SYSTEMMODAL);
+						break;
+					}
+					else{
+						SetCurrentDirectory(path);
+						export_listview(hwnd,list[i].export);
+					}
 				}
 			}
 		}
