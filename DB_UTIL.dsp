@@ -100,13 +100,6 @@ LINK32=link.exe
 # Begin Source File
 
 SOURCE=.\lemon\example5.c
-
-!IF  "$(CFG)" == "DB_UTIL - Win32 Release"
-
-!ELSEIF  "$(CFG)" == "DB_UTIL - Win32 Debug"
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
@@ -144,30 +137,12 @@ InputName=example5
 # Begin Source File
 
 SOURCE=.\lemon\lex.yy.c
-
-!IF  "$(CFG)" == "DB_UTIL - Win32 Release"
-
-!ELSEIF  "$(CFG)" == "DB_UTIL - Win32 Debug"
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
 SOURCE=.\lemon\lexer.l
-
-!IF  "$(CFG)" == "DB_UTIL - Win32 Release"
-
 # PROP Exclude_From_Build 1
 # PROP Ignore_Default_Tool 1
-
-!ELSEIF  "$(CFG)" == "DB_UTIL - Win32 Debug"
-
-# PROP Exclude_From_Build 1
-# PROP Ignore_Default_Tool 1
-
-!ENDIF 
-
 # End Source File
 # End Group
 # Begin Source File
@@ -253,6 +228,10 @@ SOURCE=.\search.h
 # Begin Source File
 
 SOURCE=.\structs.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\tile_win_dialog.h
 # End Source File
 # Begin Source File
 
