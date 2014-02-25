@@ -620,6 +620,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 		case IDC_EXECUTE_SQL:
 			task_execute_query(NULL);
 			break;
+		case IDM_TILE_DIALOG:
+			tile_select_dialog(hwnd);
+			break;
 		case IDM_WINDOW_TILE:
 			mdi_tile_windows_vert();
 			break;

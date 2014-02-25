@@ -27,6 +27,7 @@ static DB_TREE db_tree[20];
 #include "col_info.h"
 #include "treeview.h"
 #include "listview.h"
+#include "tile_win_dialog.h"
 
 LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {

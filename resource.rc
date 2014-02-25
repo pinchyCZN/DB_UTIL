@@ -260,6 +260,17 @@ BEGIN
     PUSHBUTTON      "Cancel",IDCANCEL,111,80,50,14
 END
 
+IDD_TILE_WINDOWS DIALOG DISCARDABLE  0, 0, 186, 94
+STYLE WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Select windows to TILE"
+FONT 8, "MS Sans Serif"
+BEGIN
+    DEFPUSHBUTTON   "Tile",IDOK,0,80,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,121,80,50,14
+    LISTBOX         IDC_LIST1,0,0,186,80,LBS_NOINTEGRALHEIGHT | 
+                    LBS_EXTENDEDSEL | WS_VSCROLL | WS_TABSTOP
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -270,6 +281,8 @@ IDR_ACCELERATOR1 ACCELERATORS DISCARDABLE
 BEGIN
     "T",            IDM_WINDOW_CASCADE,     VIRTKEY, CONTROL, NOINVERT
     "T",            IDM_WINDOW_TILE,        VIRTKEY, SHIFT, CONTROL, 
+                                                    NOINVERT
+    "T",            IDM_TILE_DIALOG,        VIRTKEY, SHIFT, CONTROL, ALT, 
                                                     NOINVERT
     VK_F5,          IDC_EXECUTE_SQL,        VIRTKEY, NOINVERT
 END
