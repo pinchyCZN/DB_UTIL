@@ -18,7 +18,7 @@ static HMENU ghmenu=0;
 static int mousex=0,mousey=0;
 static int lmb_down=FALSE;
 static int main_drag=FALSE;
-int tree_width=20;
+int tree_width=0;
 CRITICAL_SECTION mutex;
 LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam);
 
@@ -89,14 +89,25 @@ int load_window_size(HWND hwnd,char *section)
 	if(get_nearest_monitor(x,y,width,height,&rect)){
 		int flags=SWP_SHOWWINDOW;
 		if((GetKeyState(VK_SHIFT)&0x8000)==0){
-			if(width<50 || height<50)
-				flags|=SWP_NOSIZE;
-			if(x>(rect.right-25) || x<(rect.left-25))
-				x=rect.left;
-			if(y<(rect.top-25) || y>(rect.bottom-25))
-				y=rect.top;
-			if(SetWindowPos(hwnd,HWND_TOP,x,y,width,height,flags)!=0)
-				result=TRUE;
+			if(width<50 || height<50){
+				int rw,rh;
+				rw=(rect.right-rect.left);
+				rh=(rect.bottom-rect.top);
+				width=rw*3/4;
+				height=rh*3/4;
+				x=rw/8;
+				y=rh/8;
+				if(SetWindowPos(hwnd,HWND_TOP,x,y,width,height,flags)!=0)
+					result=TRUE;
+			}
+			else{
+				if(x>(rect.right-25) || x<(rect.left-25))
+					x=rect.left;
+				if(y<(rect.top-25) || y>(rect.bottom-25))
+					y=rect.top;
+				if(SetWindowPos(hwnd,HWND_TOP,x,y,width,height,flags)!=0)
+					result=TRUE;
+			}
 		}
 	}
 	if(maximized)
@@ -480,6 +491,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 		{
 			RECT rect={0};
 			extern int keep_closed,trim_trailing,left_justify;
+			get_ini_value("SETTINGS","KEEP_CLOSED",&keep_closed);
+			get_ini_value("SETTINGS","TRIM_TRAILING",&trim_trailing);
+			get_ini_value("SETTINGS","LEFT_JUSTIFY",&left_justify);
+			load_icon(hwnd);
+
+			load_window_size(hwnd,"MAIN_WINDOW");
+
 			GetClientRect(hwnd,&rect);
 			get_ini_value("SETTINGS","TREE_WIDTH",&tree_width);
 			if(tree_width>rect.right-10 || tree_width<10){
@@ -487,10 +505,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 				if(tree_width<12)
 					tree_width=12;
 			}
-			get_ini_value("SETTINGS","KEEP_CLOSED",&keep_closed);
-			get_ini_value("SETTINGS","TRIM_TRAILING",&trim_trailing);
-			get_ini_value("SETTINGS","LEFT_JUSTIFY",&left_justify);
-			load_icon(hwnd);
+
+			ghmdiclient=create_mdiclient(hwnd,ghmenu,ghinstance);
+			ghdbview=create_dbview(hwnd,ghinstance);
+			ghstatusbar=CreateStatusWindow(WS_CHILD|WS_VISIBLE,"ready",hwnd,IDC_STATUS);
+			create_status_bar_parts(hwnd,ghstatusbar);
+
+			resize_main_window(hwnd,tree_width);
 		}
 		break;
 	case WM_DROPFILES:
@@ -727,14 +748,8 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 	ghmenu=LoadMenu(hInstance, MAKEINTRESOURCE(IDR_MENU1));
 	ghmainframe=create_mainwindow(&WndProc,ghmenu,hInstance,class_name,"DB_UTIL");
 
-	ghmdiclient=create_mdiclient(ghmainframe,ghmenu,ghinstance);
-	ghdbview=create_dbview(ghmainframe,ghinstance);
-	ghstatusbar=CreateStatusWindow(WS_CHILD|WS_VISIBLE,"ready",ghmainframe,IDC_STATUS);
-	create_status_bar_parts(ghmainframe,ghstatusbar);
-
 	ShowWindow(ghmainframe,nCmdShow);
 	UpdateWindow(ghmainframe);
-	load_window_size(ghmainframe,"MAIN_WINDOW");
 
 	haccel=LoadAccelerators(ghinstance,MAKEINTRESOURCE(IDR_ACCELERATOR1));
 
