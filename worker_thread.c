@@ -29,7 +29,10 @@ enum{
 	TASK_GET_INDEX_INFO,
 	TASK_GET_FOREIGN_KEYS
 };
-
+int get_worker_thread_busy()
+{
+	return thread_busy;
+}
 int task_open_db(char *name)
 {
 	task=TASK_OPEN_DB;
@@ -499,6 +502,10 @@ int start_worker_thread()
 	if(event==0)
 		return FALSE;
 	hworker=_beginthread(thread,0,event);
+	if(hworker==-1){
+		MessageBox(NULL,"Failed to create worker thread","Error",MB_OK|MB_SYSTEMMODAL);
+		hworker=0;
+	}
 	return TRUE;
 }
 int terminate_worker_thread()

@@ -86,5 +86,165 @@ static LRESULT CALLBACK tile_win_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lp
 
 int tile_select_dialog(HWND hwnd)
 {
-	return DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_TILE_WINDOWS),hwnd,tile_win_proc,NULL);
+	return DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_WINDOW_LIST),hwnd,tile_win_proc,NULL);
 }
+
+
+static void refresh_thread(void *args[])
+{
+	int *thread_stop=0;
+	int *thread_busy=0;
+	int *list=0;
+	HWND hwnd=0;
+	int i;
+	if(args){
+		thread_stop=args[0];
+		thread_busy=args[1];
+		hwnd=args[2];
+		list=args[3];
+	}
+	printf("thread started\n");
+	if(hwnd)
+		PostMessage(hwnd,WM_APP,1,0);
+	if(thread_busy)
+		*thread_busy=1;
+
+	for(i=0;i<sizeof(table_windows)/sizeof(TABLE_WINDOW);i++){
+		if(table_windows[i].hwnd!=0){
+			if(list){
+				if(list[i])
+					task_execute_query(&table_windows[i]);
+			}
+			else
+				task_execute_query(&table_windows[i]);
+			Sleep(100);
+			while(get_worker_thread_busy()){
+				Sleep(100);
+				if(thread_stop && (*thread_stop!=0)){
+					printf("exiting wait\n");
+					break;
+				}
+			};
+		}
+		if(thread_stop && (*thread_stop!=0))
+			break;
+	}
+	
+	if(thread_busy)
+		*thread_busy=0;
+	if(hwnd){
+		PostMessage(hwnd,WM_CLOSE,0,0);
+		PostMessage(hwnd,WM_APP,0,0);
+	}
+	printf("thread exit\n");
+	return;
+}
+
+static LRESULT CALLBACK refresh_all_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
+{
+	static HWND hgrippy;
+	static int thread_stop=0;
+	static int thread_busy=0;
+	switch(msg){
+	case WM_INITDIALOG:
+		{
+			int i,cx,cy,h;
+			RECT rect={0};
+			for(i=0;i<sizeof(table_windows)/sizeof(TABLE_WINDOW);i++){
+				if(table_windows[i].hwnd!=0){
+					char str[128];
+					int index;
+					_snprintf(str,sizeof(str),"%s - %s",table_windows[i].table,table_windows[i].name);
+					index=SendDlgItemMessage(hwnd,IDC_LIST1,LB_ADDSTRING,0,str);
+					if(index>=0)
+						SendDlgItemMessage(hwnd,IDC_LIST1,LB_SETITEMDATA,index,i);
+				}
+			}
+			SendDlgItemMessage(hwnd,IDC_LIST1,LB_SELITEMRANGE,TRUE,MAKELPARAM(0,-1));
+			SetWindowText(hwnd,"Refresh windows");
+			SetDlgItemText(hwnd,IDOK,"Refresh");
+			GetWindowRect(ghmdiclient,&rect);
+			cx=(rect.right+rect.left)/2;
+			cy=(rect.bottom+rect.top)/2;
+			GetWindowRect(hwnd,&rect);
+			h=rect.bottom-rect.top;
+			SetWindowPos(hwnd,NULL,cx,cy-(h/2),0,0,SWP_NOSIZE|SWP_NOZORDER);
+			hgrippy=create_grippy(hwnd);
+			SetFocus(GetDlgItem(hwnd,IDC_LIST1));
+		}
+		break;
+	case WM_SIZE:
+		grippy_move(hwnd,hgrippy);
+		{
+			RECT rect={0},brect={0};
+			int w,h,x,y;
+			GetClientRect(hwnd,&rect);
+			GetWindowRect(GetDlgItem(hwnd,IDOK),&brect);
+			w=rect.right;
+			h=rect.bottom-(brect.bottom-brect.top)+2;
+			SetWindowPos(GetDlgItem(hwnd,IDC_LIST1),NULL,0,0,w,h,SWP_NOZORDER);
+			x=0;
+			y=rect.bottom-(brect.bottom-brect.top);
+			SetWindowPos(GetDlgItem(hwnd,IDOK),NULL,x,y,0,0,SWP_NOSIZE|SWP_NOZORDER);
+			x=rect.right/2;
+			y=rect.bottom-(brect.bottom-brect.top);
+			SetWindowPos(GetDlgItem(hwnd,IDCANCEL),NULL,x,y,0,0,SWP_NOSIZE|SWP_NOZORDER);
+		}
+		break;
+	case WM_APP:
+		switch(wparam){
+		case 1:
+			SetDlgItemText(hwnd,IDOK,"Busy");
+			break;
+		case 0:
+			SetDlgItemText(hwnd,IDOK,"Refresh");
+			break;
+		}
+		break;
+	case WM_CLOSE:
+		thread_stop=1;
+		EndDialog(hwnd,0);
+		break;
+	case WM_COMMAND:
+		switch(LOWORD(wparam)){
+		case IDOK:
+			if(thread_busy==0){
+				int i,count,*thread_handle;
+				static void *args[4]={&thread_stop,&thread_busy};
+				static int list[sizeof(table_windows)/sizeof(TABLE_WINDOW)];
+				args[2]=hwnd;
+				args[3]=list;
+				memset(list,0,sizeof(list));
+				count=SendDlgItemMessage(hwnd,IDC_LIST1,LB_GETCOUNT,0,0);
+				for(i=0;i<count;i++){
+					int sel;
+					sel=SendDlgItemMessage(hwnd,IDC_LIST1,LB_GETSEL,i,0);
+					if(sel>0){
+						int data;
+						data=SendDlgItemMessage(hwnd,IDC_LIST1,LB_GETITEMDATA,i,0);
+						if(data>=0){
+							if(data<(sizeof(list)/sizeof(int)))
+								list[data]=1;
+						}
+					}
+				}
+				thread_stop=0;
+				thread_handle=_beginthread(refresh_thread,0,args);
+				if(thread_handle==-1)
+					MessageBox(hwnd,"Failed to create worker thread","Error",MB_OK|MB_SYSTEMMODAL);
+			}else
+				thread_stop=1;
+			break;
+		case IDCANCEL:
+			thread_stop=1;
+			EndDialog(hwnd,0);
+			break;
+		}
+	}
+	return 0;
+}
+int refresh_all_dialog(HWND hwnd)
+{
+	return DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_WINDOW_LIST),hwnd,refresh_all_proc,NULL);
+}
+

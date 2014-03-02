@@ -16,7 +16,7 @@
 #define IDD_FILE_ASSOCIATIONS           115
 #define IDD_INSTALL_DIALOG              116
 #define IDD_SHELL_ASSOC                 117
-#define IDD_TILE_WINDOWS                118
+#define IDD_WINDOW_LIST                 118
 #define IDC_STATUS                      1003
 #define IDC_TABLES                      1004
 #define IDC_MDI_LISTVIEW                1005
@@ -73,13 +73,14 @@
 #define IDM_WINDOW_TILE                 40012
 #define IDM_WINDOW_CASCADE              40013
 #define IDM_TILE_DIALOG                 40014
+#define IDM_REFRESH_ALL                 40015
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        119
-#define _APS_NEXT_COMMAND_VALUE         40015
+#define _APS_NEXT_COMMAND_VALUE         40016
 #define _APS_NEXT_CONTROL_VALUE         1055
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

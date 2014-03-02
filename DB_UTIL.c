@@ -650,6 +650,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 		case IDM_WINDOW_CASCADE:
 			mdi_cascade_win_vert();
 			break;
+		case IDM_REFRESH_ALL:
+			refresh_all_dialog(hwnd);
+			break;
 		}
 		break;
 	case WM_SIZE:
