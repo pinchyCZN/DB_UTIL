@@ -941,6 +941,7 @@ int create_lv_edit_selected(TABLE_WINDOW *win)
 					len=strlen(str);
 					if(len>0){
 						int i,lf=0,c=0,max=0;
+						set_status_bar_text(ghstatusbar,0,"len=%i",len);
 						for(i=0;i<len;i++){
 							c++;
 							if(c>max)

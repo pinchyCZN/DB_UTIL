@@ -508,6 +508,7 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 				default:
 				case IDCANCEL:
 					destroy_lv_edit(wparam);
+					set_status_bar_text(ghstatusbar,0,"");
 					break;
 				}
 				break;
@@ -1148,6 +1149,8 @@ int extract_short_db_name(char *name,char *out,int olen)
 int acquire_db_tree(char *name,DB_TREE **tree)
 {
 	int i;
+	if(tree==0 || name==0 || name[0]==0)
+		return FALSE;
 	if(find_db_tree(name,tree))
 		return TRUE;
 	for(i=0;i<sizeof(db_tree)/sizeof(DB_TREE);i++){

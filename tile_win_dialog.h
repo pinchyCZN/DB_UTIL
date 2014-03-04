@@ -109,7 +109,16 @@ static void refresh_thread(void *args[])
 	if(thread_busy)
 		*thread_busy=1;
 
+	wait_worker_idle(1,FALSE);
+
 	for(i=0;i<sizeof(table_windows)/sizeof(TABLE_WINDOW);i++){
+		HWND httip=0;
+		RECT rect={0};
+		int x,y;
+		GetWindowRect(hwnd,&rect);
+		x=rect.left;
+		y=rect.top;
+		create_tooltip(hwnd,"busy - press escape to quit",x,y,&httip);
 		if(table_windows[i].hwnd!=0){
 			if(list){
 				if(list[i])
@@ -117,14 +126,16 @@ static void refresh_thread(void *args[])
 			}
 			else
 				task_execute_query(&table_windows[i]);
-			Sleep(100);
-			while(get_worker_thread_busy()){
-				Sleep(100);
+			while(FALSE==wait_worker_idle(100,FALSE)){
 				if(thread_stop && (*thread_stop!=0)){
 					printf("exiting wait\n");
 					break;
 				}
 			};
+		}
+		if(httip){
+			destroy_tooltip(httip);
+			httip=0;
 		}
 		if(thread_stop && (*thread_stop!=0))
 			break;

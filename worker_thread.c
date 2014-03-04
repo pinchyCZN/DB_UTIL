@@ -7,9 +7,9 @@
 
 extern HWND ghmainframe,ghmdiclient,ghtreeview,ghdbview,ghstatusbar;
 HANDLE event=0;
+HANDLE event_idle=0;
 HANDLE hworker=0;
 int task=0;
-int thread_busy=0;
 int keep_closed=TRUE;
 char taskinfo[1024*2]={0};
 char localinfo[sizeof(taskinfo)]={0};
@@ -29,10 +29,6 @@ enum{
 	TASK_GET_INDEX_INFO,
 	TASK_GET_FOREIGN_KEYS
 };
-int get_worker_thread_busy()
-{
-	return thread_busy;
-}
 int task_open_db(char *name)
 {
 	task=TASK_OPEN_DB;
@@ -142,17 +138,22 @@ int	task_get_foreign_keys(void *db,char *table)
 	return TRUE;
 }
 
-void __cdecl thread(HANDLE event)
+void __cdecl thread(void *args)
 {
 	int id;
-	if(event==0)
+	HANDLE *event_list=args;
+	HANDLE event=0,event_idle=0;
+	if(args==0)
+		return;
+	event=event_list[0];
+	event_idle=event_list[1];
+	if(event==0 || event_idle==0)
 		return;
 	printf("worker thread started\n");
 	while(TRUE){
 		stop_thread_menu(FALSE);
-		thread_busy=0;
+		SetEvent(event_idle);
 		id=WaitForSingleObject(event,INFINITE);
-		thread_busy=1;
 		if(id==WAIT_OBJECT_0){
 			stop_thread_menu(TRUE);
 			strncpy(localinfo,taskinfo,sizeof(localinfo));
@@ -481,27 +482,45 @@ void __cdecl thread(HANDLE event)
 	CloseHandle(event);
 	hworker=0;
 }
-
-int start_worker_thread()
+int get_guid_str(char *fmt,char *str,int str_len)
 {
-	char str[80]={0};
+	int result=FALSE;
 	UUID uuid;
-	RPC_STATUS result=UuidCreate(&uuid);
-	_snprintf(str,sizeof(str),"%s","worker thread:");
-	if(result==RPC_S_OK){
+	RPC_STATUS stat=UuidCreate(&uuid);
+	if(stat==RPC_S_OK){
 		char *p=0;
 		UuidToString(&uuid,&p);
 		if(p!=0){
-			_snprintf(str,sizeof(str),"%s%s",str,p);
+			_snprintf(str,str_len,fmt,p);
+			if(str_len>0)
+				str[str_len-1]=0;
 			RpcStringFree(&p);
+			result=TRUE;
 		}
 	}
+	return result;
+}
+int start_worker_thread()
+{
+	char str[80]={0};
+	static HANDLE *events[2]={0,0};
+	void *args=0;
+	get_guid_str("worker thread event:%s",str,sizeof(str));
 	if(event!=0)
 		CloseHandle(event);
 	event=CreateEvent(NULL,TRUE,FALSE,str);
 	if(event==0)
 		return FALSE;
-	hworker=_beginthread(thread,0,event);
+	get_guid_str("worker thread idle:%s",str,sizeof(str));
+	if(event_idle!=0)
+		CloseHandle(event_idle);
+	event_idle=CreateEvent(NULL,TRUE,FALSE,str);
+	if(event_idle==0)
+		return FALSE;
+	events[0]=event;
+	events[1]=event_idle;
+	args=events;
+	hworker=_beginthread(thread,0,args);
 	if(hworker==-1){
 		MessageBox(NULL,"Failed to create worker thread","Error",MB_OK|MB_SYSTEMMODAL);
 		hworker=0;
@@ -519,6 +538,30 @@ int terminate_worker_thread()
 			result=TRUE;
 		}
 	}
+	return result;
+}
+int wait_worker_idle(int timeout,int showmsg)
+{
+	int result=FALSE;
+	int sig=0;
+	while(TRUE){
+		sig=WaitForSingleObject(event_idle,timeout);
+		if(sig==WAIT_OBJECT_0){
+			ResetEvent(event_idle);
+			result=TRUE;
+			break;
+		}
+		else if(showmsg){
+			if(IDYES==MessageBox(NULL,"wait some more?","waiting for thread",MB_YESNO|MB_SYSTEMMODAL))
+				continue;
+			else{
+				result=TRUE;
+				break;
+			}
+		}
+		else
+			break;
+	};
 	return result;
 }
 int automation_busy=0;
@@ -545,6 +588,7 @@ int automation_thread()
 	printf("auto thread started\n");
 	{
 		int i,max;
+		HWND httip=0;
 		max=get_max_table_windows();
 		for(i=0;i<max;i++){
 			HWND hwnd=0;
@@ -553,22 +597,29 @@ int automation_thread()
 				SendMessage(hwnd,WM_CLOSE,0,0);
 			}
 		}
-		while(thread_busy){
-			Sleep(100);
-		};
+		wait_worker_idle(100,FALSE);
 		task_new_query();
 		for(i=0;i<sizeof(list)/sizeof(struct ATASK);i++){
 			void *win=0;
-			do{
-				Sleep(100);
-			}while(thread_busy);
+			RECT rect={0};
+			int x,y;
+			GetWindowRect(ghmainframe,&rect);
+			x=(rect.left+rect.right)/2;
+			y=(rect.bottom+rect.top)/2;
+			create_tooltip(ghmainframe,"busy - press escape to exit",x,y,&httip);
+			while(FALSE==wait_worker_idle(100,FALSE)){
+				if(GetAsyncKeyState(VK_ESCAPE)&0x8000)
+					break;
+			};
 			printf("running task\n");
 			mdi_get_current_win(&win);
 			mdi_set_edit_text(win,list[i].table);
 			task_execute_query(win);
-			do{
-				Sleep(100);
-			}while(thread_busy);
+			if(httip){
+				destroy_tooltip(httip);
+				httip=0;
+			}
+
 			{
 				HWND hwnd=0;
 				get_win_hwnds(0,0,0,&hwnd);
