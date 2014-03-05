@@ -120,13 +120,18 @@ static void refresh_thread(void *args[])
 		y=rect.top;
 		create_tooltip(hwnd,"busy - press escape to quit",x,y,&httip);
 		if(table_windows[i].hwnd!=0){
+			int do_wait=FALSE;
 			if(list){
-				if(list[i])
+				if(list[i]){
 					task_execute_query(&table_windows[i]);
+					do_wait=TRUE;
+				}
 			}
-			else
+			else{
 				task_execute_query(&table_windows[i]);
-			while(FALSE==wait_worker_idle(100,FALSE)){
+				do_wait=TRUE;
+			}
+			while(do_wait && FALSE==wait_worker_idle(100,FALSE)){
 				if(thread_stop && (*thread_stop!=0)){
 					printf("exiting wait\n");
 					break;
