@@ -456,7 +456,20 @@ char * strstri(char *s1,char *s2)
 				return (s1+i);
 	return NULL;
 }
-
+int debug_window_focus(HWND hwnd,char *fmt,...)
+{
+#ifdef _DEBUG
+	va_list list;
+	char str[80]={0};
+	char other[80]={0};
+	va_start(list,fmt);
+	_vsnprintf(other,sizeof(other),fmt,list);
+	other[sizeof(other)-1]=0;
+	GetClassName(hwnd,str,sizeof(str));
+	printf("hwnd val=%08X name=%s info=%s\n",hwnd,str,other);
+#endif
+	return 0;
+}
 
 int stop_thread_menu(int create)
 {
@@ -524,6 +537,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 		}
 		break;
 	case WM_USER:
+		debug_window_focus(lparam,"WM_USER");
 		switch(wparam){
 		case IDC_TREEVIEW:
 			if(lparam!=0)
@@ -542,23 +556,23 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 		}
 		break;
 	case WM_USER+1:
-			if(last_focus!=0)
-				SetFocus(last_focus);
+		debug_window_focus(last_focus,"WMUSER+1");
+		if(last_focus!=0)
+			SetFocus(last_focus);
 		break;
 	case WM_NCACTIVATE:
+		debug_window_focus(last_focus,"NCACTIVATE wparam=%08X",wparam);
 		if(wparam==0){
 			last_focus=GetFocus();
-			//printf("main saving focus %08X\n",last_focus);
 		}
 		else{
 			PostMessage(hwnd,WM_USER+1,0,0);
-			//printf("main ncactivating focus %08X\n",last_focus);
 		}
 		break;
 	case WM_ACTIVATEAPP: //close any tooltip on app switch
+		debug_window_focus(last_focus,"ACTIVATEAPP wparam=%08X",wparam);
 		if(wparam){
 			PostMessage(hwnd,WM_USER+1,0,0);
-			//printf("main psoting focus %08X\n",last_focus);
 		}
 		break;
 	case WM_KILLFOCUS:

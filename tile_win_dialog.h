@@ -109,16 +109,10 @@ static void refresh_thread(void *args[])
 	if(thread_busy)
 		*thread_busy=1;
 
+	PostMessage(hwnd,WM_APP,2,0);
 	wait_worker_idle(1,FALSE);
 
 	for(i=0;i<sizeof(table_windows)/sizeof(TABLE_WINDOW);i++){
-		HWND httip=0;
-		RECT rect={0};
-		int x,y;
-		GetWindowRect(hwnd,&rect);
-		x=rect.left;
-		y=rect.top;
-		create_tooltip(hwnd,"busy - press escape to quit",x,y,&httip);
 		if(table_windows[i].hwnd!=0){
 			int do_wait=FALSE;
 			if(list){
@@ -131,27 +125,24 @@ static void refresh_thread(void *args[])
 				task_execute_query(&table_windows[i]);
 				do_wait=TRUE;
 			}
+			if(do_wait){
+				set_status_bar_text(ghstatusbar,1,"refreshing table %s (press escape to abort)",table_windows[i].table);
+			}
 			while(do_wait && FALSE==wait_worker_idle(100,FALSE)){
 				if(thread_stop && (*thread_stop!=0)){
 					printf("exiting wait\n");
 					break;
 				}
 			};
-		}
-		if(httip){
-			destroy_tooltip(httip);
-			httip=0;
+			if(do_wait){
+				set_status_bar_text(ghstatusbar,1,"");
+			}
 		}
 		if(thread_stop && (*thread_stop!=0))
 			break;
 	}
-	
 	if(thread_busy)
 		*thread_busy=0;
-	if(hwnd){
-		PostMessage(hwnd,WM_CLOSE,0,0);
-		PostMessage(hwnd,WM_APP,0,0);
-	}
 	printf("thread exit\n");
 	return;
 }
@@ -161,6 +152,16 @@ static LRESULT CALLBACK refresh_all_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM
 	static HWND hgrippy;
 	static int thread_stop=0;
 	static int thread_busy=0;
+	if(FALSE)
+	if(msg!=WM_SETCURSOR)
+	{
+		static DWORD tick=0;
+		if((GetTickCount()-tick)>500)
+			printf("--\n");
+		print_msg(msg,lparam,wparam,hwnd);
+		tick=GetTickCount();
+	}
+
 	switch(msg){
 	case WM_INITDIALOG:
 		{
@@ -209,11 +210,14 @@ static LRESULT CALLBACK refresh_all_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM
 		break;
 	case WM_APP:
 		switch(wparam){
-		case 1:
-			SetDlgItemText(hwnd,IDOK,"Busy");
-			break;
 		case 0:
 			SetDlgItemText(hwnd,IDOK,"Refresh");
+			break;
+		case 1:
+			SetDlgItemText(hwnd,IDOK,"Stop");
+			break;
+		case 2:
+			EndDialog(hwnd,0);
 			break;
 		}
 		break;
