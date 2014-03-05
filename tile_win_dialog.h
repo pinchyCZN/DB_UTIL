@@ -113,6 +113,7 @@ static void refresh_thread(void *args[])
 	wait_worker_idle(1,FALSE);
 
 	for(i=0;i<sizeof(table_windows)/sizeof(TABLE_WINDOW);i++){
+		int escape_pressed=FALSE;
 		if(table_windows[i].hwnd!=0){
 			int do_wait=FALSE;
 			if(list){
@@ -133,6 +134,10 @@ static void refresh_thread(void *args[])
 					printf("exiting wait\n");
 					break;
 				}
+				if(GetAsyncKeyState(VK_ESCAPE)&0x8000){
+					escape_pressed=TRUE;
+					break;
+				}
 			};
 			if(do_wait){
 				set_status_bar_text(ghstatusbar,1,"");
@@ -140,6 +145,10 @@ static void refresh_thread(void *args[])
 		}
 		if(thread_stop && (*thread_stop!=0))
 			break;
+		if(escape_pressed){
+			set_status_bar_text(ghstatusbar,1,"refreshing aborted");
+			break;
+		}
 	}
 	if(thread_busy)
 		*thread_busy=0;
