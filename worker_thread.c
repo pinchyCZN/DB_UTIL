@@ -482,36 +482,30 @@ void __cdecl thread(void *args)
 	CloseHandle(event);
 	hworker=0;
 }
-int get_guid_str(char *fmt,char *str,int str_len)
+int get_guid_str(char *pre,char *str,int str_len)
 {
-	int result=FALSE;
-	UUID uuid;
-	RPC_STATUS stat=UuidCreate(&uuid);
-	if(stat==RPC_S_OK){
-		char *p=0;
-		UuidToString(&uuid,&p);
-		if(p!=0){
-			_snprintf(str,str_len,fmt,p);
-			if(str_len>0)
-				str[str_len-1]=0;
-			RpcStringFree(&p);
-			result=TRUE;
-		}
-	}
-	return result;
+	char guid[20]={0};
+	_snprintf(guid,sizeof(guid),"%04X",rand());
+	_snprintf(guid,sizeof(guid),"%s%04X",guid,rand());
+	_snprintf(guid,sizeof(guid),"%s%04X",guid,rand());
+	_snprintf(guid,sizeof(guid),"%s%04X",guid,rand());
+	guid[sizeof(guid)]=0;
+	_snprintf(str,str_len,"%s%s",pre,guid);
+	str[str_len-1]=0;
+	return TRUE;
 }
 int start_worker_thread()
 {
 	char str[80]={0};
 	static HANDLE *events[2]={0,0};
 	void *args=0;
-	get_guid_str("worker thread event:%s",str,sizeof(str));
+	get_guid_str("worker thread event:",str,sizeof(str));
 	if(event!=0)
 		CloseHandle(event);
 	event=CreateEvent(NULL,TRUE,FALSE,str);
 	if(event==0)
 		return FALSE;
-	get_guid_str("worker thread idle:%s",str,sizeof(str));
+	get_guid_str("worker thread idle:",str,sizeof(str));
 	if(event_idle!=0)
 		CloseHandle(event_idle);
 	event_idle=CreateEvent(NULL,TRUE,FALSE,str);
