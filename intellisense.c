@@ -497,7 +497,14 @@ static LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		}
 		}
 		break;
-	case WM_USER+1:
+	case WM_HELP:
+		{
+			static char *help="ODBC Datetime format:\r\n"
+				"{ ts '1998-05-02 01:23:56.123' }\r\n"
+				"{ d '1990-10-02' }\r\n"
+				"{ t '13:33:41' }\r\n";
+		MessageBox(hwnd,help,"SQL HELP",MB_OK);
+		}
 		break;
 	case WM_USER:
 		{

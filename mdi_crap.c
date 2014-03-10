@@ -1548,7 +1548,7 @@ int custom_dispatch(MSG *msg)
 	switch(msg->message){
 	case WM_KEYFIRST:
 		switch(msg->wParam){
-		case 'Z':
+		case VK_F12:
 			if(GetKeyState(VK_CONTROL)&0x8000){
 				extern int automation_thread();
 				extern int automation_busy;
