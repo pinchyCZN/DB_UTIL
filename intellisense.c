@@ -529,6 +529,13 @@ int assert()
 {
 	return 0;
 }
+int get_left_char(int pos,unsigned char *str)
+{
+	if(pos>0)
+		return str[pos-1];
+	else
+		return 0;
+}
 void __cdecl intellisense_thread(void)
 {
 	void *pParser=0; //ParseAlloc(malloc);
@@ -547,6 +554,7 @@ void __cdecl intellisense_thread(void)
 			case WM_USER:
 				{
 				int line=0,pos=0;
+				static unsigned char lastleftchar=0;
 				TABLE_WINDOW *win=msg.wParam;
 				//wparam=win lparam=key
 				str[0]=0;
@@ -562,19 +570,43 @@ void __cdecl intellisense_thread(void)
 				else if(pos>=sizeof_str-1)
 					pos=sizeof_str-1;
 
-				if(pos==0 
-					|| (pos>0 && (str[pos-1]<=' '))
-					)
-					{
-					if(win!=0 && win->hintel!=0){
-						ShowWindow(win->hintel,SW_HIDE);
+				//check edge cases where we dont want the intelli window to appear
+				if(msg.lParam==VK_SPACE && (GetKeyState(VK_CONTROL)&8000)){
+					lastleftchar=get_left_char(pos,str);
+				}
+				else if(msg.lParam==VK_BACK && win!=0 && win->hintel!=0 && (0==IsWindowVisible(win->hintel))){
+					int do_break=FALSE;
+					if(pos>0){
+						if(!is_word_boundary(str[pos-1])){
+							if(is_word_boundary(lastleftchar))
+								do_break=TRUE;
+						}
+						else
+							do_break=TRUE;
+					}
+					else
+						do_break=TRUE;
+
+					lastleftchar=get_left_char(pos,str);
+					if(do_break)
 						break;
+				}
+				else{ //hide if needed
+					lastleftchar=get_left_char(pos,str);
+					if(pos==0 
+						|| (pos>0 && (is_word_boundary(str[pos-1])))
+						)
+						{
+						if(win!=0 && win->hintel!=0){
+							ShowWindow(win->hintel,SW_HIDE);
+							break;
+						}
 					}
 				}
 
 				if(str[0]!=0){
 					int yv,mode;
-					printf("str=%s\n",str);
+					printf("str=%40s\n",str);
 					if(pParser!=0){
 						strupr(str);
 						yy_scan_string(str);
