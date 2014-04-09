@@ -247,7 +247,17 @@ LRESULT CALLBACK MDIChildWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 											int buf_size=0x10000;
 											buf=malloc(buf_size);
 											if(buf!=0){
-												ListView_GetItemText(win->hlistview,sel,win->selected_column,buf,buf_size);
+												if(GetKeyState(VK_MENU)&0x8000){
+													int len=get_clipboard(buf,buf_size);
+													if(buf_size>(len+1)){
+														buf[len]=',';
+														buf[len+1]=0;
+														len++;
+														ListView_GetItemText(win->hlistview,sel,win->selected_column,buf+len,buf_size-len);
+													}
+												}
+												else
+													ListView_GetItemText(win->hlistview,sel,win->selected_column,buf,buf_size);
 												buf[buf_size-1]=0;
 												copy_str_clipboard(buf);
 												free(buf);

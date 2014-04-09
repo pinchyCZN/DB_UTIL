@@ -22,6 +22,27 @@ int tree_width=0;
 CRITICAL_SECTION mutex;
 LRESULT CALLBACK settings_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam);
 
+int get_clipboard(char *str,int len)
+{
+	int result=0;
+	if(str==0 || len<=0)
+		return result;
+	if(OpenClipboard(NULL)!=0){
+		HANDLE h;
+		h=GetClipboardData(CF_TEXT);
+		if(h){
+			char *lock=GlobalLock(h);
+			if(lock){
+				strncpy(str,lock,len);
+				str[len-1]=0;
+				result=strlen(str);
+				GlobalUnlock(h);
+			}
+		}
+		CloseClipboard();
+	}
+	return result;
+}
 int copy_str_clipboard(char *str)
 {
 	int len,result=FALSE;
