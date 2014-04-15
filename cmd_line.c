@@ -182,20 +182,31 @@ int process_cmd_line(char *cmd)
 	}
 	else if(stricmp(ext,".DBF")==0){
 		{
-		char *key_list[]={
-			"Microsoft dBase Driver (*.dbf)","Microsoft dBase VFP Driver (*.dbf)","Microsoft Visual FoxPro Driver"
-		};
-		int i;
-		for(i=0;i<sizeof(key_list)/sizeof(char *);i++){
-			if(does_key_exist("SOFTWARE\\ODBC\\ODBCINST.INI\\ODBC Drivers",key_list[i])){
+			char *key="Visual FoxPro Tables";
+			if(does_key_exist("SOFTWARE\\ODBC\\ODBC.INI\\ODBC Data Sources",key)){
 				if(name[0]!=0 && path[0]!=0){
-					char *cstr="Driver={%s};DBQ=%s;SourceType=DBF;TABLE=%s";
-					_snprintf(connect,sizeof(connect),cstr,key_list[i],path,name);
+					char *cstr="DSN=%s;UID=;PWD=;SourceDB=%s;SourceType=DBF;Exclusive=No;BackgroundFetch=Yes;Collate=Machine;Null=Yes;Deleted=Yes;TABLE=%s";
+					_snprintf(connect,sizeof(connect),cstr,key,path,name);
 					task_open_db_and_table(connect);
 					return TRUE;
 				}
 			}
 		}
+		{
+			char *key_list[]={
+				"Microsoft dBase Driver (*.dbf)","Microsoft dBase VFP Driver (*.dbf)","Microsoft Visual FoxPro Driver"
+			};
+			int i;
+			for(i=0;i<sizeof(key_list)/sizeof(char *);i++){
+				if(does_key_exist("SOFTWARE\\ODBC\\ODBCINST.INI\\ODBC Drivers",key_list[i])){
+					if(name[0]!=0 && path[0]!=0){
+						char *cstr="Driver={%s};DBQ=%s;SourceType=DBF;TABLE=%s";
+						_snprintf(connect,sizeof(connect),cstr,key_list[i],path,name);
+						task_open_db_and_table(connect);
+						return TRUE;
+					}
+				}
+			}
 		}
 	}
 	else if(stricmp(ext,".MDB")==0){
