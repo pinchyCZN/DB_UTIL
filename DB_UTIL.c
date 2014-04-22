@@ -1,10 +1,7 @@
-#if _WIN32_WINNT<0x400
-#define _WIN32_WINNT 0x400
-#define COMPILE_MULTIMON_STUBS
-#endif
+#define WINVER 0x500
+#define _WIN32_WINNT 0x500
 #include <windows.h>
 #include <Commctrl.h>
-#include <multimon.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
