@@ -21,7 +21,7 @@ static int fill_listbox(HWND hwnd,HWND htreeview)
 	if(rootname!=0 && entry!=0){
 		HTREEITEM hroot;
 		HWND hlist;
-		int len;
+		int len,max_width=0;
 		len=strlen(str);
 		hlist=GetDlgItem(hwnd,IDC_LIST1);
 		SendMessage(hlist,LB_RESETCONTENT,0,0);
@@ -35,13 +35,36 @@ static int fill_listbox(HWND hwnd,HWND htreeview)
 				char item[80]={0};
 				tree_get_item_text(hchild,item,sizeof(item));
 				if(strnicmp(item,str,len)==0){
+					int w;
 					entry[0]=0;
 					_snprintf(entry,entry_size,"%s\t  %s",item,rootname);
 					SendMessage(hlist,LB_ADDSTRING,0,entry);
+					w=get_str_width(hlist,entry);
+					if(w>max_width)
+						max_width=w;
 				}
 				hchild=TreeView_GetNextSibling(htreeview,hchild);
 			}
 			hroot=TreeView_GetNextSibling(htreeview,hroot);
+		}
+		if(max_width>0){
+			RECT rect;
+			int w,h;
+			GetWindowRect(hwnd,&rect);
+			w=rect.right-rect.left;
+			h=rect.bottom-rect.top;
+			if(max_width>w){
+				RECT rtree;
+				int fw;
+				HWND hparent=GetParent(ghdbview);
+				GetWindowRect(hparent,&rect);
+				GetWindowRect(htreeview,&rtree);
+				fw=(rect.right-rect.left)-(rtree.right-rtree.left);
+				if(max_width>fw)
+					max_width=fw;
+				if(max_width>w)
+					SetWindowPos(hwnd,NULL,0,0,max_width,h,SWP_NOMOVE|SWP_NOZORDER);
+			}
 		}
 	}
 	if(rootname!=0)
@@ -123,7 +146,7 @@ exit:
 }
 LRESULT CALLBACK find_table_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
-	static HWND htreeview;
+	static HWND htreeview,hgrippy;
 	if(FALSE)
 	{
 		static DWORD tick=0;
@@ -161,7 +184,12 @@ LRESULT CALLBACK find_table_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			}
 
 		}
+		hgrippy=create_grippy(hwnd);
 		SetFocus(GetDlgItem(hwnd,IDC_EDIT1));
+		break;
+	case WM_SIZE:
+		resize_find_table(hwnd);
+		grippy_move(hwnd,hgrippy);
 		break;
 	case WM_COMMAND:
 		switch(LOWORD(wparam)){

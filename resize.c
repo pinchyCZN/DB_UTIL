@@ -627,6 +627,28 @@ short install_dlg_anchors[]={
 			CONTROL_FINISH,-1,
 	RESIZE_FINISH
 };
+short find_table_anchors[]={
+	CONTROL_ID,IDC_EDIT1,
+			XPOS,0,YPOS,0, /*x.off=-279 y.off=-153*/
+			SIZE_WIDTH_OFF,0,HEIGHT,36, /*w.off=-1 h.off=-117*/
+			CONTROL_FINISH,-1,
+	CONTROL_ID,IDC_LIST1,
+			XPOS,0,YPOS,40, /*x.off=-279 y.off=-109*/
+			SIZE_WIDTH_OFF,0,SIZE_HEIGHT_OFF,-65, /*w.off=-1 h.off=-70*/
+			CONTROL_FINISH,-1,
+	CONTROL_ID,IDOK,
+			XPOS,0,YPOS,0, /*x.off=-279 y.off=-23*/
+			WIDTH,75,HEIGHT,23, /*w.off=-204 h.off=-130*/
+			HUG_CTRL_Y,IDC_LIST1,
+			CONTROL_FINISH,-1,
+	CONTROL_ID,IDCANCEL,
+			XPOS,0,YPOS,0, /*x.off=-106 y.off=-23*/
+			WIDTH,75,HEIGHT,23, /*w.off=-204 h.off=-130*/
+			HUG_R,-110,
+			HUG_CTRL_Y,IDC_LIST1,
+			CONTROL_FINISH,-1,
+	RESIZE_FINISH
+};
 int reposition_controls(HWND hwnd, short *list)
 {
 	RECT	rect;
@@ -742,4 +764,8 @@ int resize_shell_assoc(HWND hwnd)
 int resize_install_dlg(HWND hwnd)
 {
 	return reposition_controls(hwnd,install_dlg_anchors);
+}
+int resize_find_table(HWND hwnd)
+{
+	return reposition_controls(hwnd,find_table_anchors);
 }
