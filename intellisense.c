@@ -491,7 +491,9 @@ static LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			break;
 		case VK_LEFT:
 		case VK_RIGHT:
-			check_LR(win,wparam);			
+			check_LR(win,wparam);
+			if(IsWindowVisible(win->hintel))
+				post_intel_msg(WM_USER,win,wparam);
 			break;
 		default:
 			break;
@@ -593,17 +595,8 @@ void __cdecl intellisense_thread(void)
 					if(do_break)
 						break;
 				}
-				else{ //hide if needed
+				else{
 					lastleftchar=get_left_char(pos,str);
-					if(pos==0 
-						|| (pos>0 && (is_word_boundary(str[pos-1])))
-						)
-						{
-						if(win!=0 && win->hintel!=0){
-							ShowWindow(win->hintel,SW_HIDE);
-							break;
-						}
-					}
 				}
 
 				if(str[0]!=0){
