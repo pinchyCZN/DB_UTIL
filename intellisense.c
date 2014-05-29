@@ -312,8 +312,6 @@ int replace_current_word(TABLE_WINDOW *win,char *str)
 	if(win->hedit==0)
 		return FALSE;
 	SendMessage(win->hedit,EM_GETSEL,&start,&end);
-	if(end<start)
-		start=end;
 	line=SendMessage(win->hedit,EM_LINEFROMCHAR,start,0);
 	if(line>=0){
 		char s[1024];
@@ -326,9 +324,11 @@ int replace_current_word(TABLE_WINDOW *win,char *str)
 			int wordstart=linestart,wordend=linestart;
 			s[len-1]=0;
 			if(find_word_start(s,linestart,&wordstart)){
+				int wstart=lindex+wordstart;
 				find_word_end(s,linestart,&wordend);
-				start=lindex+wordstart;
-				//end=lindex+wordend; //unomment to replace entire word
+				if((wstart-start)==0) //if cursor is at start of word replace whole word
+					end=lindex+wordend;
+				start=wstart;
 				SendMessage(win->hedit,EM_SETSEL,start,end);
 				SendMessage(win->hedit,EM_REPLACESEL,TRUE,str);
 				return TRUE;
