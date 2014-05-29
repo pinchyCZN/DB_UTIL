@@ -34,10 +34,13 @@ typedef struct{
 }DB_INFO;
 DB_INFO *top=0;
 
-int populate_intel(TABLE_WINDOW *win,char *src,int mode,int *width)
+int populate_intel(TABLE_WINDOW *win,char *src,int cur_pos,int mode,int *width)
 {
 	int max_width=0;
 	if(win!=0 && src!=0){
+		int src_len=cur_pos;
+		if(src_len<=0)
+			src_len=strlen(src);
 		SendMessage(win->hintel,LB_RESETCONTENT,0,0);
 		//if(mode==TABLE_MODE)
 		{
@@ -48,7 +51,7 @@ int populate_intel(TABLE_WINDOW *win,char *src,int mode,int *width)
 			while(t!=0){
 				int index;
 				char *str=t->table;
-				if(strnicmp(str,src,strlen(src))==0){
+				if(strnicmp(str,src,src_len)==0){
 					index=SendMessage(win->hintel,LB_FINDSTRINGEXACT,-1,str);
 					if(index==LB_ERR){
 						int w;
@@ -99,7 +102,7 @@ int populate_intel(TABLE_WINDOW *win,char *src,int mode,int *width)
 							continue;
 						else
 							index=0;
-						if(strnicmp(str,src,strlen(src))==0){
+						if(strnicmp(str,src,src_len)==0){
 							lbindex=SendMessage(win->hintel,LB_FINDSTRINGEXACT,-1,str);
 							if(lbindex==LB_ERR){
 								int w;
@@ -128,7 +131,7 @@ int populate_intel(TABLE_WINDOW *win,char *src,int mode,int *width)
 				char *str=sql_major_words[i];
 				if(str==0)
 					continue;
-				if(strnicmp(str,src,strlen(src))==0){
+				if(strnicmp(str,src,src_len)==0){
 					int lbindex;
 					lbindex=SendMessage(win->hintel,LB_FINDSTRINGEXACT,-1,str);
 					if(lbindex==LB_ERR){
@@ -140,7 +143,6 @@ int populate_intel(TABLE_WINDOW *win,char *src,int mode,int *width)
 					}
 				}
 			}
-			
 		}
 		if(SendMessage(win->hintel,LB_GETCOUNT,0,0)<=0)
 			ShowWindow(win->hintel,SW_HIDE);
@@ -165,7 +167,7 @@ int handle_intellisense(TABLE_WINDOW *win,char *str,int pos,int mode)
 		printf("substr=%s\n",tab_word);
 		if(win->hintel!=0){
 			int width=80;
-			if(populate_intel(win,tab_word,mode,&width)){
+			if(populate_intel(win,tab_word,pos-tab_pos,mode,&width)){
 				POINT p={0};
 				int cpos=0;
 				SendMessage(win->hedit,EM_GETSEL,&cpos,0);
@@ -326,7 +328,7 @@ int replace_current_word(TABLE_WINDOW *win,char *str)
 			if(find_word_start(s,linestart,&wordstart)){
 				find_word_end(s,linestart,&wordend);
 				start=lindex+wordstart;
-				end=lindex+wordend;
+				//end=lindex+wordend; //unomment to replace entire word
 				SendMessage(win->hedit,EM_SETSEL,start,end);
 				SendMessage(win->hedit,EM_REPLACESEL,TRUE,str);
 				return TRUE;

@@ -354,7 +354,8 @@ LRESULT CALLBACK recent_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 	switch(msg){
 	case WM_INITDIALOG:
 		if(load_recent(hwnd,IDC_LIST1)>0){
-			SendDlgItemMessage(hwnd,IDC_LIST1,LB_SETCURSEL,0,0);			
+			SendDlgItemMessage(hwnd,IDC_LIST1,LB_SETCURSEL,0,0);
+			SetFocus(GetDlgItem(hwnd,IDC_LIST1));
 		}
 		else
 			SetFocus(GetDlgItem(hwnd,IDC_RECENT_EDIT));
