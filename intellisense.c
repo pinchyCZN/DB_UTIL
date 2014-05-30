@@ -40,7 +40,7 @@ int populate_intel(TABLE_WINDOW *win,char *src,int cur_pos,int mode,int *width)
 	if(win!=0 && src!=0){
 		int src_len=cur_pos;
 		if(src_len<=0)
-			src_len=strlen(src);
+			src_len=1; //strlen(src);
 		SendMessage(win->hintel,LB_RESETCONTENT,0,0);
 		//if(mode==TABLE_MODE)
 		{
@@ -389,7 +389,27 @@ int check_LR(TABLE_WINDOW *win,int vkey)
 	}
 	return FALSE;
 }
-
+int seek_word_edge(HWND hedit,int vkey)
+{
+	int start=0,end=0;
+	int line,lineindex;
+	char str[512];
+	SendMessage(hedit,EM_GETSEL,&start,&end);
+	line=SendMessage(hedit,EM_LINEFROMCHAR,start,0);
+	lineindex=SendMessage(hedit,EM_LINEINDEX,line,0);
+	((WORD*)str)[0]=sizeof(str);
+	SendMessage(hedit,EM_GETLINE,line,str);
+	str[sizeof(str)-1]=0;
+	if(vkey==VK_END){
+		find_word_end(str,start-lineindex,&end);
+		SendMessage(hedit,EM_SETSEL,lineindex+end,lineindex+end);
+	}
+	else{
+		find_word_start(str,start-lineindex,&start);
+		SendMessage(hedit,EM_SETSEL,lineindex+start,lineindex+start);
+	}
+	return TRUE;
+}
 static WNDPROC wporigtedit=0;
 static LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
@@ -460,6 +480,12 @@ static LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		switch(wparam){
 		case VK_HOME:
 		case VK_END:
+			if(IsWindowVisible(win->hintel)){
+				seek_word_edge(hwnd,wparam);
+				post_intel_msg(WM_USER,win,wparam);
+				return TRUE;
+			}
+			break;
 		case VK_PRIOR:
 		case VK_NEXT:
 		case VK_UP:
