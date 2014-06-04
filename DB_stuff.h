@@ -314,7 +314,15 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols,int *aborted)
 			}
 			result=SQLFetch(hstmt);
 			if(!(result==SQL_SUCCESS || result==SQL_SUCCESS_WITH_INFO))
+			{
+				if(result==SQL_ERROR){
+					char err[255]={0};
+					get_error_msg(hstmt,SQL_HANDLE_STMT,err,sizeof(err));
+					printf("err:%s\n",err);
+					continue;
+				}
 				break;
+			}
 			for(i=0;i<cols;i++){
 				char tmp[255]={0};
 				char *str=tmp;
