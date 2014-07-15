@@ -317,9 +317,11 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols,int *aborted)
 			{
 				if(result==SQL_ERROR){
 					char err[255]={0};
-					get_error_msg(hstmt,SQL_HANDLE_STMT,err,sizeof(err));
+					int state;
+					state=get_error_msg(hstmt,SQL_HANDLE_STMT,err,sizeof(err));
 					printf("fetch_rows error:%s\n",err);
-					continue;
+					if(state!=24000) //invalid cursor state
+						continue;
 				}
 				break;
 			}
