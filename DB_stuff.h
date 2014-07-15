@@ -318,7 +318,7 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols,int *aborted)
 				if(result==SQL_ERROR){
 					char err[255]={0};
 					get_error_msg(hstmt,SQL_HANDLE_STMT,err,sizeof(err));
-					printf("err:%s\n",err);
+					printf("fetch_rows error:%s\n",err);
 					continue;
 				}
 				break;
