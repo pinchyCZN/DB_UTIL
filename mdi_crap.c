@@ -1159,7 +1159,7 @@ int extract_short_db_name(char *name,char *out,int olen)
 int acquire_db_tree(char *name,DB_TREE **tree)
 {
 	int i;
-	if(tree==0 || name==0 || name[0]==0)
+	if(tree==0 || name==0)
 		return FALSE;
 	if(find_db_tree(name,tree))
 		return TRUE;
