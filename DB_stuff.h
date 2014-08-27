@@ -69,22 +69,16 @@ int get_tables(DB_TREE *tree,int all)
 		return count;
 	if(SQLTables(hstmt,NULL,SQL_NTS,NULL,SQL_NTS,NULL,SQL_NTS,ttype,SQL_NTS)!=SQL_ERROR){
 		if(SQLFetch(hstmt)!=SQL_NO_DATA_FOUND){
-			HSTMT hpriv=0;
 			int print=TRUE;
-			SQLAllocStmt(tree->hdbc,&hpriv);
 			while(!SQLGetData(hstmt,3,SQL_C_CHAR,table,sizeof(table),&len))
 			{
 				HTREEITEM hitem;
 				table[sizeof(table)-1]=0;
 				if(all){
-					if(SQLTablePrivileges(hpriv,"",SQL_NTS,"",SQL_NTS,table,SQL_NTS)==SQL_SUCCESS)
-					{
-						char str[256]={0};
-						SQLFetch(hpriv);
-						//2=TABLE_SCHEM
-						SQLGetData(hpriv,2,SQL_C_CHAR,str,sizeof(str),&len);
-						SQLCloseCursor(hpriv);
-						{
+					char str[256]={0};
+					//2=TABLE_SCHEM
+					if(SQL_SUCCESS==SQLGetData(hstmt,2,SQL_C_CHAR,str,sizeof(str),&len)){
+						if(str[0]!=0){
 							char tmp[256]={0};
 							_snprintf(tmp,sizeof(tmp),"%s.%s",str,table);
 							tmp[sizeof(tmp)-1]=0;
@@ -92,10 +86,24 @@ int get_tables(DB_TREE *tree,int all)
 							table[sizeof(table)-1]=0;
 						}
 					}
+					//4=TABLE_TYPE
+					else if(SQL_SUCCESS==SQLGetData(hstmt,4,SQL_C_CHAR,str,sizeof(str),&len)){
+						if(str[0]!=0){
+							char tmp[256]={0};
+							str[sizeof(str)-1]=0;
+							strlwr(str);
+							if(strstr(str,"system")){
+								_snprintf(tmp,sizeof(tmp),"sys.%s",table);
+								tmp[sizeof(tmp)-1]=0;
+								strncpy(table,tmp,sizeof(table));
+								table[sizeof(table)-1]=0;
+							}
+						}
+					}
 					else if(print){
 						char msg[SQL_MAX_MESSAGE_LENGTH]={0};
-						get_error_msg(hpriv,SQL_HANDLE_STMT,msg,sizeof(msg));
-						printf("SQLTablePrivileges err:%s\n",msg);
+						get_error_msg(hstmt,SQL_HANDLE_STMT,msg,sizeof(msg));
+						printf("SQLGetData err:%s\n",msg);
 						print=FALSE;
 					}
 				}
@@ -109,7 +117,6 @@ int get_tables(DB_TREE *tree,int all)
 				if(GetAsyncKeyState(VK_ESCAPE)&0x8000)
 					break;
 			}
-			SQLFreeStmt(hpriv,SQL_CLOSE);
 		}
 	}
 	SQLFreeStmt(hstmt,SQL_CLOSE);
