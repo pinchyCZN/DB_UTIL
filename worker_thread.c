@@ -16,6 +16,7 @@ char localinfo[sizeof(taskinfo)]={0};
 enum{
 	TASK_OPEN_TABLE,
 	TASK_REFRESH_TABLES,
+	TASK_REFRESH_TABLES_ALL,
 	TASK_LIST_TABLES,
 	TASK_OPEN_DB,
 	TASK_OPEN_DB_AND_TABLE,
@@ -78,10 +79,12 @@ int task_execute_query(void *win)
 	SetEvent(event);
 	return TRUE;
 }
-int task_refresh_tables(char *str)
+int task_refresh_tables(char *str,int all)
 {
 	_snprintf(taskinfo,sizeof(taskinfo),"%s",str);
 	task=TASK_REFRESH_TABLES;
+	if(all)
+		task=TASK_REFRESH_TABLES_ALL;
 	SetEvent(event);
 	return TRUE;
 }
@@ -383,6 +386,7 @@ void __cdecl thread(void *args)
 				}
 				break;
 			case TASK_REFRESH_TABLES:
+			case TASK_REFRESH_TABLES_ALL:
 				{
 					int result=FALSE;
 					DB_TREE *db=0;
@@ -394,7 +398,7 @@ void __cdecl thread(void *args)
 						}
 						else{
 							intelli_add_db(db->name);
-							result=refresh_tables(db);
+							result=refresh_tables(db,task==TASK_REFRESH_TABLES_ALL);
 							if(keep_closed)
 								close_db(db);
 						}

@@ -636,6 +636,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 			else{
 				if(does_key_exist("SOFTWARE\\ODBC\\ODBC.INI\\ODBC Data Sources","Journal"))
 					task_open_db("UID=dba;PWD=sql;DSN=Journal");
+				else
+					task_open_db("");
 			}
 			break;
 		case IDM_CLOSE:

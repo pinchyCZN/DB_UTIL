@@ -53,7 +53,7 @@ int get_columns(DB_TREE *tree,char *table,HTREEITEM hitem)
 	SQLFreeStmt(hstmt,SQL_CLOSE);
 	return count;
 }
-int get_tables(DB_TREE *tree)
+int get_tables(DB_TREE *tree,int all)
 {
 	HSTMT hstmt;
 	char table[256];
@@ -62,8 +62,9 @@ int get_tables(DB_TREE *tree)
 	int ctrl;
 	const char *ttype="'TABLE'";
 	ctrl=GetAsyncKeyState(VK_CONTROL)&0x8000;
-	if(ctrl)
+	if(ctrl || all)
 		ttype=0;
+
 	if(SQLAllocStmt(tree->hdbc, &hstmt)!=SQL_SUCCESS)
 		return count;
 	if(SQLTables(hstmt,NULL,SQL_NTS,NULL,SQL_NTS,NULL,SQL_NTS,ttype,SQL_NTS)!=SQL_ERROR){
@@ -75,14 +76,21 @@ int get_tables(DB_TREE *tree)
 			{
 				HTREEITEM hitem;
 				table[sizeof(table)-1]=0;
-				if(ctrl){
+				if(all){
 					if(SQLTablePrivileges(hpriv,"",SQL_NTS,"",SQL_NTS,table,SQL_NTS)==SQL_SUCCESS)
 					{
 						char str[256]={0};
 						SQLFetch(hpriv);
-						SQLGetData(hpriv,6,SQL_C_CHAR,str,sizeof(str),&len);
+						//2=TABLE_SCHEM
+						SQLGetData(hpriv,2,SQL_C_CHAR,str,sizeof(str),&len);
 						SQLCloseCursor(hpriv);
-						printf("name=%s | %s\n",table,str);
+						{
+							char tmp[256]={0};
+							_snprintf(tmp,sizeof(tmp),"%s.%s",str,table);
+							tmp[sizeof(tmp)-1]=0;
+							strncpy(table,tmp,sizeof(table));
+							table[sizeof(table)-1]=0;
+						}
 					}
 					else if(print){
 						char msg[SQL_MAX_MESSAGE_LENGTH]={0};

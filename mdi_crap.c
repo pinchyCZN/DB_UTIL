@@ -1184,13 +1184,13 @@ int	acquire_db_tree_from_win(TABLE_WINDOW *win,DB_TREE **tree)
 	return acquire_db_tree(win->name,tree);
 }
 
-int refresh_tables(DB_TREE *tree)
+int refresh_tables(DB_TREE *tree,int all)
 {
 	int result=FALSE;
 	if(tree!=0 && tree->hroot!=0){
 		tree_delete_all_child(tree->hroot);
-		set_status_bar_text(ghstatusbar,0,"retrieving tables:%s",tree->name);
-		get_tables(tree);
+		set_status_bar_text(ghstatusbar,0,"retrieving %s tables:%s",all?"all":"",tree->name);
+		get_tables(tree,all);
 		expand_root(tree->hroot);
 		result=TRUE;
 	}
@@ -1203,7 +1203,7 @@ int load_tables_if_empty(DB_TREE *tree)
 		HTREEITEM h;
 		h=TreeView_GetChild(tree->htree,tree->hroot);
 		if(h==0)
-			result=refresh_tables(tree);
+			result=refresh_tables(tree,FALSE);
 	}
 	return result;
 }
