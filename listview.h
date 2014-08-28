@@ -15,6 +15,16 @@ enum {
 	CMD_SQL_DELETE,
 	CMD_EXPORT_DATA,
 };
+int get_first_line_len(char *str)
+{
+	int i,len;
+	len=0x10000;
+	for(i=0;i<len;i++){
+		if(str[i]=='\n' || str[i]=='\r' || str[i]==0)
+			break;
+	}
+	return i;
+}
 int get_str_width(HWND hwnd,char *str)
 {
 	if(hwnd!=0 && str!=0){
@@ -23,16 +33,17 @@ int get_str_width(HWND hwnd,char *str)
 		hdc=GetDC(hwnd);
 		if(hdc!=0){
 			HFONT hfont;
+			int len=get_first_line_len(str);
 			hfont=SendMessage(hwnd,WM_GETFONT,0,0);
 			if(hfont!=0){
 				HGDIOBJ hold=0;
 				hold=SelectObject(hdc,hfont);
-				GetTextExtentPoint32(hdc,str,strlen(str),&size);
+				GetTextExtentPoint32(hdc,str,len,&size);
 				if(hold!=0)
 					SelectObject(hdc,hold);
 			}
 			else{
-				GetTextExtentPoint32(hdc,str,strlen(str),&size);
+				GetTextExtentPoint32(hdc,str,len,&size);
 			}
 			ReleaseDC(hwnd,hdc);
 			return size.cx;
