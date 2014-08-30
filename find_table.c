@@ -34,7 +34,7 @@ static int fill_listbox(HWND hwnd,HWND htreeview)
 			while(hchild!=0){
 				char item[80]={0};
 				tree_get_item_text(hchild,item,sizeof(item));
-				if(strnicmp(item,str,len)==0){
+				if(strstri(item,str)){
 					int w;
 					entry[0]=0;
 					_snprintf(entry,entry_size,"%s\t  %s",item,rootname);
