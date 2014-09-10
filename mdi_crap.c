@@ -886,8 +886,10 @@ int create_mdi_window(HWND hwnd,HINSTANCE hinstance,TABLE_WINDOW *win)
 		ListView_SetExtendedListViewStyle(hlistview,ListView_GetExtendedListViewStyle(hlistview)|LVS_EX_FULLROWSELECT);
 		subclass_listview(hlistview);
 	}
-	if(hedit!=0)
+	if(hedit!=0){
+		SendMessage(hedit,EM_EXLIMITTEXT,0,0x200000);
 		subclass_edit(hedit);
+	}
 	return TRUE;
 }
 
@@ -1285,25 +1287,39 @@ int mdi_set_edit_text(TABLE_WINDOW *win,char *str)
 		SetWindowText(win->hedit,str);
 	return TRUE;
 }
-int mdi_get_edit_text(TABLE_WINDOW *win,char *str,int size)
+int mdi_get_edit_text(TABLE_WINDOW *win,char **str,int *size)
 {
-	if(win!=0 && win->hedit!=0){
-		CHARRANGE range={0};
-		GetWindowText(win->hedit,str,size);
-		SendMessage(win->hedit,EM_EXGETSEL,0,&range);
-		if(range.cpMax!=range.cpMin){
-			int len;
-			if(range.cpMin>range.cpMax)
-				len=range.cpMin-range.cpMax;
-			else
-				len=range.cpMax-range.cpMin;
-			if(len>2 && len<size){
-				SendMessage(win->hedit,EM_GETSELTEXT,0,str);
+	int result=FALSE;
+	if(win!=0 && win->hedit!=0 && str!=0 && size!=0){
+		GETTEXTLENGTHEX tl={GTL_CLOSE|GTL_NUMBYTES,CP_ACP};
+		int len;
+		len=SendMessage(win->hedit,EM_GETTEXTLENGTHEX,&tl,0);
+		if(len<0)
+			len=0x10000;
+		else if(len<=0x10000)
+			len=0x10000;
+		else
+			len=0x400000;
+		*size=len;
+		*str=malloc(len);
+		if(*str!=0){
+			CHARRANGE range={0};
+			GetWindowText(win->hedit,*str,*size);
+			SendMessage(win->hedit,EM_EXGETSEL,0,&range);
+			if(range.cpMax!=range.cpMin){
+				int len;
+				if(range.cpMin>range.cpMax)
+					len=range.cpMin-range.cpMax;
+				else
+					len=range.cpMax-range.cpMin;
+				if(len>2 && len<*size){
+					SendMessage(win->hedit,EM_GETSELTEXT,0,*str);
+				}
 			}
-
+			result=TRUE;
 		}
 	}
-	return TRUE;
+	return result;
 }
 int mdi_tile_windows_vert()
 {

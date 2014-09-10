@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <commctrl.h>
+#include <richedit.h>
 #include "resource.h"
 #include "structs.h"
 extern HANDLE ghtreeview,ghmdiclient;
@@ -410,6 +411,20 @@ int seek_word_edge(HWND hedit,int vkey)
 	}
 	return TRUE;
 }
+int display_line_pos(TABLE_WINDOW *win)
+{
+	extern HWND ghstatusbar;
+	if(win && win->hedit){
+		CHARRANGE range={0};
+		int line;
+		SendMessage(win->hedit,EM_EXGETSEL,0,&range);
+		line=SendMessage(win->hedit,EM_EXLINEFROMCHAR,0,range.cpMin);
+		if(line>=0){
+			set_status_bar_text(ghstatusbar,1,"line=%i",line+1);
+		}
+	}
+	return TRUE;
+}
 static WNDPROC wporigtedit=0;
 static LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
@@ -485,6 +500,8 @@ static LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				post_intel_msg(WM_USER,win,wparam);
 				return TRUE;
 			}
+			else
+				PostMessage(hwnd,WM_APP,win,0);
 			break;
 		case VK_PRIOR:
 		case VK_NEXT:
@@ -494,6 +511,8 @@ static LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				SendMessage(win->hintel,msg,wparam,lparam);
 				return 0;
 			}
+			else
+				PostMessage(hwnd,WM_APP,win,0);
 			break;
 		case VK_RETURN:
 			{
@@ -534,6 +553,12 @@ static LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				"{ d '1990-10-02' }\r\n"
 				"{ t '13:33:41' }\r\n";
 		MessageBox(hwnd,help,"SQL HELP",MB_OK);
+		}
+		break;
+	case WM_APP:
+		{
+			TABLE_WINDOW *win=wparam;
+			display_line_pos(win);
 		}
 		break;
 	case WM_USER:

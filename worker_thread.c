@@ -349,12 +349,11 @@ void __cdecl thread(void *args)
 						mdi_get_current_win(&win);
 					if(win!=0){
 						char *s=0;
-						int size=0x10000;
+						int size=0;
 						reopen_db(win);
 						mdi_create_abort(win);
-						s=malloc(size);
+						mdi_get_edit_text(win,&s,&size);
 						if(s!=0){
-							mdi_get_edit_text(win,s,size);
 							sql_remove_comments(s,size);
 							result=execute_sql(win,s,TRUE);
 							free(s);
