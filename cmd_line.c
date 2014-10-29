@@ -157,6 +157,33 @@ int does_key_exist(char *subkey,char *entry)
 	}
 	return result;
 }
+int open_pharoh(char *fname)
+{
+	int (__stdcall *get_password)(int y,int m,int d,char *,int);
+	static HINSTANCE hinst=0;
+	void *p;
+	if(hinst==0)
+		hinst=LoadLibrary("dbpw.dll");
+	if(hinst){
+		p=GetProcAddress(hinst,"DLL_GetPassword");
+		if(p){
+			char pwd[256]={0};
+			char connect[1024]={0};
+			SYSTEMTIME systime;
+			GetLocalTime(&systime);
+			get_password=p;
+			get_password(systime.wYear,systime.wMonth,systime.wDay,pwd,sizeof(pwd));
+			pwd[sizeof(pwd)-1]=0;
+			_snprintf(connect,sizeof(connect),"UID=dba;PWD=%s;DatabaseFile=%s;AutoStop=Yes;Integrated=No;Driver={Adaptive Server Anywhere 9.0}",
+												pwd,fname);
+			task_open_db(connect);
+		
+		}
+	}
+	else
+		printf("dbpw.dll not found\n");
+	return TRUE;
+}
 int process_cmd_line(char *cmd)
 {
 	char fname[MAX_PATH+4]={0};
@@ -222,10 +249,15 @@ int process_cmd_line(char *cmd)
 	else if(stricmp(ext,".DB")==0){
 		if(does_key_exist("SOFTWARE\\ODBC\\ODBCINST.INI\\ODBC Drivers","Adaptive Server Anywhere 9.0")){
 			if(fname[0]!=0){
-				char *cstr="UID=dba;PWD=sql;DatabaseFile=%s;AutoStop=Yes;Integrated=No;Driver={Adaptive Server Anywhere 9.0}";
-					_snprintf(connect,sizeof(connect),cstr,fname);
-					task_open_db(connect);
-					return TRUE;
+				if(strstri(fname,"pharoh.db")){
+					return open_pharoh(fname);
+				}
+				else{
+					char *cstr="UID=dba;PWD=sql;DatabaseFile=%s;AutoStop=Yes;Integrated=No;Driver={Adaptive Server Anywhere 9.0}";
+						_snprintf(connect,sizeof(connect),cstr,fname);
+						task_open_db(connect);
+						return TRUE;
+				}
 			}
 		}
 	}
