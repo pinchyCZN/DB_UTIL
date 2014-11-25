@@ -18,6 +18,7 @@ enum{
 	TASK_REFRESH_TABLES,
 	TASK_REFRESH_TABLES_ALL,
 	TASK_LIST_TABLES,
+	TASK_LIST_PROCS,
 	TASK_OPEN_DB,
 	TASK_OPEN_DB_AND_TABLE,
 	TASK_CLOSE_DB,
@@ -92,6 +93,13 @@ int task_list_tables(char *str)
 {
 	_snprintf(taskinfo,sizeof(taskinfo),"%s",str);
 	task=TASK_LIST_TABLES;
+	SetEvent(event);
+	return TRUE;
+}
+int task_list_procs(char *str)
+{
+	_snprintf(taskinfo,sizeof(taskinfo),"%s",str);
+	task=TASK_LIST_PROCS;
 	SetEvent(event);
 	return TRUE;
 }
@@ -430,6 +438,33 @@ void __cdecl thread(void *args)
 								keep_closed?"(closed DB)":"");
 						}else{
 							SetWindowText(ghstatusbar,"error listing tables");
+						}
+					}
+					else
+						SetWindowText(ghstatusbar,"error refreshing cant acquire tree");
+				}
+				break;
+			case TASK_LIST_PROCS:
+				{
+					int result=FALSE;
+					DB_TREE *db=0;
+					SetWindowText(ghstatusbar,"listing stored procedures");
+					if(acquire_db_tree(localinfo,&db)){
+						if(!mdi_open_db(db)){
+							mdi_remove_db(db);
+							SetWindowText(ghstatusbar,"error opening DB");
+						}
+						else{
+							intelli_add_db(db->name);
+							result=get_proc_list(db);
+							if(keep_closed)
+								close_db(db);
+						}
+						if(result){
+							set_status_bar_text(ghstatusbar,0,"done listing stored procs %s",
+								keep_closed?"(closed DB)":"");
+						}else{
+							SetWindowText(ghstatusbar,"error listing stored procs");
 						}
 					}
 					else

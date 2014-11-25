@@ -7,6 +7,7 @@ enum {
 	CMD_DB_REFRESH_TABLES,
 	CMD_DB_REFRESH_TABLES_ALL,
 	CMD_DB_LIST_TABLES,
+	CMD_DB_LIST_PROCS,
 	CMD_VIEWTABLE,
 	CMD_TABLE_STRUCT,
 	CMD_TABLE_INDEXES,
@@ -223,6 +224,7 @@ int create_treeview_menus()
 		InsertMenu(table_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_DB_REFRESH_TABLES,"Refresh tables (ctrl=all)");
 		InsertMenu(table_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_DB_REFRESH_TABLES_ALL,"Refresh all tables");
 		InsertMenu(table_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_DB_LIST_TABLES,"List tables");
+		InsertMenu(table_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_DB_LIST_PROCS,"List stored procedures");
 		InsertMenu(table_menu,0xFFFFFFFF,MF_BYPOSITION|MF_STRING,CMD_CLOSEDB,"close DB");
 	}
 	return TRUE;
@@ -404,6 +406,16 @@ LRESULT CALLBACK dbview_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 				if(str[0]!=0){
 					task_list_tables(str);
 					printf("list tables\n");
+				}
+			}
+			break;
+		case CMD_DB_LIST_PROCS:
+			{
+				char str[MAX_PATH]={0};
+				tree_get_db_table(TreeView_GetSelection(ghtreeview),str,sizeof(str),0,0,0);
+				if(str[0]!=0){
+					task_list_procs(str);
+					printf("list procs\n");
 				}
 			}
 			break;

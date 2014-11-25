@@ -1275,6 +1275,7 @@ int get_table_list(DB_TREE *tree)
 						char table[256]={0};
 						int print_once=TRUE,len=0;
 						SQLAllocStmt(tree->hdbc,&hpriv);
+						GetAsyncKeyState(VK_ESCAPE);
 						while(!SQLGetData(hstmt,3,SQL_C_CHAR,table,sizeof(table),&len))
 						{
 							char *priv=0;
@@ -1342,6 +1343,98 @@ int get_table_list(DB_TREE *tree)
 					char err[256]={0};
 					get_error_msg(hstmt,SQL_HANDLE_STMT,err,sizeof(err));
 					set_status_bar_text(ghstatusbar,0,"error:SQLForeignKeys:%s",err);
+				}
+				buf[buf_len-1]=0;
+				DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_COL_INFO),tree->htree,col_info_proc,buf);
+				result=TRUE;
+			}
+			if(buf)
+				free(buf);
+		}
+		if(hstmt!=0)
+			SQLFreeStmt(hstmt,SQL_CLOSE);	
+	}
+	else{
+		set_status_bar_text(ghstatusbar,0,"failed to open tree:%s",tree->name);
+	}
+	return result;
+}
+
+int update_tmp_string(char *buf,int buf_len,int *_str_offset,char *str,int last_col)
+{
+	int count,str_offset;
+	str_offset=*_str_offset;
+	count=_snprintf(buf+str_offset,buf_len-str_offset,"%s%c",str,last_col?'\n':'\t');
+	if(count>0)
+		str_offset+=count;
+	*_str_offset=str_offset;
+	return count;
+}
+int get_proc_list(DB_TREE *tree)
+{
+	int result=FALSE;
+	if(tree==0)
+		return result;
+	if(open_db(tree)){
+		HSTMT hstmt=0;
+		if(SQLAllocStmt(tree->hdbc, &hstmt)==SQL_SUCCESS){
+			char *buf=0;
+			int buf_len=0x80000;
+			int str_offset=0;
+			buf=malloc(buf_len);
+			if(buf!=0){
+				{
+					int count;
+					count=_snprintf(buf,buf_len,"Stored Procedures list:%s\n%s",tree->name,"NAME\tNUM_INPUT_PARAMS\tNUM_OUTPUT_PARAMS"
+						"\tNUM_RESULT_SETS\tREMARKS\tPROCEDURE_TYPE\tPROCEDURE_SCHEM\n");
+					if(count>0){
+						str_offset+=count;
+					}
+				}
+				if(SQLProcedures(hstmt,NULL,0,NULL,0,NULL,0)!=SQL_ERROR){
+					if(SQLFetch(hstmt)!=SQL_NO_DATA_FOUND){
+						char str[256]={0};
+						int len=0;
+						GetAsyncKeyState(VK_ESCAPE);
+						while(!SQLGetData(hstmt,3,SQL_C_CHAR,str,sizeof(str),&len))
+						{
+							str[sizeof(str)-1]=0;
+							update_tmp_string(buf,buf_len,&str_offset,str,0);
+							str[0]=0;
+							SQLGetData(hstmt,4,SQL_C_CHAR,str,sizeof(str),&len);
+							str[sizeof(str)-1]=0;
+							update_tmp_string(buf,buf_len,&str_offset,str,0);
+							str[0]=0;
+							SQLGetData(hstmt,5,SQL_C_CHAR,str,sizeof(str),&len);
+							str[sizeof(str)-1]=0;
+							update_tmp_string(buf,buf_len,&str_offset,str,0);
+							str[0]=0;
+							SQLGetData(hstmt,6,SQL_C_CHAR,str,sizeof(str),&len);
+							str[sizeof(str)-1]=0;
+							update_tmp_string(buf,buf_len,&str_offset,str,0);
+							str[0]=0;
+							SQLGetData(hstmt,7,SQL_C_CHAR,str,sizeof(str),&len);
+							str[sizeof(str)-1]=0;
+							update_tmp_string(buf,buf_len,&str_offset,str,0);
+							str[0]=0;
+							SQLGetData(hstmt,8,SQL_C_CHAR,str,sizeof(str),&len);
+							str[sizeof(str)-1]=0;
+							update_tmp_string(buf,buf_len,&str_offset,str,0);
+							str[0]=0;
+							SQLGetData(hstmt,2,SQL_C_CHAR,str,sizeof(str),&len);
+							str[sizeof(str)-1]=0;
+							update_tmp_string(buf,buf_len,&str_offset,str,1);
+
+							SQLFetch(hstmt);
+							if(GetAsyncKeyState(VK_ESCAPE)&0x8001)
+								break;
+						}
+					}
+				}
+				else{
+					char err[256]={0};
+					get_error_msg(hstmt,SQL_HANDLE_STMT,err,sizeof(err));
+					set_status_bar_text(ghstatusbar,0,"error:SQLProcedures:%s",err);
 				}
 				buf[buf_len-1]=0;
 				DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_COL_INFO),tree->htree,col_info_proc,buf);

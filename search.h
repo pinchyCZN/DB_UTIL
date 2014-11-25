@@ -80,7 +80,7 @@ int do_search(TABLE_WINDOW *win,HWND hwnd,char *find,int dir,int col_only,int wh
 
 	if(dir==DOWN){
 		max=ListView_GetItemCount(win->hlistview);
-
+		GetAsyncKeyState(VK_ESCAPE);
 		for(i=last_row;i<max;i++){
 			if((GetTickCount()-tick)>250){
 				tick=GetTickCount();
@@ -133,6 +133,7 @@ int do_search(TABLE_WINDOW *win,HWND hwnd,char *find,int dir,int col_only,int wh
 	}
 	//UP ------------------------------
 	else{
+		GetAsyncKeyState(VK_ESCAPE);
 		for(i=last_row;i>=0;i--){
 			if((GetTickCount()-tick)>250){
 				tick=GetTickCount();
