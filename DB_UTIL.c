@@ -688,6 +688,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 		case IDM_REFRESH_ALL:
 			refresh_all_dialog(hwnd);
 			break;
+		case IDM_REORDER:
+			reorder_win_dialog(hwnd);
+			break;
 		}
 		break;
 	case WM_SIZE:

@@ -72,6 +72,7 @@ BEGIN
     BEGIN
         MENUITEM "Tile",                        IDM_WINDOW_TILE
         MENUITEM "Cascade",                     IDM_WINDOW_CASCADE
+        MENUITEM "Reorder windows",             IDM_REORDER
     END
 END
 
@@ -280,6 +281,7 @@ END
 IDR_ACCELERATOR1 ACCELERATORS DISCARDABLE 
 BEGIN
     "N",            IDM_QUERY,              VIRTKEY, CONTROL, NOINVERT
+    "O",            IDM_REORDER,            VIRTKEY, CONTROL, NOINVERT
     "T",            IDM_WINDOW_CASCADE,     VIRTKEY, CONTROL, NOINVERT
     "T",            IDM_WINDOW_TILE,        VIRTKEY, SHIFT, CONTROL, 
                                                     NOINVERT
