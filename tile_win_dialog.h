@@ -106,13 +106,54 @@ int tile_select_dialog(HWND hwnd)
 {
 	return DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_WINDOW_LIST),hwnd,tile_win_proc,NULL);
 }
-
+static int move_items(HWND hwnd,int delta,int *ypos,int cy)
+{
+	int count;
+	count=SendMessage(hwnd,LB_GETCOUNT,0,0);
+	if(delta!=0 && count>0){
+		int i,move=TRUE;
+		for(i=0;i<count;i++){
+			int state=SendMessage(hwnd,LB_GETSEL,i,0);
+			if(state>0){
+				if(delta<0 && (i+delta)<0){
+					move=FALSE;
+					break;
+				}
+				if(delta>0 && (i+delta)>=count){
+					move=FALSE;
+					break;
+				}
+			}
+		}
+		if(move && ypos){
+			*ypos=cy;
+		}
+		if(move)
+			for(i=delta>0?count-1:0;
+			delta>0?i>=0:i<count;
+			delta>0?i--:i++){
+			int state=SendMessage(hwnd,LB_GETSEL,i,0);
+			if(state>0){
+				char str[512]={0};
+				int data;
+				data=SendMessage(hwnd,LB_GETITEMDATA,i,0);
+				SendMessage(hwnd,LB_GETTEXT,i,str);
+				SendMessage(hwnd,LB_DELETESTRING,i,0);
+				
+				SendMessage(hwnd,LB_INSERTSTRING,i+delta,str);
+				SendMessage(hwnd,LB_SETITEMDATA,i+delta,data);
+				SendMessage(hwnd,LB_SETSEL,TRUE,i+delta);
+			}
+		}
+	}
+	return 0;
+}
 static WNDPROC orig_reorder_listview=0;
 LRESULT APIENTRY sc_reorder_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
 	static int lmb_down=FALSE;
 	static int ypos=0;
-	if(FALSE)
+//	if(FALSE)
 	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE/*&&msg!=WM_MOUSEMOVE*/&&msg!=WM_NCMOUSEMOVE)
 	{
 		static DWORD tick=0;
@@ -122,6 +163,13 @@ LRESULT APIENTRY sc_reorder_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lpa
 		tick=GetTickCount();
 	}
 	switch(msg){
+	case WM_MOUSEWHEEL:
+		{
+			short delta=HIWORD(wparam);
+			delta/=WHEEL_DELTA;
+			move_items(hwnd,-delta,0,0);
+		}
+		break;
 	case WM_MOUSEMOVE:
 		{
 			RECT rect={0};
@@ -131,7 +179,7 @@ LRESULT APIENTRY sc_reorder_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lpa
 			SendMessage(hwnd,LB_GETITEMRECT,0,&rect);
 			height=rect.bottom-rect.top;
 			if(height>0){
-				int count,cy,delta;
+				int cy,delta;
 				cy=HIWORD(lparam);
 				delta=cy-ypos;
 				if(delta>0 && delta<height)
@@ -139,43 +187,7 @@ LRESULT APIENTRY sc_reorder_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lpa
 				if(delta<0 && delta>(-height))
 					break;
 				delta/=height;
-				count=SendMessage(hwnd,LB_GETCOUNT,0,0);
-				if(delta!=0 && count>0){
-					int i,move=TRUE;
-					for(i=0;i<count;i++){
-						int state=SendMessage(hwnd,LB_GETSEL,i,0);
-						if(state>0){
-							if(delta<0 && (i+delta)<0){
-								move=FALSE;
-								break;
-							}
-							if(delta>0 && (i+delta)>=count){
-								move=FALSE;
-								break;
-							}
-						}
-					}
-					if(move){
-						ypos=cy;
-					}
-					if(move)
-						for(i=delta>0?count-1:0;
-						delta>0?i>=0:i<count;
-						delta>0?i--:i++){
-						int state=SendMessage(hwnd,LB_GETSEL,i,0);
-						if(state>0){
-							char str[512]={0};
-							int data;
-							data=SendMessage(hwnd,LB_GETITEMDATA,i,0);
-							SendMessage(hwnd,LB_GETTEXT,i,str);
-							SendMessage(hwnd,LB_DELETESTRING,i,0);
-							
-							SendMessage(hwnd,LB_INSERTSTRING,i+delta,str);
-							SendMessage(hwnd,LB_SETITEMDATA,i+delta,data);
-							SendMessage(hwnd,LB_SETSEL,TRUE,i+delta);
-						}
-					}
-				}
+				move_items(hwnd,delta,&ypos,cy);
 			}
 		}
 		break;
