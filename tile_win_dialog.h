@@ -153,8 +153,8 @@ LRESULT APIENTRY sc_reorder_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lpa
 {
 	static int lmb_down=FALSE;
 	static int ypos=0;
-//	if(FALSE)
-	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE/*&&msg!=WM_MOUSEMOVE*/&&msg!=WM_NCMOUSEMOVE)
+	if(FALSE)
+	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_MOUSEMOVE&&msg!=WM_NCMOUSEMOVE)
 	{
 		static DWORD tick=0;
 		if((GetTickCount()-tick)>500)
@@ -163,6 +163,36 @@ LRESULT APIENTRY sc_reorder_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lpa
 		tick=GetTickCount();
 	}
 	switch(msg){
+	case WM_GETDLGCODE:
+		{
+			MSG *msg=lparam;
+			if(msg && msg->message==WM_CHAR){
+				int key=MapVirtualKey(HIWORD(msg->lParam),1);
+				//diable character selection
+				if(toupper(key)=='A' && (GetKeyState(VK_CONTROL)&0x8000))
+					return 0;
+			}
+		}
+		break;
+	case WM_KEYDOWN:
+		if(LOWORD(wparam)=='A' && (GetKeyState(VK_CONTROL)&0x8000)){
+			int count;
+			count=SendMessage(hwnd,LB_GETCOUNT,0,0);
+			if(count>0){
+				int i,selected=0;
+				for(i=0;i<count;i++){
+					if(0<SendMessage(hwnd,LB_GETSEL,i,0))
+						selected++;
+				}
+				if(selected>=count){
+					SendMessage(hwnd,LB_SELITEMRANGE,FALSE,MAKELPARAM(0,0xFFFF));
+				}else{
+					SendMessage(hwnd,LB_SELITEMRANGE,TRUE,MAKELPARAM(0,0xFFFF));
+				}
+			}
+			return 0;
+		}
+		break;
 	case WM_MOUSEWHEEL:
 		{
 			short delta=HIWORD(wparam);
@@ -214,7 +244,14 @@ LRESULT APIENTRY sc_reorder_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lpa
 static LRESULT CALLBACK reorder_win_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
 	static HWND hgrippy;
-
+	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_MOUSEMOVE&&msg!=WM_NCMOUSEMOVE)
+	{
+		static DWORD tick=0;
+		if((GetTickCount()-tick)>500)
+			printf("--\n");
+		print_msg(msg,lparam,wparam,hwnd);
+		tick=GetTickCount();
+	}
 	switch(msg){
 	case WM_INITDIALOG:
 		init_win_list(hwnd);
@@ -227,6 +264,9 @@ static LRESULT CALLBACK reorder_win_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM
 	case WM_SIZE:
 		grippy_move(hwnd,hgrippy);
 		resize_win_list(hwnd);
+		break;
+	case WM_MOUSEWHEEL:
+		SendDlgItemMessage(hwnd,IDC_LIST1,msg,wparam,lparam);
 		break;
 	case WM_COMMAND:
 		switch(LOWORD(wparam)){
