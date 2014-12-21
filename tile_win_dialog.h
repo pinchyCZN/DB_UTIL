@@ -153,7 +153,7 @@ LRESULT APIENTRY sc_reorder_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lpa
 {
 	static int lmb_down=FALSE;
 	static int ypos=0;
-	if(FALSE)
+	//if(FALSE)
 	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_MOUSEMOVE&&msg!=WM_NCMOUSEMOVE)
 	{
 		static DWORD tick=0;
@@ -221,17 +221,21 @@ LRESULT APIENTRY sc_reorder_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lpa
 			}
 		}
 		break;
+	case WM_LBUTTONDBLCLK:
 	case WM_LBUTTONDOWN:
 		{
-			int ctrl,shift;
-			ctrl=GetKeyState(VK_CONTROL)&0x8000;
-			shift=GetKeyState(VK_SHIFT)&0x8000;
-			if(ctrl || shift)
-				break;
-			lmb_down=TRUE;
-			ypos=HIWORD(lparam);
-			return 0;
-
+			int index;
+			index=SendMessage(hwnd,LB_ITEMFROMPOINT,0,lparam);
+			if(index>=0 && HIWORD(index)==0){
+				if(0==(wparam&(MK_CONTROL|MK_SHIFT))){
+					int sel=SendMessage(hwnd,LB_GETSEL,LOWORD(index),0);
+					if(sel>0){
+						lmb_down=TRUE;
+						ypos=HIWORD(lparam);
+						return 0;
+					}
+				}
+			}
 		}
 		break;
 	case WM_LBUTTONUP:
