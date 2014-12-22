@@ -18,15 +18,15 @@ static int resize_win_list(HWND hwnd)
 static int init_win_list(HWND hwnd)
 {
 	int i;
-	SendDlgItemMessage(hwnd,IDC_LIST1,LB_RESETCONTENT,0,0);
+	SendMessage(hwnd,LB_RESETCONTENT,0,0);
 	for(i=0;i<sizeof(table_windows)/sizeof(TABLE_WINDOW);i++){
 		if(table_windows[i].hwnd!=0){
 			char str[128];
 			int index;
 			_snprintf(str,sizeof(str),"%s - %s",table_windows[i].table,table_windows[i].name);
-			index=SendDlgItemMessage(hwnd,IDC_LIST1,LB_ADDSTRING,0,str);
+			index=SendMessage(hwnd,LB_ADDSTRING,0,str);
 			if(index>=0)
-				SendDlgItemMessage(hwnd,IDC_LIST1,LB_SETITEMDATA,index,i);
+				SendMessage(hwnd,LB_SETITEMDATA,index,i);
 		}
 	}
 	return 0;
@@ -81,7 +81,7 @@ static LRESULT CALLBACK tile_win_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lp
 	static HWND hgrippy;
 	switch(msg){
 	case WM_INITDIALOG:
-		init_win_list(hwnd);
+		init_win_list(GetDlgItem(hwnd,IDC_LIST1));
 		init_win_pos(hwnd);
 		hgrippy=create_grippy(hwnd);
 		break;
@@ -153,7 +153,7 @@ LRESULT APIENTRY sc_reorder_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lpa
 {
 	static int lmb_down=FALSE;
 	static int ypos=0;
-	//if(FALSE)
+	if(FALSE)
 	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_MOUSEMOVE&&msg!=WM_NCMOUSEMOVE)
 	{
 		static DWORD tick=0;
@@ -175,22 +175,29 @@ LRESULT APIENTRY sc_reorder_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lpa
 		}
 		break;
 	case WM_KEYDOWN:
-		if(LOWORD(wparam)=='A' && (GetKeyState(VK_CONTROL)&0x8000)){
-			int count;
-			count=SendMessage(hwnd,LB_GETCOUNT,0,0);
-			if(count>0){
-				int i,selected=0;
-				for(i=0;i<count;i++){
-					if(0<SendMessage(hwnd,LB_GETSEL,i,0))
-						selected++;
+		{
+			int ctrl=GetKeyState(VK_CONTROL)&0x8000;
+			int key=LOWORD(wparam);
+			if(key=='A' && ctrl){
+				int count;
+				count=SendMessage(hwnd,LB_GETCOUNT,0,0);
+				if(count>0){
+					int i,selected=0;
+					for(i=0;i<count;i++){
+						if(0<SendMessage(hwnd,LB_GETSEL,i,0))
+							selected++;
+					}
+					if(selected>=count){
+						SendMessage(hwnd,LB_SELITEMRANGE,FALSE,MAKELPARAM(0,0xFFFF));
+					}else{
+						SendMessage(hwnd,LB_SELITEMRANGE,TRUE,MAKELPARAM(0,0xFFFF));
+					}
 				}
-				if(selected>=count){
-					SendMessage(hwnd,LB_SELITEMRANGE,FALSE,MAKELPARAM(0,0xFFFF));
-				}else{
-					SendMessage(hwnd,LB_SELITEMRANGE,TRUE,MAKELPARAM(0,0xFFFF));
-				}
+				return 0;
 			}
-			return 0;
+			else if(key=='Z' && ctrl){
+				init_win_list(hwnd);
+			}
 		}
 		break;
 	case WM_MOUSEWHEEL:
@@ -248,6 +255,7 @@ LRESULT APIENTRY sc_reorder_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lpa
 static LRESULT CALLBACK reorder_win_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
 	static HWND hgrippy;
+	if(FALSE)
 	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_MOUSEMOVE&&msg!=WM_NCMOUSEMOVE)
 	{
 		static DWORD tick=0;
@@ -258,7 +266,7 @@ static LRESULT CALLBACK reorder_win_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM
 	}
 	switch(msg){
 	case WM_INITDIALOG:
-		init_win_list(hwnd);
+		init_win_list(GetDlgItem(hwnd,IDC_LIST1));
 		init_win_pos(hwnd);
 		hgrippy=create_grippy(hwnd);
 		orig_reorder_listview=SetWindowLong(GetDlgItem(hwnd,IDC_LIST1),GWL_WNDPROC,(LONG)sc_reorder_listview);
@@ -304,7 +312,7 @@ static LRESULT CALLBACK reorder_win_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM
 								tile_windows(hwnd);
 							else
 								mdi_cascade_win_vert();
-							init_win_list(hwnd);
+							init_win_list(GetDlgItem(hwnd,IDC_LIST1));
 							for(i=0;i<count;i++)
 								SendDlgItemMessage(hwnd,IDC_LIST1,LB_SETSEL,buf[i],i);
 							free(buf);
@@ -409,7 +417,7 @@ static LRESULT CALLBACK refresh_all_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM
 
 	switch(msg){
 	case WM_INITDIALOG:
-		init_win_list(hwnd);
+		init_win_list(GetDlgItem(hwnd,IDC_LIST1));
 		init_win_pos(hwnd);
 		hgrippy=create_grippy(hwnd);
 		SendDlgItemMessage(hwnd,IDC_LIST1,LB_SELITEMRANGE,TRUE,MAKELPARAM(0,-1));
