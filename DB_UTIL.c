@@ -94,6 +94,29 @@ int get_nearest_monitor(int x,int y,int width,int height,RECT *rect)
 	}
 	return FALSE;
 }
+int clamp_window_size(int *x,int *y,int *width,int *height,RECT *monitor)
+{
+	int mwidth,mheight;
+	mwidth=monitor->right-monitor->left;
+	mheight=monitor->bottom-monitor->top;
+	if(mwidth<=0)
+		return FALSE;
+	if(mheight<=0)
+		return FALSE;
+	if(*x<monitor->left)
+		*x=monitor->left;
+	if(*width>mwidth)
+		*width=mwidth;
+	if(*x+*width>monitor->right)
+		*x=monitor->right-*width;
+	if(*y<monitor->top)
+		*y=monitor->top;
+	if(*height>mheight)
+		*height=mheight;
+	if(*y+*height>monitor->bottom)
+		*y=monitor->bottom-*height;
+	return TRUE;
+}
 int load_window_size(HWND hwnd,char *section)
 {
 	RECT rect={0};
@@ -108,24 +131,16 @@ int load_window_size(HWND hwnd,char *section)
 		int flags=SWP_SHOWWINDOW;
 		if((GetKeyState(VK_SHIFT)&0x8000)==0){
 			if(width<50 || height<50){
-				int rw,rh;
-				rw=(rect.right-rect.left);
-				rh=(rect.bottom-rect.top);
-				width=rw*3/4;
-				height=rh*3/4;
-				x=rw/8;
-				y=rh/8;
-				if(SetWindowPos(hwnd,HWND_TOP,x,y,width,height,flags)!=0)
-					result=TRUE;
+				RECT tmp={0};
+				GetWindowRect(hwnd,&tmp);
+				width=tmp.right-tmp.left;
+				height=tmp.bottom-tmp.top;
+				flags|=SWP_NOSIZE;
 			}
-			else{
-				if(x>(rect.right-25) || x<(rect.left-25))
-					x=rect.left;
-				if(y<(rect.top-25) || y>(rect.bottom-25))
-					y=rect.top;
-				if(SetWindowPos(hwnd,HWND_TOP,x,y,width,height,flags)!=0)
-					result=TRUE;
-			}
+			if(!clamp_window_size(&x,&y,&width,&height,&rect))
+				flags|=SWP_NOMOVE;
+			if(SetWindowPos(hwnd,HWND_TOP,x,y,width,height,flags)!=0)
+				result=TRUE;
 		}
 	}
 	if(maximized)
