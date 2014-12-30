@@ -369,6 +369,49 @@ int copy_cols_clip(HWND hlistview,int include_header)
 		free(str);
 	return rows_copied;
 }
+int update_sort_col(HWND hlistview,int dir,int column)
+{
+	int i,count;
+	count=lv_get_column_count(hlistview);
+	for(i=0;i<count;i++){
+		WCHAR str[80]={0};
+		LV_COLUMN col={0};
+		int j,len;
+		col.mask=LVCF_TEXT|LVCF_WIDTH;
+		col.pszText=str;
+		col.cchTextMax=sizeof(str)/sizeof(WCHAR);
+		SendMessageW(hlistview,LVM_GETCOLUMNW,i,&col);
+		len=wcslen(col.pszText);
+		{
+			int index=0;
+			for(j=0;j<len;j++){
+				WCHAR c=str[j];
+				if(c==0x25BC || c==0x25B2)
+					c=c;
+				else
+					str[index++]=str[j];
+			}
+			str[index]=0;
+		}
+		if(column==i){
+			int width;
+			if( len<=((sizeof(str)/sizeof(WCHAR))-2) ){
+				str[len+1]=0;
+				for(j=len;j>0;j--){
+					str[j]=str[j-1];
+				}
+				str[0]=dir?0x25BC:0x25B2;
+			}
+			width=get_string_width_wc(hlistview,str,TRUE)+14;
+			if(width>col.cx)
+				col.cx=width;
+		}
+		col.pszText=str;
+		col.cchTextMax=sizeof(str)/sizeof(WCHAR);
+		SendMessageW(hlistview,LVM_SETCOLUMNW,i,&col);
+	}
+	return TRUE;
+}
 int sort_listview(HWND hlistview,int dir,int column)
 {
 	struct find_helper fh;
@@ -376,6 +419,7 @@ int sort_listview(HWND hlistview,int dir,int column)
 	fh.dir=dir;
 	fh.col=column;
 	ListView_SortItems(hlistview,compare_func,&fh);
+	update_sort_col(hlistview,dir,column);
 	return TRUE;
 }
 LRESULT CALLBACK col_info_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)

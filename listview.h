@@ -25,7 +25,7 @@ int get_first_line_len(char *str)
 	}
 	return i;
 }
-int get_str_width(HWND hwnd,char *str)
+int get_string_width_wc(HWND hwnd,char *str,int wide_char)
 {
 	if(hwnd!=0 && str!=0){
 		SIZE size={0};
@@ -38,18 +38,29 @@ int get_str_width(HWND hwnd,char *str)
 			if(hfont!=0){
 				HGDIOBJ hold=0;
 				hold=SelectObject(hdc,hfont);
-				GetTextExtentPoint32(hdc,str,len,&size);
+				if(wide_char)
+					GetTextExtentPoint32W(hdc,str,wcslen(str),&size);
+				else
+					GetTextExtentPoint32(hdc,str,len,&size);
 				if(hold!=0)
 					SelectObject(hdc,hold);
 			}
 			else{
-				GetTextExtentPoint32(hdc,str,len,&size);
+				if(wide_char)
+					GetTextExtentPoint32W(hdc,str,wcslen(str),&size);
+				else
+					GetTextExtentPoint32(hdc,str,len,&size);
 			}
 			ReleaseDC(hwnd,hdc);
 			return size.cx;
 		}
 	}
 	return 0;
+
+}
+int get_str_width(HWND hwnd,char *str)
+{
+	return get_string_width_wc(hwnd,str,FALSE);
 }
 int lv_scroll_column(HWND hlistview,int index)
 {
