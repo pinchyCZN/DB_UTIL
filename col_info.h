@@ -371,7 +371,7 @@ int copy_cols_clip(HWND hlistview,int include_header)
 }
 int update_sort_col(HWND hlistview,int dir,int column)
 {
-	int i,count;
+	int i,count,expanded=0;
 	count=lv_get_column_count(hlistview);
 	for(i=0;i<count;i++){
 		WCHAR str[80]={0};
@@ -403,14 +403,24 @@ int update_sort_col(HWND hlistview,int dir,int column)
 				str[0]=dir?0x25BC:0x25B2;
 			}
 			width=get_string_width_wc(hlistview,str,TRUE)+14;
-			if(width>col.cx)
+			if(width>col.cx){
+				expanded+=width-col.cx;
 				col.cx=width;
+			}
 		}
 		col.pszText=str;
 		col.cchTextMax=sizeof(str)/sizeof(WCHAR);
 		SendMessageW(hlistview,LVM_SETCOLUMNW,i,&col);
 	}
-	return TRUE;
+	if(expanded>0){
+		HWND hparent=GetParent(hlistview);
+		if(hparent){
+			RECT rect={0};
+			GetWindowRect(hparent,&rect);
+			SetWindowPos(hparent,NULL,0,0,rect.right-rect.left+expanded,rect.bottom-rect.top,SWP_NOMOVE|SWP_NOZORDER);
+		}
+	}
+	return expanded;
 }
 int sort_listview(HWND hlistview,int dir,int column)
 {
