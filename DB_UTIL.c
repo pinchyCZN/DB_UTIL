@@ -270,6 +270,7 @@ int add_connect_str(char *connect)
 		out=malloc(max_entries*sizeof(char *));
 		if(entries!=0 && out!=0){
 			int index=0;
+			int dupe=FALSE;
 			for(i=0;i<max_entries;i++){
 				entries[i]=malloc(max_len);
 				if(entries[i]!=0){
@@ -294,6 +295,8 @@ int add_connect_str(char *connect)
 					break;
 				if(entries[i]!=0){
 					if(entries[i][0]=='>'){
+						if(stricmp(entries[i]+1,connect)==0)
+							dupe=TRUE;
 						if(out[index]!=0){
 							if(stricmp(entries[i],connect)!=0){
 								strncpy(out[index],entries[i],max_len);
@@ -303,7 +306,7 @@ int add_connect_str(char *connect)
 					}
 				}
 			}
-			if(connect[0]!='>' && index<max_entries && out[index]!=0){
+			if((!dupe) && connect[0]!='>' && index<max_entries && out[index]!=0){
 				strncpy(out[index],connect,max_len);
 				index++;
 			}
