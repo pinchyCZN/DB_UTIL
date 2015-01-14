@@ -264,6 +264,8 @@ int fetch_columns(SQLHSTMT hstmt,TABLE_WINDOW *win)
 		for(i=0;i<cols;i++){
 			char str[255]={0};
 			SQLColAttribute(hstmt,i+1,SQL_DESC_NAME,str,sizeof(str),NULL,NULL);
+			if(str[0]==0)
+				_snprintf(str,sizeof(str),"(No column name)");
 			if(str[0]!=0){
 				SQLINTEGER sqltype=0,sqllength=0;
 				int *mem=0,width;
