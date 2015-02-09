@@ -432,11 +432,33 @@ int sort_listview(HWND hlistview,int dir,int column)
 	update_sort_col(hlistview,dir,column);
 	return TRUE;
 }
+int seek_parent_col(TABLE_WINDOW *parent_table,HWND hlistview,int sel_row)
+{
+	if(parent_table && hlistview){
+		LV_ITEM item;
+		char str[12]={0};
+		int col;
+		memset(&item,0,sizeof(item));
+		item.mask=LVIF_TEXT;
+		item.iItem=sel_row;
+		item.pszText=str;
+		item.cchTextMax=sizeof(str);
+		item.iSubItem=4;
+		ListView_GetItem(hlistview,&item);
+		col=atoi(str);
+		if(col>=0 && col<parent_table->columns){
+			parent_table->selected_column=col;
+			lv_scroll_column(parent_table->hlistview,col);
+			InvalidateRect(parent_table->hlistview,NULL,TRUE);
+		}
+	}
+}
 LRESULT CALLBACK col_info_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
 	static HWND grippy=0,hlistview=0;
-	static int sort_dir=0;
-
+	static TABLE_WINDOW *parent_table=0;
+	static int sort_dir=0,last_sel_row=0;
+#ifdef _DEBUG
 	if(FALSE)
 	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_MOUSEMOVE&&msg!=WM_NCMOUSEMOVE)
 	{
@@ -447,8 +469,12 @@ LRESULT CALLBACK col_info_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		print_msg(msg,lparam,wparam,hwnd);
 		tick=GetTickCount();
 	}
+#endif
 	switch(msg){
 	case WM_INITDIALOG:
+		parent_table=0;
+		if(lparam)
+			find_win_by_hlistview(lparam,&parent_table);
 		hlistview=CreateWindow(WC_LISTVIEW,"",WS_TABSTOP|WS_CHILD|WS_CLIPSIBLINGS|WS_VISIBLE|LVS_REPORT|LVS_SHOWSELALWAYS,
                                      0,0,
                                      0,0,
@@ -474,6 +500,7 @@ LRESULT CALLBACK col_info_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			NMHDR *nmhdr=lparam;
 			if(lparam==0)
 				break;
+			printf("code=%i\n",nmhdr->code);
 			switch(nmhdr->code){
 			case LVN_KEYDOWN:
 				{
@@ -505,11 +532,26 @@ LRESULT CALLBACK col_info_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 
 				}
 				break;
+			case LVN_ITEMCHANGED:
+				{
+					NMLISTVIEW *nmlv=lparam;
+					last_sel_row=nmlv->iItem;
+				}
+				break;
+			case LVN_ITEMACTIVATE:
+				{
+					NMLISTVIEW *nmlv=lparam;
+					seek_parent_col(parent_table,hlistview,nmlv->iItem);
+				}
+				break;
 			}
 		}
 		break;
 	case WM_COMMAND:
 		switch(LOWORD(wparam)){
+		case IDOK:
+			seek_parent_col(parent_table,hlistview,last_sel_row);
+			break;
 		case IDCANCEL:
 			EndDialog(hwnd,0);
 			break;
