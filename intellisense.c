@@ -17,7 +17,8 @@ enum {
 	MSG_ADD_FIELD,
 	MSG_DEL_DB,
 	MSG_DEL_TABLE,
-	MSG_DEL_FIELD
+	MSG_DEL_FIELD,
+	MSG_ADD_ALL
 };
 typedef struct{
 	char *table;
@@ -692,6 +693,10 @@ void __cdecl intellisense_thread(void)
 					add_field(msg.lParam);
 					free((void*)msg.lParam);
 					break;
+				case MSG_ADD_ALL:
+					add_all(msg.lParam);
+					free((void*)msg.lParam);
+					break;
 				default:
 					if(msg.lParam!=0)
 						free((void*)msg.lParam);
@@ -901,6 +906,68 @@ int add_table(char *str)
 				result=TRUE;
 			else{
 				result=add_table_node(db,table);
+			}
+		}
+	}
+//	dump_db_nodes();
+	return result;
+}
+/*
+format db_name\ntable\nfield\ntable\nfield\n etc..
+*/
+int add_all(char *str)
+{
+	int result=FALSE;
+	char *db_name=0;
+	char *table=0;
+	if(str==0 || str[0]==0)
+		return result;
+	table=strchr(str,'\n');
+	if(table!=0 && table[1]!=0){
+		DB_INFO *db=0;
+		table[0]=0;
+		table++;
+		db_name=str;
+		if(!find_db_node(db_name,&db)){
+			add_db_node(db_name);
+			find_db_node(db_name,&db);
+		}
+		if(db){
+			TABLE_INFO *ti=0;
+			while(find_table(db,table,&ti)){
+				char *field=0;
+				char *next=0;
+				field=strchr(table,'\n');
+				if(field!=0 && field[1]!=0){
+					next=strchr(table,'\n');
+					if(next!=0 && next[1]!=0){
+						next[0]=0;
+					}
+					if(!find_field(ti->fields,field)){
+						char *sptr=0;
+						int len=safe_strlen(ti->fields)+1+strlen(field)+1;
+						sptr=realloc(ti->fields,len);
+						if(sptr!=0){
+							if(ti->fields==0)
+								sptr[0]=0;
+							_snprintf(sptr,len,"%s\n%s",sptr,field);
+							sptr[len-1]=0;
+							ti->fields=sptr;
+							ti->field_count++;
+						}
+					}
+				}
+				else{
+					break;
+				}
+				table=next;
+				if(table!=0 && table[1]!=0){
+					table++;
+				}
+				else{
+					break;
+				}
+				ti=0;
 			}
 		}
 	}
