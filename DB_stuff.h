@@ -1453,7 +1453,50 @@ int get_proc_list(DB_TREE *tree)
 	}
 	return result;
 }
+int intellisense_add_all(TABLE_WINDOW *win)
+{
+	int result=FALSE;
+	if(win!=0 && win->hdbc!=0 && win->hdbenv!=0){
+		int retcode;
+		SQLHSTMT hstmt=0;
+		SQLAllocHandle(SQL_HANDLE_STMT,win->hdbc,&hstmt);
+		if(hstmt!=0){
+			const char *sql="SELECT ";
+			SetWindowText(ghstatusbar,"fetching all table info");
+			set_status_bar_text(ghstatusbar,1,"");
+			retcode=SQLExecDirect(hstmt,sql,SQL_NTS);
+			switch(retcode){
+			case SQL_SUCCESS_WITH_INFO:
+			case SQL_SUCCESS:
+				{
 
+				SQLINTEGER row_count=0;
+				result=TRUE;
+				SQLRowCount(hstmt,&row_count);
+				printf("executed sql sucess\n");
+				}
+				break;
+			case SQL_ERROR:
+				{
+					char msg[SQL_MAX_MESSAGE_LENGTH]={0};
+					get_error_msg(hstmt,SQL_HANDLE_STMT,msg,sizeof(msg));
+					printf("msg=%s\n",msg);
+					SetWindowText(ghstatusbar,"error occured");
+					MessageBox(win->hwnd,msg,"SQL Error",MB_OK);
+				}
+				break;
+			case SQL_NO_DATA:
+				set_status_bar_text(ghstatusbar,1,"no data returned");
+				break;
+			default:
+				set_status_bar_text(ghstatusbar,1,"unhandled return code %i",retcode);
+				break;
+			}
+			SQLFreeStmt(hstmt,SQL_CLOSE);
+		}
+	}
+	return result;
+}
 int assign_db_to_table(DB_TREE *db,TABLE_WINDOW *win,char *table)
 {
 	if(db!=0 && win!=0){

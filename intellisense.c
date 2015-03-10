@@ -469,8 +469,6 @@ static LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		if(win==0)
 			break;
 		switch(wparam){
-		case VK_F5:
-			break;
 		}
 		}
 		break;
@@ -494,6 +492,9 @@ static LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		if(win==0)
 			break;
 		switch(wparam){
+		case VK_F9:
+			task_intellisense_add_all(win);
+			break;
 		case VK_HOME:
 		case VK_END:
 			if(IsWindowVisible(win->hintel)){

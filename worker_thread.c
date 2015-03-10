@@ -29,7 +29,8 @@ enum{
 	TASK_INSERT_ROW,
 	TASK_GET_COL_INFO,
 	TASK_GET_INDEX_INFO,
-	TASK_GET_FOREIGN_KEYS
+	TASK_GET_FOREIGN_KEYS,
+	TASK_INTELLISENSE_ADD_ALL
 };
 int task_open_db(char *name)
 {
@@ -148,7 +149,13 @@ int	task_get_foreign_keys(void *db,char *table)
 	SetEvent(event);
 	return TRUE;
 }
-
+int task_intellisense_add_all(void *win)
+{
+	task=TASK_INTELLISENSE_ADD_ALL;
+	_snprintf(taskinfo,sizeof(taskinfo),"0x%08X",win);
+	SetEvent(event);
+	return TRUE;
+}
 void __cdecl thread(void *args)
 {
 	int id;
@@ -509,6 +516,30 @@ void __cdecl thread(void *args)
 					}
 					set_status_bar_text(ghstatusbar,0,"open table:%s %s %s",
 						table,result?"success":"failed",keep_closed?"(closed DB)":"");
+				}
+				break;
+			case TASK_INTELLISENSE_ADD_ALL:
+				{
+					void *win=0;
+					int result=FALSE;
+					win=strtoul(localinfo,0,0);
+					if(win==0)
+						mdi_get_current_win(&win);
+					if(win!=0){
+						reopen_db(win);
+						mdi_create_abort(win);
+						result=intellisense_add_all(win);
+						mdi_destroy_abort(win);
+						if(keep_closed){
+							void *db=0;
+							acquire_db_tree_from_win(win,&db);
+							close_db(db);
+						}
+						set_focus_after_result(win,FALSE);
+					}
+					if(!result)
+						set_status_bar_text(ghstatusbar,0,"intellisense add all failed %s",
+							keep_closed?"(closed DB)":"");
 				}
 				break;
 			default:
