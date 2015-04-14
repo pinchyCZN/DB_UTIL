@@ -130,21 +130,21 @@ static int move_items(HWND hwnd,int delta,int *ypos,int cy)
 		}
 		if(move)
 			for(i=delta>0?count-1:0;
-			delta>0?i>=0:i<count;
-			delta>0?i--:i++){
-			int state=SendMessage(hwnd,LB_GETSEL,i,0);
-			if(state>0){
-				char str[512]={0};
-				int data;
-				data=SendMessage(hwnd,LB_GETITEMDATA,i,0);
-				SendMessage(hwnd,LB_GETTEXT,i,str);
-				SendMessage(hwnd,LB_DELETESTRING,i,0);
-				
-				SendMessage(hwnd,LB_INSERTSTRING,i+delta,str);
-				SendMessage(hwnd,LB_SETITEMDATA,i+delta,data);
-				SendMessage(hwnd,LB_SETSEL,TRUE,i+delta);
+				delta>0?i>=0:i<count;
+				delta>0?i--:i++){
+				int state=SendMessage(hwnd,LB_GETSEL,i,0);
+				if(state>0){
+					char str[512]={0};
+					int data;
+					data=SendMessage(hwnd,LB_GETITEMDATA,i,0);
+					SendMessage(hwnd,LB_GETTEXT,i,str);
+					SendMessage(hwnd,LB_DELETESTRING,i,0);
+					
+					SendMessage(hwnd,LB_INSERTSTRING,i+delta,str);
+					SendMessage(hwnd,LB_SETITEMDATA,i+delta,data);
+					SendMessage(hwnd,LB_SETSEL,TRUE,i+delta);
+				}
 			}
-		}
 	}
 	return 0;
 }

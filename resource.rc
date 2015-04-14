@@ -72,6 +72,7 @@ BEGIN
     BEGIN
         MENUITEM "Tile",                        IDM_WINDOW_TILE
         MENUITEM "Cascade",                     IDM_WINDOW_CASCADE
+        MENUITEM "Tile LR",                     IDM_WINDOW_LRTILE
         MENUITEM "Reorder windows",             IDM_REORDER
     END
 END
@@ -289,6 +290,7 @@ BEGIN
                                                     NOINVERT
     VK_F5,          IDC_EXECUTE_SQL,        VIRTKEY, NOINVERT
     VK_F5,          IDM_REFRESH_ALL,        VIRTKEY, CONTROL, NOINVERT
+    "Y",            IDM_WINDOW_LRTILE,      VIRTKEY, CONTROL, NOINVERT
 END
 
 
