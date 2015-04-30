@@ -1342,7 +1342,7 @@ int mdi_tile_windows_horo()
 			else
 				x=0;
 			width=rect.right/2;
-			height=rect.bottom;
+			height=rect.bottom-y;
 			if(width<=0 || height<=0)
 				flags|=SWP_NOSIZE;
 			SetWindowPos(win->hwnd,NULL,x,y,width,height,flags);
