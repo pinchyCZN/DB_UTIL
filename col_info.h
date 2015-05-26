@@ -259,10 +259,12 @@ int fit_win_to_data(HWND hlistview,HWND hwnd)
 						y=rect.top;
 						flags=SWP_NOZORDER;
 					}
-					if(height>(nrect.bottom-nrect.top)){
-						height=nrect.bottom-nrect.top;
+					if((height+y)>(nrect.bottom-nrect.top)){
 						x=nrect.left;
 						y=rect.top;
+						height=nrect.bottom-nrect.top-y;
+						if(height<320)
+							height=320;
 						flags=SWP_NOZORDER;
 					}
 				}

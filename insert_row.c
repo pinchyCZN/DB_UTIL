@@ -68,9 +68,16 @@ int populate_insert_dlg(HWND hwnd,HWND hlistview,TABLE_WINDOW *win)
 		}
 		if(total_width>0){
 			int width,height;
-			RECT rect={0};
+			RECT rect={0},irect={0},nrect={0};
+			GetWindowRect(hwnd,&irect);
+			get_nearest_monitor(irect.left,irect.top,total_width,100,&nrect);
 			ListView_GetItemRect(hlistview,0,&rect,LVIR_BOUNDS);
 			height=80+(count*(rect.bottom-rect.top+2));
+			if((irect.top+height)>nrect.bottom){
+				height=nrect.bottom-nrect.top-irect.top;
+				if(height<320)
+					height=320;
+			}
 			width=total_width+20;
 			SetWindowPos(hwnd,NULL,0,0,width,height,SWP_NOMOVE|SWP_NOZORDER);
 		}
@@ -244,6 +251,16 @@ LRESULT CALLBACK insert_dlg_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				case NM_DBLCLK:
 					if(hedit==0 && nmhdr->hwndFrom==hlistview)
 						SendMessage(hwnd,WM_COMMAND,IDOK,0);
+					break;
+				case  LVN_COLUMNCLICK:
+					{
+						static sort_dir=0;
+						NMLISTVIEW *nmlv=lparam;
+						if(nmlv!=0){
+							sort_listview(hlistview,sort_dir,nmlv->iSubItem);
+							sort_dir=!sort_dir;
+						}
+					}
 					break;
 				case LVN_KEYDOWN:
 					if(nmhdr->hwndFrom==hlistview)
