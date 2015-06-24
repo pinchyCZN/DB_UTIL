@@ -392,9 +392,10 @@ void __cdecl thread(void *args)
 					find_selected_tree(&db);
 					if(db!=0){
 						void *win=0;
-						if(acquire_table_window(&win,0)){
+						char *tname="new_query";
+						if(acquire_table_window(&win,tname)){
 							create_table_window(ghmdiclient,win);
-							assign_db_to_table(db,win,"new query");
+							assign_db_to_table(db,win,tname);
 						}
 					}
 				}

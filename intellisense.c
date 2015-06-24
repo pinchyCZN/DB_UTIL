@@ -178,10 +178,21 @@ int handle_intellisense(TABLE_WINDOW *win,char *str,int pos,int mode)
 					cpos=0;
 				SendMessage(win->hedit,EM_POSFROMCHAR,&p,cpos);
 				
-				if(width<100 || width>640)
+				if(width>640){
+					RECT rect={0};
+					GetClientRect(win->hedit,&rect);
+					if(rect.right!=0 && width>rect.right)
+						width=rect.right;
+				}
+				if(width<100)
 					width=100;
-				else
+				else{
+					int sw=GetSystemMetrics(SM_CYVSCROLL);
 					width+=7;
+					if(sw>0){
+						width+=sw*2;
+					}
+				}
 				SetWindowPos(win->hintel,HWND_TOP,p.x,p.y+16,width,200,SWP_SHOWWINDOW);
 			}
 		}
@@ -821,19 +832,25 @@ int add_field(char *str)
 	if(table!=0 && table[0]!=0 && field!=0 && field[0]!=0){
 		DB_INFO *db=0;
 		TABLE_INFO *ti=0;
-		if(find_db_node(db_name,&db) && find_table(db,table,&ti)){
-			if(!find_field(ti->fields,field)){
-				char *sptr=0;
-				int len=safe_strlen(ti->fields)+1+strlen(field)+1;
-				sptr=realloc(ti->fields,len);
-				if(sptr!=0){
-					if(ti->fields==0)
-						sptr[0]=0;
-					_snprintf(sptr,len,"%s\n%s",sptr,field);
-					sptr[len-1]=0;
-					ti->fields=sptr;
-					ti->field_count++;
-					result=TRUE;
+		if(find_db_node(db_name,&db)){
+			if(!find_table(db,table,&ti)){
+				if(add_table_node(db,table))
+					find_table(db,table,&ti);
+			}
+			if(ti!=0){
+				if(!find_field(ti->fields,field)){
+					char *sptr=0;
+					int len=safe_strlen(ti->fields)+1+strlen(field)+1;
+					sptr=realloc(ti->fields,len);
+					if(sptr!=0){
+						if(ti->fields==0)
+							sptr[0]=0;
+						_snprintf(sptr,len,"%s\n%s",sptr,field);
+						sptr[len-1]=0;
+						ti->fields=sptr;
+						ti->field_count++;
+						result=TRUE;
+					}
 				}
 			}
 		}
