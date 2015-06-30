@@ -395,6 +395,7 @@ void __cdecl thread(void *args)
 						char *tname="new_query";
 						if(acquire_table_window(&win,tname)){
 							create_table_window(ghmdiclient,win);
+							set_focus_after_result(win,FALSE);
 							assign_db_to_table(db,win,tname);
 						}
 					}
