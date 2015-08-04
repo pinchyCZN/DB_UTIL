@@ -565,7 +565,8 @@ static LRESULT APIENTRY sc_edit(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 				"{ ts '1998-05-02 01:23:56.123' }\r\n"
 				"{ d '1990-10-02' }\r\n"
 				"{ t '13:33:41' }\r\n"
-				"CALL stored_procedure";
+				"{CALL stored_procedure(arg1)}\r\n"
+				"EXEC stored_proc arg1";
 		MessageBox(hwnd,help,"SQL HELP",MB_OK);
 		}
 		break;

@@ -358,7 +358,7 @@ int fetch_rows(SQLHSTMT hstmt,TABLE_WINDOW *win,int cols,int *aborted)
 				}
 				result=SQLGetData(hstmt,i+1,SQL_C_CHAR,str,sizeof_str,&len);
 				if(f!=0)
-					fprintf(f,"%s%s",str,i==cols-1?"\n----------------------------------------------------\n":",@@@@\n");
+					fprintf(f,"%s,@@@@%s",str,i==cols-1?"\n----------------------------------------------------\n":"\n");
 				if(result==SQL_SUCCESS || result==SQL_SUCCESS_WITH_INFO){
 					extern int trim_trailing;
 					char *s=str;
