@@ -516,8 +516,9 @@ void __cdecl thread(void *args)
 
 						}
 					}
-					set_status_bar_text(ghstatusbar,0,"open table:%s %s %s",
-						table,result?"success":"failed",keep_closed?"(closed DB)":"");
+					if(!result)
+						set_status_bar_text(ghstatusbar,0,"open table:%s %s %s",
+							table,"failed",keep_closed?"(closed DB)":"");
 				}
 				break;
 			case TASK_INTELLISENSE_ADD_ALL:
