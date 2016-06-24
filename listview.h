@@ -733,10 +733,6 @@ int draw_item(DRAWITEMSTRUCT *di,TABLE_WINDOW *win)
 		rect=di->rcItem;
 		rect.left+=xpos;
 		rect.right=rect.left+width;
-		if(rect.right<0)
-			i=i;
-		if(rect.left>client_rect.right)
-			i=i;
 		xpos+=width;
 
 
@@ -778,6 +774,8 @@ int draw_item(DRAWITEMSTRUCT *di,TABLE_WINDOW *win)
 				else
 					style=DT_RIGHT|DT_NOPREFIX;
 
+				rect.left++;
+				rect.right--;
 				DrawText(di->hDC,text,-1,&rect,style);
 			}
 		}
