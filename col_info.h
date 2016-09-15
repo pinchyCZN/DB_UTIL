@@ -426,16 +426,34 @@ int update_sort_col(HWND hlistview,int dir,int column)
 }
 int sort_listview(HWND hlistview,int dir,int column)
 {
+	int result=FALSE;
 	struct find_helper fh;
 	fh.hlistview=hlistview;
 	fh.dir=dir;
 	fh.col=column;
-	ListView_SortItems(hlistview,compare_func,&fh);
-	update_sort_col(hlistview,dir,column);
-	return TRUE;
+	result=ListView_SortItems(hlistview,compare_func,&fh);
+	if(result)
+		update_sort_col(hlistview,dir,column);
+	return result;
+}
+int check_sort_shortcut(WORD key,HWND hlistview,int dir)
+{
+	int result=FALSE;
+	if(0==(GetKeyState(VK_MENU)&0x8000))
+		return result;
+	if(key>='0' && key<='9'){
+		int col=key-'0';
+		if(0==col)
+			col=10;
+		else
+			col--;
+		result=sort_listview(hlistview,dir,col);
+	}
+	return result;
 }
 int seek_parent_col(TABLE_WINDOW *parent_table,HWND hlistview,int sel_row)
 {
+	int result=-1;
 	if(parent_table && hlistview){
 		LV_ITEM item;
 		char str[12]={0};
@@ -452,14 +470,52 @@ int seek_parent_col(TABLE_WINDOW *parent_table,HWND hlistview,int sel_row)
 			parent_table->selected_column=col;
 			lv_scroll_column(parent_table->hlistview,col);
 			InvalidateRect(parent_table->hlistview,NULL,TRUE);
+			result=col;
 		}
 	}
+	return result;
+}
+int kill_timer_tip(HWND hwnd,int *timer_id,HWND *htip)
+{
+	if(htip!=0){
+		destroy_tooltip(*htip);
+		*htip=0;
+	}
+	if(timer_id!=0){
+		KillTimer(hwnd,*timer_id);
+		*timer_id=0;
+	}
+	return TRUE;
+}
+int show_header_tip(HWND hwnd,TABLE_WINDOW *table,int col,int *timer_id,HWND *htip)
+{
+	int result=FALSE;
+	int timer;
+	RECT rect={0};
+	SCROLLINFO si={0};
+	char str[80]={0};
+	if(col<0 || 0==timer_id || 0==table || 0==htip)
+		return result;
+	kill_timer_tip(hwnd,timer_id,htip);
+	timer=*timer_id;
+	lv_get_col_rect(table->hlistview,col,&rect);
+	si.cbSize=sizeof(si);
+	si.fMask=SIF_POS;
+	GetScrollInfo(table->hlistview,SB_HORZ,&si);
+	rect.left-=si.nPos;
+	MapWindowPoints(table->hlistview,NULL,&rect,2);
+	lv_get_col_text(table->hlistview,col,str,sizeof(str));
+	create_tooltip(table->hlistview,str,rect.left,rect.top,htip);
+	timer=SetTimer(hwnd,0xDEAD,700,NULL);
+	*timer_id=timer;
+	return result;
 }
 LRESULT CALLBACK col_info_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
-	static HWND grippy=0,hlistview=0;
+	static HWND grippy=0,hlistview=0,htip=0;
 	static TABLE_WINDOW *parent_table=0;
 	static int sort_dir=0,last_sel_row=0;
+	static int timer_id=0;
 #ifdef _DEBUG
 	if(FALSE)
 	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_MOUSEMOVE&&msg!=WM_NCMOUSEMOVE)
@@ -493,6 +549,19 @@ LRESULT CALLBACK col_info_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		resize_col_info(hwnd);
 		sort_dir=0;
 		break;
+	case WM_HELP:
+		{
+			static int visible=FALSE;
+			if(!visible){
+				visible=TRUE;
+				MessageBox(hwnd,"ALT+num to sort cols","HELP",MB_OK|MB_SYSTEMMODAL);
+				visible=FALSE;
+			}
+		}
+		break;
+	case WM_TIMER:
+		kill_timer_tip(hwnd,&timer_id,&htip);
+		break;
 	case WM_SIZE:
 		resize_col_info(hwnd);
 		grippy_move(hwnd,grippy);
@@ -502,7 +571,6 @@ LRESULT CALLBACK col_info_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			NMHDR *nmhdr=lparam;
 			if(lparam==0)
 				break;
-			printf("code=%i\n",nmhdr->code);
 			switch(nmhdr->code){
 			case LVN_KEYDOWN:
 				{
@@ -521,17 +589,20 @@ LRESULT CALLBACK col_info_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 						break;
 					copy_cols_clip(hlistview,GetKeyState(VK_SHIFT)&0x8000);
 					break;
+				default:
+					if(check_sort_shortcut(lvk->wVKey,hlistview,sort_dir))
+						sort_dir=!sort_dir;
+					break;
 				}
 				}
 				break;
-			case  LVN_COLUMNCLICK:
+			case LVN_COLUMNCLICK:
 				{
 					NMLISTVIEW *nmlv=lparam;
 					if(nmlv!=0){
 						sort_listview(hlistview,sort_dir,nmlv->iSubItem);
 						sort_dir=!sort_dir;
 					}
-
 				}
 				break;
 			case LVN_ITEMCHANGED:
@@ -543,7 +614,9 @@ LRESULT CALLBACK col_info_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			case LVN_ITEMACTIVATE:
 				{
 					NMLISTVIEW *nmlv=lparam;
-					seek_parent_col(parent_table,hlistview,nmlv->iItem);
+					int col;
+					col=seek_parent_col(parent_table,hlistview,nmlv->iItem);
+					show_header_tip(hwnd,parent_table,col,&timer_id,&htip);
 				}
 				break;
 			}
@@ -552,9 +625,14 @@ LRESULT CALLBACK col_info_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 	case WM_COMMAND:
 		switch(LOWORD(wparam)){
 		case IDOK:
-			seek_parent_col(parent_table,hlistview,last_sel_row);
+			{
+				int col;
+				col=seek_parent_col(parent_table,hlistview,last_sel_row);
+				show_header_tip(hwnd,parent_table,col,&timer_id,&htip);
+			}
 			break;
 		case IDCANCEL:
+			kill_timer_tip(hwnd,&timer_id,&htip);
 			EndDialog(hwnd,0);
 			break;
 		}
