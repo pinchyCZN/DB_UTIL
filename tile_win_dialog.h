@@ -252,6 +252,25 @@ LRESULT APIENTRY sc_reorder_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lpa
     return CallWindowProc(orig_reorder_listview,hwnd,msg,wparam,lparam);
 
 }
+
+int clear_memoization()
+{
+	int find_win_by_hedit(HWND hedit,TABLE_WINDOW **win);
+	int find_win_by_hwnd(HWND hwnd,TABLE_WINDOW **win);
+	typedef int (*find_win_ptr)(HWND,TABLE_WINDOW **);
+	find_win_ptr fwin_list[]={
+		find_win_by_hlistview,
+		find_win_by_hwnd,
+		find_win_by_hedit
+	};
+	int i;
+	for(i=0;i<sizeof(fwin_list)/sizeof(find_win_ptr);i++){
+		TABLE_WINDOW *w=0;
+		fwin_list[i](0,&w);
+	}
+	return 0;
+}
+
 static LRESULT CALLBACK reorder_win_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
 	static HWND hgrippy;
@@ -293,6 +312,8 @@ static LRESULT CALLBACK reorder_win_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM
 					if(old_tables){
 						int *buf;
 						memcpy(old_tables,table_windows,sizeof(table_windows));
+						memset(&table_windows,0,sizeof(table_windows));
+						clear_memoization();
 						for(i=0;i<count;i++){
 							int data;
 							data=SendDlgItemMessage(hwnd,IDC_LIST1,LB_GETITEMDATA,i,0);
