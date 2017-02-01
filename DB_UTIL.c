@@ -208,12 +208,13 @@ int set_status_bar_text(HWND hstatus,int part,char *fmt,...)
 	}
 	return FALSE;
 }
+#define MAX_RECENT_ENTRIES 20
 int load_recent(HWND hwnd,int list_ctrl)
 {
 	int i,count=0;
 	const char *section="DATABASES";
 	SendDlgItemMessage(hwnd,list_ctrl,LB_RESETCONTENT,0,0); 
-	for(i=0;i<20;i++){
+	for(i=0;i<MAX_RECENT_ENTRIES;i++){
 		char str[1024]={0};
 		get_ini_entry(section,i,str,sizeof(str));
 		if(str[0]!=0){
@@ -229,7 +230,7 @@ int delete_connect_str(char *connect)
 	int i,result=FALSE;
 	const char *section="DATABASES";
 	if(connect!=0 && connect[0]!=0){
-		for(i=0;i<20;i++){
+		for(i=0;i<MAX_RECENT_ENTRIES;i++){
 			char str[1024]={0};
 			get_ini_entry(section,i,str,sizeof(str));
 			if(str[0]!=0 && stricmp(connect,str)==0){
@@ -255,120 +256,147 @@ int set_ini_entry(char *section,int num,char *str)
 		return delete_ini_key(section,key);
 	return write_ini_str(section,key,str);
 }
-
+int save_entries(HWND hlbox)
+{
+	int i,index,count;
+	const char *section="DATABASES";
+	count=SendMessage(hlbox,LB_GETCOUNT,0,0);
+	index=0;
+	for(i=0;i<count;i++){
+		char str[1024];
+		str[0]=0;
+		SendMessage(hlbox,LB_GETTEXT,i,str);
+		if(str[0]!=0){
+			set_ini_entry(section,index,str);
+			index++;
+		}
+	}
+	for(i=index;i<MAX_RECENT_ENTRIES;i++){
+		set_ini_entry(section,i,"");
+	}
+	return 0;
+}
 int add_connect_str(char *connect)
 {
 	int result=FALSE;
 	const char *section="DATABASES";
-	const int max_entries=20;
+	const int max_entries=MAX_RECENT_ENTRIES;
 	const int max_len=1024;
 
 	if(connect!=0 && connect[0]!=0){
 		int i;
-		char **entries,**out;
-		entries=malloc(max_entries*sizeof(char *));
-		out=malloc(max_entries*sizeof(char *));
-		if(entries!=0 && out!=0){
-			int index=0;
-			int dupe=FALSE;
+		char *entries;
+		entries=calloc(max_entries,max_len);
+		if(entries!=0){
+			int have=FALSE;
+			char *ptr;
 			for(i=0;i<max_entries;i++){
-				entries[i]=malloc(max_len);
-				if(entries[i]!=0){
-					entries[i][0]=0;
-					get_ini_entry(section,i,entries[i],max_len);
-				}
-				out[i]=malloc(max_len);
-				if(out[i]!=0){
-					out[i][0]=0;
-				}
+				char *str=entries+i*max_len;
+				get_ini_entry(section,i,str,max_len);
+				str[max_len-1]=0;
 			}
-			// entries that start with > are meant to stay at the top
-			index=0;
-			if(connect[0]=='>'){
-				if(out[index]!=0){
-					strncpy(out[index],connect,max_len);
-					index++;
-				}
-			}
+			//dont add if exists
+			ptr=connect;
+			if(ptr[0]=='>')
+				ptr++;
 			for(i=0;i<max_entries;i++){
-				if(index>=max_entries)
+				char *src,a;
+				src=entries+i*max_len;
+				a=src[0];
+				if(a=='>')
+					src++;
+				if(stricmp(src,ptr)==0){
+					have=TRUE;
 					break;
-				if(entries[i]!=0){
-					if(entries[i][0]=='>'){
-						if(stricmp(entries[i]+1,connect)==0)
-							dupe=TRUE;
-						if(out[index]!=0){
-							if(stricmp(entries[i],connect)!=0){
-								strncpy(out[index],entries[i],max_len);
-								index++;
-							}
+				}
+			}
+			if(!have){
+				int added=FALSE;
+				for(i=0;i<max_entries;i++){
+					char *str=entries+i*max_len;
+					char a,b;
+					int do_insert=FALSE;
+					a=str[0];
+					b=connect[0];
+					if(b=='>' && a!='>')
+						do_insert=TRUE;
+					else if(b!='>' && a!='>')
+						do_insert=TRUE;
+					if(do_insert){
+						char *src;
+						char *dst;
+						int len,tsize;
+						src=str;
+						dst=str+max_len;
+						tsize=max_entries*max_len;
+						len=tsize-(i+1)*max_len;
+						if(len>0){
+							memmove(dst,src,len);
+							strncpy(str,connect,max_len);
+							str[max_len-1]=0;
+							added=TRUE;
+							break;
 						}
 					}
 				}
-			}
-			if((!dupe) && connect[0]!='>' && index<max_entries && out[index]!=0){
-				strncpy(out[index],connect,max_len);
-				index++;
-			}
-			for(i=0;i<max_entries;i++){
-				if(index>=max_entries)
-					break;
-				if(entries[i]!=0){
-					if(entries[i][0]!='>'){
-						if(stricmp(entries[i],connect)!=0){
-							strncpy(out[index],entries[i],max_len);
+				if(!added){
+					char *dst=entries+(max_entries-1)*max_len;
+					strncpy(dst,connect,max_len);
+					dst[max_len-1]=0;
+					result=TRUE;
+				}
+				{
+					int index=0;
+					for(i=0;i<max_entries;i++){
+						char *str=entries+i*max_len;
+						if(str[0]!=0){
+							set_ini_entry(section,index,str);
 							index++;
 						}
 					}
+					for(i=index;i<max_entries;i++)
+						set_ini_entry(section,i,"");
 				}
-			}
-			index=0;
-			for(i=0;i<max_entries-1;i++){
-				if(out[i]!=0){
-					if(out[i][0]!=0){
-						set_ini_entry(section,index,out[i]);
-						index++;
-					}
-				}
-			}
-			for(i=index;i<max_entries-1;i++){
-				set_ini_entry(section,index,"");
-				index++;
-			}
 
-		}
-		for(i=0;i<max_entries;i++){
-			char **p=entries;
-			if(p!=0)
-				if(p[i]!=0)
-					free(p[i]);
-			p=out;
-			if(p!=0)
-				if(p[i]!=0)
-					free(p[i]);
+			}
 		}
 		if(entries!=0)
 			free(entries);
-		if(out!=0)
-			free(out);
 	}
 	return result;
 }
 
+int move_item(HWND hlbox,int item,int dir)
+{
+	int result=FALSE;
+	int count;
+	char tmp[512];
+	if(item==0 && dir<0)
+		return result;
+	count=SendMessage(hlbox,LB_GETCOUNT,0,0);
+	if(count>=0){
+		if(dir>0 && item>=(count-1))
+			return result;
+	}
+	else
+		return result;
+	count=SendMessage(hlbox,LB_GETTEXTLEN,item,0);
+	if((count+1)>=sizeof(tmp))
+		return result;
+	SendMessage(hlbox,LB_GETTEXT,item,tmp);
+	SendMessage(hlbox,LB_DELETESTRING,item,0);
+	item+=dir;
+	count=SendMessage(hlbox,LB_INSERTSTRING,item,tmp);
+	if(0<=count){
+		SendMessage(hlbox,LB_SETCURSEL,count,0);
+		result=TRUE;
+	}
+	return result;
+}
 
 LRESULT CALLBACK recent_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 {
 	static HWND grippy=0;
-	if(FALSE)
-	//if(msg!=WM_MOUSEFIRST&&msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_NOTIFY)
-	if(msg!=WM_NCHITTEST&&msg!=WM_SETCURSOR&&msg!=WM_ENTERIDLE&&msg!=WM_MOUSEMOVE&&msg!=WM_NCMOUSEMOVE)
-	{
-		static DWORD tick=0;
-		if((GetTickCount()-tick)>500)
-			printf("--\n");
-		print_msg(msg,lparam,wparam,hwnd);
-		tick=GetTickCount();
-	}
 	switch(msg){
 	case WM_INITDIALOG:
 		if(load_recent(hwnd,IDC_LIST1)>0){
@@ -390,11 +418,13 @@ LRESULT CALLBACK recent_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 		break;
 	case WM_VKEYTOITEM:
 		switch(LOWORD(wparam)){
-		case VK_INSERT:
-			{
-				char str[1024]={0};
-				GetDlgItemText(hwnd,IDC_RECENT_EDIT,str,sizeof(str));
-
+		case VK_UP:
+		case VK_DOWN:
+			if(GetKeyState(VK_CONTROL)&0x8000){
+				int key=LOWORD(wparam);
+				if(move_item(lparam,HIWORD(wparam),key==VK_UP?-1:1))
+					save_entries(lparam);
+				return -2;
 			}
 			break;
 		case VK_DELETE:
@@ -413,8 +443,6 @@ LRESULT CALLBACK recent_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 					SendDlgItemMessage(hwnd,IDC_LIST1,LB_SETCURSEL,item,0);
 				}
 			}
-			break;
-		case VK_RETURN:
 			break;
 		}
 		return -1;
