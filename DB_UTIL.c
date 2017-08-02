@@ -8,6 +8,7 @@
 #include <io.h>
 
 #include "resource.h"
+#include "structs.h"
 
 HINSTANCE ghinstance=0;
 HWND ghmainframe=0,ghmdiclient=0,ghdbview=0,ghstatusbar=0;
@@ -512,7 +513,7 @@ LRESULT CALLBACK recent_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 	}
 	return 0;
 }
-char * strstri(char *s1,char *s2)
+const char * strstri(const char *s1,const char *s2)
 {
 	int i,j,k;
 	for(i=0;s1[i];i++)
@@ -548,6 +549,57 @@ int stop_thread_menu(int create)
 	DrawMenuBar(ghmainframe);
 	return 0;
 }
+
+LRESULT CALLBACK textentry_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
+{
+	static TEXT_ENTRY *params=0;
+	switch(msg){
+	case WM_INITDIALOG:
+		{
+			params=lparam;
+			if(params==0 || params->len<=0 || params->data==0)
+				EndDialog(hwnd,FALSE);
+			else{
+				if(params->data[0]!=0)
+					SendDlgItemMessage(hwnd,IDC_EDIT1,WM_SETTEXT,0,params->data);
+				if(params->title!=0)
+					SetWindowText(hwnd,params->title);
+			}
+			SendDlgItemMessage(hwnd,IDC_EDIT1,EM_SETLIMITTEXT,params->len-1,0);
+			SetFocus(GetDlgItem(hwnd,IDC_EDIT1));
+			SendDlgItemMessage(hwnd,IDC_EDIT1,EM_SETSEL,params->len,-1);
+			{
+				RECT rect={0};
+				int x,y;
+				GetWindowRect(ghmdiclient,&rect);
+				x=(rect.left+rect.right)/2;
+				y=(rect.top+rect.bottom)/2;
+				GetWindowRect(hwnd,&rect);
+				x-=(rect.right-rect.left)/2;
+				y-=(rect.bottom-rect.top)/2;
+				SetWindowPos(hwnd,NULL,x,y,0,0,SWP_NOSIZE|SWP_NOZORDER);
+			}
+		}
+		break;
+	case WM_SIZE:
+		break;
+	case WM_COMMAND:
+		switch(LOWORD(wparam)){
+		case IDOK:
+			{
+				SendDlgItemMessage(hwnd,IDC_EDIT1,WM_GETTEXT,params->len,params->data);
+				EndDialog(hwnd,TRUE);
+			}
+			break;
+		case IDCANCEL:
+			EndDialog(hwnd,FALSE);
+			break;
+		}
+		break;
+	}
+	return 0;
+}
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
 	static HWND last_focus=0;
@@ -680,10 +732,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 			if((GetKeyState(VK_SHIFT)&0x8000) || GetKeyState(VK_CONTROL)&0x8000)
 				task_open_db("");
 			else{
-				if(does_key_exist("SOFTWARE\\ODBC\\ODBC.INI\\ODBC Data Sources","Journal"))
-					task_open_db("UID=dba;PWD=sql;DSN=Journal");
-				else
-					task_open_db("");
+				static TEXT_ENTRY param={0};
+				static char connect_str[1024]={0};
+				param.title="Enter connection string";
+				param.data=connect_str;
+				param.len=sizeof(connect_str);
+				if(DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_TEXTENTRY),hwnd,textentry_proc,&param)==TRUE){
+					task_open_db(connect_str);
+				}
 			}
 			break;
 		case IDM_CLOSE:

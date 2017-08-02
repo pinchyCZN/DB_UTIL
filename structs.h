@@ -25,3 +25,9 @@ typedef struct{
 	void *hdbenv;
 	HWND htree,hroot;
 }DB_TREE;
+
+typedef struct{
+	int len;
+	char *data;
+	char *title;
+}TEXT_ENTRY;

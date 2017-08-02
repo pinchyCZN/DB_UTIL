@@ -8,7 +8,7 @@
 #define IDD_RECENT                      106
 #define IDD_SETTINGS                    107
 #define IDD_COL_INFO                    108
-#define IDD_FILENAME                    109
+#define IDD_TEXTENTRY                   109
 #define IDI_ICON                        110
 #define IDD_SEARCH                      111
 #define IDD_INSERT                      112

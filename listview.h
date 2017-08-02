@@ -213,66 +213,6 @@ int export_listview(HWND hwnd,const char *fname)
 	}
 	return result;
 }
-LRESULT CALLBACK filename_proc(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
-{
-	static char *fname=0;
-	switch(msg){
-	case WM_INITDIALOG:
-		{
-			char **params=lparam;
-			if(params==0 || params[0]==0)
-				EndDialog(hwnd,FALSE);
-			else{
-				char str[MAX_PATH]={0};
-				char *s=params[0];
-				fname=params[0];
-				if(fname[0]==0){
-					GetCurrentDirectory(sizeof(str),str);
-					s=str;
-				}
-				SendDlgItemMessage(hwnd,IDC_EDIT1,WM_SETTEXT,0,s);
-				if(params[1]!=0){
-					_snprintf(str,sizeof(str),"Export filename for table [%s]",params[1]);
-					str[sizeof(str)-1]=0;
-					SetWindowText(hwnd,str);
-				}
-			}
-			SendDlgItemMessage(hwnd,IDC_EDIT1,EM_SETLIMITTEXT,MAX_PATH,0);
-			SetFocus(GetDlgItem(hwnd,IDC_EDIT1));
-			SendDlgItemMessage(hwnd,IDC_EDIT1,EM_SETSEL,MAX_PATH,-1);
-			{
-				RECT rect={0};
-				int x,y;
-				GetWindowRect(ghmdiclient,&rect);
-				x=(rect.left+rect.right)/2;
-				y=(rect.top+rect.bottom)/2;
-				GetWindowRect(hwnd,&rect);
-				x-=(rect.right-rect.left)/2;
-				y-=(rect.bottom-rect.top)/2;
-				SetWindowPos(hwnd,NULL,x,y,0,0,SWP_NOSIZE|SWP_NOZORDER);
-			}
-		}
-		break;
-	case WM_SIZE:
-		break;
-	case WM_COMMAND:
-		switch(LOWORD(wparam)){
-		case IDOK:
-			{
-				char str[MAX_PATH]={0};
-				SendDlgItemMessage(hwnd,IDC_EDIT1,WM_GETTEXT,sizeof(str),str);
-				_snprintf(fname,MAX_PATH,"%s",str);
-				EndDialog(hwnd,TRUE);
-			}
-			break;
-		case IDCANCEL:
-			EndDialog(hwnd,FALSE);
-			break;
-		}
-		break;
-	}
-	return 0;
-}
 int insert_col_sql(TABLE_WINDOW *win,char *col)
 {
 	int result=FALSE;
@@ -458,13 +398,21 @@ LRESULT APIENTRY sc_listview(HWND hwnd,UINT msg,WPARAM wparam,LPARAM lparam)
 			break;
 		case CMD_EXPORT_DATA:
 			{
+				extern LRESULT CALLBACK textentry_proc(HWND,UINT,WPARAM,LPARAM);
 				static char fname[MAX_PATH]={0};
-				static char *params[2]={fname,0};
+				static char tmp[80]={0};
+				static TEXT_ENTRY params={0};
 				TABLE_WINDOW *win=0;
-				if(find_win_by_hlistview(hwnd,&win))
-					params[1]=win->table;
-				
-				if(DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_FILENAME),hwnd,filename_proc,params)==TRUE){
+				params.data=fname;
+				params.len=sizeof(fname);
+				params.title=0;
+				if(find_win_by_hlistview(hwnd,&win)){
+					_snprintf(tmp,sizeof(tmp),"Export filename for table %s",win->table);
+					tmp[sizeof(tmp)-1]=0;
+					params.title=tmp;
+				}
+				GetCurrentDirectory(sizeof(fname),fname);
+				if(DialogBoxParam(ghinstance,MAKEINTRESOURCE(IDD_TEXTENTRY),hwnd,textentry_proc,&params)==TRUE){
 					export_listview(hwnd,fname);
 				}
 			}

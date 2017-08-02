@@ -1113,10 +1113,10 @@ int find_selected_tree(DB_TREE **tree)
 	}
 	return FALSE;
 }
-int copy_param(char *str,char *search,char *out,int olen)
+int copy_param(const char *str,const char *search,char *out,int olen)
 {
 	int found=FALSE;
-	char *s;
+	const char *s;
 	s=strstri(str,search);
 	if(s!=0){
 		int i,index,len=strlen(s);
